@@ -12,6 +12,13 @@ interface Props {
 
 export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile }) => {
   const [showModal, setShowModal] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Check if bio is longer than approximately 2-3 lines (around 100 characters)
+  const shouldTruncate = user.bio.length > 100;
+  const displayBio = shouldTruncate && !isExpanded 
+    ? user.bio.substring(0, 100) 
+    : user.bio;
 
   return (
     <>
@@ -34,8 +41,21 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
           
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-lg text-white truncate">{user.name}</h3>
-            {/* Bio directly below name */}
-            <p className="text-gray-300 text-sm mt-1 line-clamp-2">{user.bio}</p>
+            {/* Bio directly below name with read more functionality */}
+            <div className="text-gray-300 text-sm mt-1">
+              <span>{displayBio}</span>
+              {shouldTruncate && (
+                <>
+                  {!isExpanded && <span>...</span>}
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="ml-1 text-gray-500 hover:text-gray-400 transition-colors"
+                  >
+                    {isExpanded ? 'show less' : '+ read more'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
