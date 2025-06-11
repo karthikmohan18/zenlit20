@@ -32,7 +32,6 @@ export const ChatList = ({
       <div className="flex-1 overflow-y-auto">
         {users.map((user) => {
           const latestMessage = getLatestMessage(user.id);
-          const isUnread = latestMessage?.senderId !== selectedUser?.id && !latestMessage?.read;
 
           return (
             <button
@@ -70,9 +69,6 @@ export const ChatList = ({
                       </p>
                     ) : (
                       <p className="text-sm text-gray-500 italic">No messages yet</p>
-                    )}
-                    {isUnread && (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
                     )}
                   </div>
                 </div>

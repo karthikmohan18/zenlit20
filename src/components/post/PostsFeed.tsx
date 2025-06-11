@@ -18,7 +18,6 @@ export const PostsFeed: React.FC<Props> = ({ posts, onUserClick }) => {
               src={post.userDpUrl}
               alt={post.userName}
               size="md"
-              showStatus
               onClick={() => onUserClick?.(post.userId)}
             />
             <div>

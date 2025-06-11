@@ -4,7 +4,6 @@ interface Props {
   src: string;
   alt: string;
   size?: 'sm' | 'md' | 'lg';
-  showStatus?: boolean;
   onClick?: () => void;
 }
 
@@ -12,7 +11,6 @@ export const Avatar: React.FC<Props> = ({
   src,
   alt,
   size = 'md',
-  showStatus = false,
   onClick
 }) => {
   const sizeClasses = {
@@ -36,9 +34,6 @@ export const Avatar: React.FC<Props> = ({
         `}
         onClick={onClick}
       />
-      {showStatus && (
-        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-black" />
-      )}
     </div>
   );
 };

@@ -18,7 +18,6 @@ export const PostsFeed: React.FC<Props> = ({ posts }) => {
                 alt={post.userName}
                 className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500"
               />
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
             </div>
             <div>
               <h3 className="font-semibold text-lg">{post.userName}</h3>

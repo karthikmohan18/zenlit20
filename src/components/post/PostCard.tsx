@@ -15,7 +15,6 @@ export const PostCard: React.FC<Props> = ({ post, onUserClick }) => {
         <Avatar
           src={post.userDpUrl}
           alt={post.userName}
-          showStatus
           onClick={onUserClick}
         />
         <div>

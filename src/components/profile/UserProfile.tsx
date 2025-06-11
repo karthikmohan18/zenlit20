@@ -29,7 +29,6 @@ export const UserProfile: React.FC<Props> = ({ user }) => {
             src={user.dpUrl}
             alt={user.name}
             size="lg"
-            showStatus
           />
           <h1 className="text-2xl font-bold mt-4">{user.name}</h1>
           <p className="text-gray-400 mt-2">{user.bio}</p>

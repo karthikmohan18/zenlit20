@@ -36,7 +36,6 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                   alt={user.name}
                   className="w-16 h-16 rounded-full object-cover ring-2 ring-blue-500"
                 />
-                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900"></div>
               </div>
             </button>
             

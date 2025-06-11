@@ -44,7 +44,6 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
               alt={profileData.name}
               className="w-32 h-32 rounded-full border-4 border-black object-cover shadow-xl"
             />
-            <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-3 border-black"></div>
           </div>
         </div>
       </div>
