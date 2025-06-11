@@ -45,7 +45,7 @@ export const ChatList = ({
               }`}
             >
               <div className="flex items-center gap-3 w-full">
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <img 
                     src={user.dpUrl} 
                     alt={user.name} 
@@ -54,24 +54,28 @@ export const ChatList = ({
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-white truncate">{user.name}</h3>
-                  {latestMessage && (
-                    <p className="text-sm text-gray-400 truncate">
-                      {latestMessage.content.length > 30 
-                        ? `${latestMessage.content.substring(0, 30)}...` 
-                        : latestMessage.content}
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {latestMessage && (
-                    <p className="text-sm text-gray-500">
-                      {format(new Date(latestMessage.timestamp), 'HH:mm')}
-                    </p>
-                  )}
-                  {isUnread && (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                  )}
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-semibold text-white truncate">{user.name}</h3>
+                    {latestMessage && (
+                      <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                        {format(new Date(latestMessage.timestamp), 'HH:mm')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    {latestMessage ? (
+                      <p className="text-sm text-gray-400 truncate pr-2">
+                        {latestMessage.content.length > 35 
+                          ? `${latestMessage.content.substring(0, 35)}...` 
+                          : latestMessage.content}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">No messages yet</p>
+                    )}
+                    {isUnread && (
+                      <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                    )}
+                  </div>
                 </div>
               </div>
             </button>
