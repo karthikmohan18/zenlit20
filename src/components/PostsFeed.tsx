@@ -1,6 +1,5 @@
 import React from 'react';
 import { Post } from '../types';
-import { format } from 'date-fns';
 
 interface Props {
   posts: Post[];
@@ -31,12 +30,6 @@ export const PostsFeed: React.FC<Props> = ({ posts }) => {
           />
           
           <div className="p-3">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-gray-400 text-sm">
-                {format(new Date(post.timestamp), 'MMM d, yyyy')}
-              </p>
-            </div>
-            <h4 className="font-semibold mb-2">{post.title}</h4>
             <p className="text-gray-200">{post.caption}</p>
           </div>
         </div>
