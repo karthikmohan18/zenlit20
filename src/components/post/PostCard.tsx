@@ -19,7 +19,7 @@ export const PostCard: React.FC<Props> = ({ post, onUserClick }) => {
           alt={post.userName}
           className="w-8 h-8 rounded-full object-cover"
         />
-        <h3 className="font-medium text-sm">{post.userName}</h3>
+        <h3 className="font-medium text-base">{post.userName}</h3>
       </button>
       
       <img
