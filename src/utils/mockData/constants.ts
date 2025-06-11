@@ -15,44 +15,51 @@ export const lastNames = [
 
 export const bios = {
   male: [
-    'Tech enthusiast & developer 💻',
-    'Adventure seeker | Climber 🏔️',
-    'Photographer 📸',
-    'Fitness trainer 💪',
+    'Tech enthusiast & software developer 💻',
+    'Adventure seeker | Mountain climber 🏔️',
+    'Professional photographer 📸',
+    'Fitness trainer & nutrition expert 💪',
     'Music producer & DJ 🎵',
-    'Startup founder 🚀',
-    'Sports fanatic ⚽',
-    'Coffee lover ☕'
+    'Startup founder | Tech entrepreneur 🚀',
+    'Sports fanatic ⚽ | Gym lover 🏋️‍♂️',
+    'Coffee connoisseur ☕ | Food explorer 🍜',
+    'Travel vlogger ✈️ | Content creator 🎥',
+    'Gamer & streamer 🎮 | Tech reviewer 📱'
   ],
   female: [
-    'Digital artist 🎨',
-    'Yoga instructor 🧘‍♀️',
-    'Fashion blogger 👗',
-    'Food photographer 📸',
-    'Dance instructor 💃',
-    'Interior designer 🏠',
-    'Travel photographer 🌎',
-    'Tech entrepreneur 🎤'
+    'Digital artist & illustrator 🎨',
+    'Yoga instructor & wellness coach 🧘‍♀️',
+    'Fashion blogger | Style consultant 👗',
+    'Food photographer & recipe developer 📸',
+    'Dance instructor & choreographer 💃',
+    'Interior designer & DIY enthusiast 🏠',
+    'Beauty & lifestyle content creator ✨',
+    'Fitness model & personal trainer 💪',
+    'Travel photographer & adventurer 🌎',
+    'Tech entrepreneur & public speaker 🎤'
   ]
 };
 
 export const interests = [
   'Photography', 'Travel', 'Fitness', 'Music', 'Art', 'Technology', 'Food', 'Fashion',
-  'Sports', 'Reading', 'Gaming', 'Movies', 'Dancing', 'Hiking', 'Cooking', 'Yoga'
+  'Sports', 'Reading', 'Gaming', 'Movies', 'Dancing', 'Hiking', 'Cooking', 'Yoga',
+  'Writing', 'Pets', 'Nature', 'Coffee'
 ];
 
 export const locations = [
-  'New York', 'Los Angeles', 'Chicago', 'San Francisco', 'Miami', 'Seattle',
-  'Boston', 'Austin', 'Denver', 'Portland'
+  'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia',
+  'San Antonio', 'San Diego', 'Dallas', 'San Jose'
 ];
 
 export const postCaptions = [
   'Living my best life! 🌟',
-  'Another beautiful day 🌅',
+  'Another beautiful day in paradise 🌅',
   'Can\'t beat this view 😍',
   'Weekend vibes 🎉',
   'Making memories 📸',
   'Adventure awaits 🌎',
-  'Good times 🥰',
-  'Living in the moment ✨'
+  'Good times with great people 🥰',
+  'Living in the moment ✨',
+  'Blessed and grateful 🙏',
+  'Dreams do come true 💫'
 ];
