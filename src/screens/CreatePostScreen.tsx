@@ -48,7 +48,7 @@ export const CreatePostScreen: React.FC = () => {
           <img
             src="https://i.pravatar.cc/300?img=default"
             alt="Your profile"
-            className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500"
+            className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500"
           />
           <div>
             <h3 className="font-semibold text-white">Alex Johnson</h3>
@@ -118,22 +118,6 @@ export const CreatePostScreen: React.FC = () => {
 
         {/* Additional Options */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 bg-gray-900 rounded-xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="text-white font-medium">Add location</span>
-            </div>
-            <button className="text-gray-400 hover:text-white transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-
           <div className="flex items-center justify-between p-4 bg-gray-900 rounded-xl">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">

@@ -14,7 +14,7 @@ export const Avatar: React.FC<Props> = ({
   onClick
 }) => {
   const sizeClasses = {
-    sm: 'w-8 h-8',
+    sm: 'w-10 h-10',
     md: 'w-12 h-12',
     lg: 'w-16 h-16'
   };

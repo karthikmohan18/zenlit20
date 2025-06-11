@@ -59,7 +59,7 @@ export const ChatWindow = ({
             <img 
               src={user.dpUrl} 
               alt={user.name} 
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500 mr-3"
+              className="w-9 h-9 rounded-full object-cover ring-2 ring-blue-500 mr-3"
             />
             <div className="text-left">
               <h3 className="font-semibold text-white">{user.name}</h3>

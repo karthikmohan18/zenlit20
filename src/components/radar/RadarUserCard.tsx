@@ -34,7 +34,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 <img
                   src={user.dpUrl}
                   alt={user.name}
-                  className="w-16 h-16 rounded-full object-cover ring-2 ring-blue-500"
+                  className="w-14 h-14 rounded-full object-cover ring-2 ring-blue-500"
                 />
               </div>
             </button>
@@ -73,7 +73,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors active:scale-95"
               >
-                <IconBrandX size={32} />
+                <IconBrandX size={28} />
               </a>
               <a
                 href={user.links.Instagram}
@@ -81,7 +81,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors active:scale-95"
               >
-                <IconBrandInstagram size={32} />
+                <IconBrandInstagram size={28} />
               </a>
               <a
                 href={user.links.LinkedIn}
@@ -89,7 +89,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors active:scale-95"
               >
-                <IconBrandLinkedin size={32} />
+                <IconBrandLinkedin size={28} />
               </a>
             </div>
 
@@ -100,14 +100,14 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 className="bg-gray-700 text-white px-4 py-3 rounded-xl hover:bg-gray-600 active:scale-95 transition-all"
                 title="View full profile"
               >
-                <UserIcon className="w-6 h-6" />
+                <UserIcon className="w-5 h-5" />
               </button>
               <button
                 onClick={() => onMessage(user)}
                 className="bg-blue-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 active:scale-95 transition-all"
                 title="Send message"
               >
-                <ChatBubbleLeftIcon className="w-6 h-6" />
+                <ChatBubbleLeftIcon className="w-5 h-5" />
               </button>
             </div>
           </div>

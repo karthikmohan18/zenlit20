@@ -48,7 +48,7 @@ export const ChatList = ({
                   <img 
                     src={user.dpUrl} 
                     alt={user.name} 
-                    className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500"
+                    className="w-11 h-11 rounded-full object-cover ring-2 ring-blue-500"
                   />
                 </div>
                 <div className="flex-1 min-w-0">

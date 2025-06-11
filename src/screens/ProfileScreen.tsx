@@ -42,14 +42,14 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
             <img
               src={profileData.dpUrl}
               alt={profileData.name}
-              className="w-32 h-32 rounded-full border-4 border-black object-cover shadow-xl"
+              className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
             />
           </div>
         </div>
       </div>
 
       {/* Profile Content */}
-      <div className="mt-20 px-4 pb-8">
+      <div className="mt-16 px-4 pb-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white">{profileData.name}</h1>
           <p className="text-gray-300 mt-2 text-base leading-relaxed">{profileData.bio}</p>

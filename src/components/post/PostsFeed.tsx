@@ -10,21 +10,18 @@ interface Props {
 
 export const PostsFeed: React.FC<Props> = ({ posts, onUserClick }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {posts.map((post) => (
         <div key={post.id} className="bg-gray-900 rounded-lg overflow-hidden">
-          <div className="p-4 flex items-center space-x-3">
+          <div className="p-3 flex items-center space-x-3">
             <Avatar
               src={post.userDpUrl}
               alt={post.userName}
-              size="md"
+              size="sm"
               onClick={() => onUserClick?.(post.userId)}
             />
             <div>
-              <h3 className="font-semibold">{post.userName}</h3>
-              {post.location && (
-                <p className="text-sm text-gray-400">{post.location}</p>
-              )}
+              <h3 className="font-semibold text-base">{post.userName}</h3>
             </div>
           </div>
 
@@ -34,7 +31,7 @@ export const PostsFeed: React.FC<Props> = ({ posts, onUserClick }) => {
             className="w-full aspect-video object-cover"
           />
 
-          <div className="p-4">
+          <div className="p-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-400">
                 {format(new Date(post.timestamp), 'MMM d, yyyy')}

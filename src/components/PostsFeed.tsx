@@ -8,22 +8,19 @@ interface Props {
 
 export const PostsFeed: React.FC<Props> = ({ posts }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {posts.map((post) => (
         <div key={post.id} className="bg-gray-900 rounded-lg overflow-hidden">
-          <div className="p-4 flex items-center space-x-3">
+          <div className="p-3 flex items-center space-x-3">
             <div className="relative">
               <img
                 src={post.userDpUrl}
                 alt={post.userName}
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500"
               />
             </div>
             <div>
-              <h3 className="font-semibold text-lg">{post.userName}</h3>
-              {post.location && (
-                <p className="text-gray-400 text-sm">{post.location}</p>
-              )}
+              <h3 className="font-semibold text-base">{post.userName}</h3>
             </div>
           </div>
           
@@ -33,7 +30,7 @@ export const PostsFeed: React.FC<Props> = ({ posts }) => {
             className="w-full aspect-video object-cover"
           />
           
-          <div className="p-4">
+          <div className="p-3">
             <div className="flex items-center justify-between mb-2">
               <p className="text-gray-400 text-sm">
                 {format(new Date(post.timestamp), 'MMM d, yyyy')}
