@@ -7,27 +7,18 @@ interface Props {
   userGender: 'male' | 'female';
   onNavigate: (tab: string) => void;
   onViewProfile: (user: User) => void;
-  onMessageUser?: (user: User) => void;
 }
 
 export const RadarScreen: React.FC<Props> = ({ 
   userGender, 
   onNavigate, 
-  onViewProfile, 
-  onMessageUser 
+  onViewProfile
 }) => {
   const users = userGender === 'male' ? mockUsers.female : mockUsers.male;
 
   const handleViewProfile = (user: User) => {
     onViewProfile(user);
     onNavigate('profile');
-  };
-
-  const handleMessage = (user: User) => {
-    if (onMessageUser) {
-      onMessageUser(user);
-    }
-    onNavigate('messages');
   };
 
   return (
@@ -46,7 +37,6 @@ export const RadarScreen: React.FC<Props> = ({
           <RadarUserCard
             key={user.id}
             user={user}
-            onMessage={handleMessage}
             onViewProfile={() => handleViewProfile(user)}
           />
         ))}
