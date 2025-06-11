@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { CameraIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 export const CreatePostScreen: React.FC = () => {
   const [caption, setCaption] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const handlePost = () => {
     if (!selectedMedia && !caption.trim()) {
@@ -17,14 +21,106 @@ export const CreatePostScreen: React.FC = () => {
     setSelectedMedia(null);
   };
 
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }, // Use back camera on mobile
+        audio: false
+      });
+      
+      setStream(mediaStream);
+      setShowCamera(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Unable to access camera. Please check permissions.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0);
+        
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setSelectedMedia(imageDataUrl);
+        stopCamera();
+      }
+    }
+  };
+
   const handleMediaSelect = (type: 'camera' | 'gallery') => {
-    // Simulate media selection
-    setSelectedMedia(`https://picsum.photos/800/600?random=${Date.now()}`);
+    if (type === 'camera') {
+      startCamera();
+    } else {
+      // Simulate gallery selection
+      setSelectedMedia(`https://picsum.photos/800/600?random=${Date.now()}`);
+    }
   };
 
   const removeMedia = () => {
     setSelectedMedia(null);
   };
+
+  // Camera Preview Component
+  if (showCamera) {
+    return (
+      <div className="h-full bg-black flex flex-col">
+        {/* Camera Header */}
+        <div className="flex items-center justify-between p-4 bg-black/80 backdrop-blur-sm">
+          <button
+            onClick={stopCamera}
+            className="text-white p-2 rounded-full hover:bg-gray-800 active:scale-95 transition-all"
+          >
+            <XMarkIcon className="w-6 h-6" />
+          </button>
+          <h1 className="text-lg font-semibold text-white">Take Photo</h1>
+          <div className="w-10" /> {/* Spacer */}
+        </div>
+
+        {/* Camera Preview */}
+        <div className="flex-1 relative overflow-hidden">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
+          
+          {/* Camera Controls */}
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center">
+            <button
+              onClick={capturePhoto}
+              className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 hover:border-gray-400 active:scale-95 transition-all shadow-lg"
+            >
+              <div className="w-full h-full bg-white rounded-full" />
+            </button>
+          </div>
+        </div>
+
+        {/* Hidden canvas for photo capture */}
+        <canvas ref={canvasRef} className="hidden" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-black overflow-y-auto">
