@@ -8,6 +8,7 @@ export const CreatePostScreen: React.FC = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePost = () => {
     if (!selectedMedia && !caption.trim()) {
@@ -66,12 +67,31 @@ export const CreatePostScreen: React.FC = () => {
     }
   };
 
+  const openGallery = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check if it's an image
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setSelectedMedia(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please select an image file');
+      }
+    }
+  };
+
   const handleMediaSelect = (type: 'camera' | 'gallery') => {
     if (type === 'camera') {
       startCamera();
     } else {
-      // Simulate gallery selection
-      setSelectedMedia(`https://picsum.photos/800/600?random=${Date.now()}`);
+      openGallery();
     }
   };
 
@@ -210,6 +230,15 @@ export const CreatePostScreen: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Hidden file input for gallery selection */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
       </div>
     </div>
   );
