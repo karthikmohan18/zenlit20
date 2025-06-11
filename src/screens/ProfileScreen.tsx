@@ -88,17 +88,12 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
           <h2 className="text-xl font-semibold mb-6 text-white">Media</h2>
           <div className="grid grid-cols-3 gap-1">
             {Array.from({ length: 9 }).map((_, index) => (
-              <div key={index} className="aspect-square relative group">
+              <div key={index} className="aspect-square">
                 <img
                   src={`https://picsum.photos/400/400?random=${profileData.id}-${index}`}
                   alt={`Media ${index + 1}`}
                   className="w-full h-full object-cover rounded-lg"
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-300 flex items-center justify-center rounded-lg">
-                  <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium active:scale-95 transform transition-transform">
-                    View
-                  </button>
-                </div>
               </div>
             ))}
           </div>
