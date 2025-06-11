@@ -6,7 +6,6 @@ import {
   lastNames,
   bios,
   interests,
-  locations,
   postCaptions
 } from './mockData/constants';
 
@@ -66,7 +65,6 @@ export function generatePosts(user: User): Post[] {
     title: `Post by ${user.name}`,
     mediaUrl: `https://picsum.photos/800/600?random=${nanoid()}`,
     caption: postCaptions[Math.floor(Math.random() * postCaptions.length)],
-    timestamp: new Date().toISOString(),
-    location: locations[Math.floor(Math.random() * locations.length)]
+    timestamp: new Date().toISOString()
   }));
 }

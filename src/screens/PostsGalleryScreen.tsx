@@ -78,9 +78,6 @@ export const PostsGalleryScreen: React.FC<Props> = ({ user, posts, onBack, onUse
                 {/* Post Content */}
                 <div className="p-4">
                   <p className="text-gray-200 leading-relaxed">{post.caption}</p>
-                  {post.location && (
-                    <p className="text-gray-400 text-sm mt-2">📍 {post.location}</p>
-                  )}
                 </div>
               </div>
             ))}

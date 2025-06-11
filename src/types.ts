@@ -23,7 +23,6 @@ export interface Post {
   mediaUrl: string;
   caption: string;
   timestamp: string;
-  location?: string;
 }
 
 export interface Message {

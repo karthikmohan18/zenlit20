@@ -36,8 +36,7 @@ export const CreatePostScreen: React.FC = () => {
       title: `Post by ${defaultCurrentUser.name}`,
       mediaUrl: selectedMedia || `https://picsum.photos/800/600?random=${generateId()}`,
       caption: caption.trim() || 'New post from Sonar!',
-      timestamp: new Date().toISOString(),
-      location: defaultCurrentUser.location
+      timestamp: new Date().toISOString()
     };
     
     // Add to current user's posts (latest first)

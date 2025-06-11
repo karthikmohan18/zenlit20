@@ -49,11 +49,6 @@ const interests = [
   'Writing', 'Pets', 'Nature', 'Coffee'
 ];
 
-const locations = [
-  'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia',
-  'San Antonio', 'San Diego', 'Dallas', 'San Jose'
-];
-
 function generateUser(gender: 'male' | 'female', index: number): User {
   const id = generateId();
   const firstName = gender === 'male' 
@@ -120,8 +115,7 @@ export function generatePosts(users: User[]): Post[] {
       title: `Post by ${user.name}`,
       mediaUrl: `https://picsum.photos/800/450?random=${generateId()}`,
       caption: postCaptions[Math.floor(Math.random() * postCaptions.length)],
-      timestamp: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-      location: locations[Math.floor(Math.random() * locations.length)]
+      timestamp: new Date(Date.now() - Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)).toISOString()
     };
   });
 }

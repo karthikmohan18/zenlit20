@@ -31,5 +31,4 @@ export interface Post {
   mediaUrl: string;
   caption: string;
   timestamp: string;
-  location?: string;
 }

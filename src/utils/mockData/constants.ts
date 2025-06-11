@@ -46,11 +46,6 @@ export const interests = [
   'Writing', 'Pets', 'Nature', 'Coffee'
 ];
 
-export const locations = [
-  'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix', 'Philadelphia',
-  'San Antonio', 'San Diego', 'Dallas', 'San Jose'
-];
-
 export const postCaptions = [
   'Living my best life! 🌟',
   'Another beautiful day in paradise 🌅',
