@@ -34,28 +34,10 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
           
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-lg text-white truncate">{user.name}</h3>
+            {/* Bio directly below name */}
+            <p className="text-gray-300 text-sm mt-1 line-clamp-2">{user.bio}</p>
           </div>
         </div>
-
-        {/* Interests */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          {user.interests.slice(0, 3).map((interest) => (
-            <span
-              key={interest}
-              className="px-3 py-1 bg-blue-900/50 rounded-full text-xs text-blue-200 border border-blue-800/30"
-            >
-              {interest}
-            </span>
-          ))}
-          {user.interests.length > 3 && (
-            <span className="px-3 py-1 bg-gray-800 rounded-full text-xs text-gray-400">
-              +{user.interests.length - 3} more
-            </span>
-          )}
-        </div>
-
-        {/* Bio */}
-        <p className="text-gray-300 text-sm mb-4 line-clamp-2">{user.bio}</p>
 
         {/* Bottom section: Social Links and Action Buttons */}
         <div className="flex items-center justify-between">
@@ -67,7 +49,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-white transition-colors active:scale-95"
             >
-              <IconBrandX size={22} />
+              <IconBrandX size={28} />
             </a>
             <a
               href={user.links.Instagram}
@@ -75,7 +57,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-white transition-colors active:scale-95"
             >
-              <IconBrandInstagram size={22} />
+              <IconBrandInstagram size={28} />
             </a>
             <a
               href={user.links.LinkedIn}
@@ -83,25 +65,25 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
               rel="noopener noreferrer"
               className="text-gray-400 hover:text-white transition-colors active:scale-95"
             >
-              <IconBrandLinkedin size={22} />
+              <IconBrandLinkedin size={28} />
             </a>
           </div>
 
-          {/* Action Buttons - Right side */}
+          {/* Action Buttons - Right side (Profile first, then Chat) */}
           <div className="flex gap-2">
             <button
-              onClick={() => onMessage(user)}
-              className="bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 active:scale-95 transition-all"
-              title="Send message"
-            >
-              <ChatBubbleLeftIcon className="w-5 h-5" />
-            </button>
-            <button
               onClick={onViewProfile}
-              className="bg-gray-700 text-white p-2.5 rounded-full hover:bg-gray-600 active:scale-95 transition-all"
+              className="bg-gray-700 text-white p-3 rounded-full hover:bg-gray-600 active:scale-95 transition-all"
               title="View full profile"
             >
-              <UserIcon className="w-5 h-5" />
+              <UserIcon className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => onMessage(user)}
+              className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 active:scale-95 transition-all"
+              title="Send message"
+            >
+              <ChatBubbleLeftIcon className="w-6 h-6" />
             </button>
           </div>
         </div>
