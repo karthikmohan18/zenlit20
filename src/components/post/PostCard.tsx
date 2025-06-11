@@ -10,17 +10,20 @@ interface Props {
 export const PostCard: React.FC<Props> = ({ post, onUserClick }) => {
   return (
     <div className="bg-gray-900 rounded-lg overflow-hidden">
-      <div className="p-3 flex items-center space-x-3">
+      {/* Clickable header area */}
+      <button
+        onClick={onUserClick}
+        className="w-full p-3 flex items-center space-x-3 hover:bg-gray-800 active:bg-gray-700 transition-colors text-left"
+      >
         <Avatar
           src={post.userDpUrl}
           alt={post.userName}
           size="sm"
-          onClick={onUserClick}
         />
         <div>
           <h3 className="font-semibold text-base">{post.userName}</h3>
         </div>
-      </div>
+      </button>
       
       <img
         src={post.mediaUrl}
