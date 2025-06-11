@@ -50,9 +50,6 @@ export const PostsGalleryScreen: React.FC<Props> = ({ user, onBack, onUserClick 
               />
               <div>
                 <h3 className="font-semibold text-white">{post.userName}</h3>
-                {post.location && (
-                  <p className="text-sm text-gray-400">{post.location}</p>
-                )}
               </div>
             </button>
 
