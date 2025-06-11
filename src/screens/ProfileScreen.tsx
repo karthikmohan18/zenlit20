@@ -53,21 +53,6 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white">{profileData.name}</h1>
           <p className="text-gray-300 mt-2 text-base leading-relaxed">{profileData.bio}</p>
-          <p className="text-gray-400 text-sm mt-2">
-            {profileData.age} years • {profileData.distance}m away
-          </p>
-          
-          {/* Interests */}
-          <div className="flex flex-wrap justify-center gap-2 mt-6">
-            {profileData.interests.map((interest) => (
-              <span
-                key={interest}
-                className="px-4 py-2 bg-blue-900/50 rounded-full text-sm text-blue-200 border border-blue-800/30"
-              >
-                {interest}
-              </span>
-            ))}
-          </div>
           
           {/* Social Links */}
           <div className="flex justify-center gap-8 mt-8">

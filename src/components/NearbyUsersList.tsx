@@ -18,12 +18,8 @@ export const NearbyUsersList: React.FC<Props> = ({ users }) => {
                 className="w-full h-full rounded-full object-cover"
               />
             </div>
-            <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>
           </div>
           <h3 className="text-xs font-semibold mt-2 text-center truncate">{user.name}</h3>
-          <p className="text-xs text-gray-400 text-center truncate">
-            {user.distance}m away
-          </p>
         </div>
       ))}
     </div>

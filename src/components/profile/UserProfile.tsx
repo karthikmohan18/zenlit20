@@ -32,21 +32,6 @@ export const UserProfile: React.FC<Props> = ({ user }) => {
           />
           <h1 className="text-2xl font-bold mt-4">{user.name}</h1>
           <p className="text-gray-400 mt-2">{user.bio}</p>
-          <p className="text-gray-500 text-sm mt-1">
-            {user.age} years • {user.distance}m away
-          </p>
-          
-          {/* Interests */}
-          <div className="flex flex-wrap justify-center gap-2 mt-4">
-            {user.interests.map((interest) => (
-              <span
-                key={interest}
-                className="px-3 py-1 bg-blue-900/50 rounded-full text-sm text-blue-200"
-              >
-                {interest}
-              </span>
-            ))}
-          </div>
           
           {/* Social Links */}
           <div className="mt-6">
