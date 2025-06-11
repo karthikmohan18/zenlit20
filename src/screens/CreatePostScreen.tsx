@@ -1,25 +1,56 @@
 import React, { useState, useRef } from 'react';
-import { CameraIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { defaultCurrentUser, addPostToCurrentUser } from '../data/mockData';
+import { generateId } from '../utils/generateId';
+import { Post } from '../types';
 
 export const CreatePostScreen: React.FC = () => {
   const [caption, setCaption] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!selectedMedia && !caption.trim()) {
       alert('Please add some content to your post');
       return;
     }
     
-    // Placeholder for post creation logic
-    alert('Post created successfully!');
-    setCaption('');
-    setSelectedMedia(null);
+    setIsPosting(true);
+    
+    // Simulate posting delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Create new post
+    const newPost: Post = {
+      id: generateId(),
+      userId: defaultCurrentUser.id,
+      userName: defaultCurrentUser.name,
+      userDpUrl: defaultCurrentUser.dpUrl,
+      title: `Post by ${defaultCurrentUser.name}`,
+      mediaUrl: selectedMedia || `https://picsum.photos/800/600?random=${generateId()}`,
+      caption: caption.trim() || 'New post from Sonar!',
+      timestamp: new Date().toISOString(),
+      location: defaultCurrentUser.location
+    };
+    
+    // Add to current user's posts (latest first)
+    addPostToCurrentUser(newPost);
+    
+    setIsPosting(false);
+    setShowSuccess(true);
+    
+    // Reset form after success animation
+    setTimeout(() => {
+      setCaption('');
+      setSelectedMedia(null);
+      setShowSuccess(false);
+    }, 2000);
   };
 
   const startCamera = async () => {
@@ -99,6 +130,21 @@ export const CreatePostScreen: React.FC = () => {
     setSelectedMedia(null);
   };
 
+  // Success Animation Component
+  if (showSuccess) {
+    return (
+      <div className="h-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <CheckIcon className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Post Shared!</h2>
+          <p className="text-gray-400">Your post has been added to your profile</p>
+        </div>
+      </div>
+    );
+  }
+
   // Camera Preview Component
   if (showCamera) {
     return (
@@ -150,10 +196,17 @@ export const CreatePostScreen: React.FC = () => {
           <h1 className="text-xl font-bold text-white">Create Post</h1>
           <button
             onClick={handlePost}
-            className="bg-blue-600 text-white px-6 py-2 rounded-full font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed"
-            disabled={!selectedMedia && !caption.trim()}
+            disabled={(!selectedMedia && !caption.trim()) || isPosting}
+            className="bg-blue-600 text-white px-6 py-2 rounded-full font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Share
+            {isPosting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Sharing...
+              </>
+            ) : (
+              'Share'
+            )}
           </button>
         </div>
       </div>
@@ -162,12 +215,12 @@ export const CreatePostScreen: React.FC = () => {
         {/* User Info */}
         <div className="flex items-center space-x-3">
           <img
-            src="https://i.pravatar.cc/300?img=default"
+            src={defaultCurrentUser.dpUrl}
             alt="Your profile"
             className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500"
           />
           <div>
-            <h3 className="font-semibold text-white">Alex Johnson</h3>
+            <h3 className="font-semibold text-white">{defaultCurrentUser.name}</h3>
           </div>
         </div>
 

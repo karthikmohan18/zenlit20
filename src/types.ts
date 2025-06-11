@@ -39,6 +39,7 @@ export interface Media {
   id: string;
   mediaUrl: string;
   caption?: string;
+  timestamp: string;
 }
 
 export interface CurrentUser extends User {
@@ -47,4 +48,5 @@ export interface CurrentUser extends User {
   location: string;
   media: Media[];
   messages: Message[];
+  posts: Post[];
 }

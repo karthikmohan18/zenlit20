@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import { defaultCurrentUser } from '../data/mockData';
+import { defaultCurrentUser, getCurrentUserPosts } from '../data/mockData';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { PostsGalleryScreen } from './PostsGalleryScreen';
@@ -13,6 +13,10 @@ interface Props {
 export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
   const [showPostsGallery, setShowPostsGallery] = useState(false);
   const profileData = user || defaultCurrentUser;
+  const isCurrentUser = !user || user.id === defaultCurrentUser.id;
+  
+  // Get current user's posts if viewing own profile
+  const userPosts = isCurrentUser ? getCurrentUserPosts() : [];
 
   const handleMediaClick = () => {
     setShowPostsGallery(true);
@@ -26,6 +30,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
     return (
       <PostsGalleryScreen
         user={profileData}
+        posts={userPosts}
         onBack={handleBackFromGallery}
         onUserClick={() => {}} // Since we're already viewing this user's profile
       />
@@ -103,24 +108,64 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
           </div>
         </div>
         
-        {/* Media Grid */}
+        {/* Posts Section */}
         <div className="mt-10">
-          <h2 className="text-xl font-semibold mb-6 text-white">Media</h2>
-          <div className="grid grid-cols-3 gap-1">
-            {Array.from({ length: 9 }).map((_, index) => (
-              <button
-                key={index}
-                onClick={handleMediaClick}
-                className="aspect-square active:scale-95 transition-transform"
-              >
-                <img
-                  src={`https://picsum.photos/400/400?random=${profileData.id}-${index}`}
-                  alt={`Media ${index + 1}`}
-                  className="w-full h-full object-cover rounded-lg"
-                />
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-white">
+              {isCurrentUser ? 'My Posts' : 'Posts'}
+            </h2>
+            {isCurrentUser && userPosts.length > 0 && (
+              <span className="text-sm text-gray-400">
+                {userPosts.length} post{userPosts.length !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
+          
+          {/* Posts Grid */}
+          {isCurrentUser && userPosts.length > 0 ? (
+            <div className="grid grid-cols-3 gap-1">
+              {userPosts.slice(0, 9).map((post) => (
+                <button
+                  key={post.id}
+                  onClick={handleMediaClick}
+                  className="aspect-square active:scale-95 transition-transform relative group"
+                >
+                  <img
+                    src={post.mediaUrl}
+                    alt={post.caption}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 rounded-lg" />
+                </button>
+              ))}
+            </div>
+          ) : isCurrentUser ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <p className="text-gray-400 mb-2">No posts yet</p>
+              <p className="text-gray-500 text-sm">Share your first post to get started!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1">
+              {Array.from({ length: 9 }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={handleMediaClick}
+                  className="aspect-square active:scale-95 transition-transform"
+                >
+                  <img
+                    src={`https://picsum.photos/400/400?random=${profileData.id}-${index}`}
+                    alt={`Media ${index + 1}`}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
