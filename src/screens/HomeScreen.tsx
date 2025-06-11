@@ -37,8 +37,8 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
 
   return (
     <div className="h-full bg-black overflow-y-auto">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-sm border-b border-gray-800">
+      {/* Header - Now scrolls with content */}
+      <div className="bg-black border-b border-gray-800">
         <div className="px-4 py-3">
           <h1 className="text-xl font-bold text-white">Sonar</h1>
         </div>
