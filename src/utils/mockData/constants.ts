@@ -27,7 +27,7 @@ export const bios = {
     'Gamer & streamer 🎮 | Tech reviewer 📱'
   ],
   female: [
-    'Digital artist & illustrator 🎨',
+    'Digital artist & illustrator 🎨,Digital artist & illustrator 🎨,Digital artist & illustrator 🎨',
     'Yoga instructor & wellness coach 🧘‍♀️',
     'Fashion blogger | Style consultant 👗',
     'Food photographer & recipe developer 📸',
