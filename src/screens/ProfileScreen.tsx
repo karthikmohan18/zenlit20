@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from '../types';
 import { defaultCurrentUser } from '../data/mockData';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { PostsGalleryScreen } from './PostsGalleryScreen';
 
 interface Props {
   user?: User | null;
@@ -10,7 +11,26 @@ interface Props {
 }
 
 export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
+  const [showPostsGallery, setShowPostsGallery] = useState(false);
   const profileData = user || defaultCurrentUser;
+
+  const handleMediaClick = () => {
+    setShowPostsGallery(true);
+  };
+
+  const handleBackFromGallery = () => {
+    setShowPostsGallery(false);
+  };
+
+  if (showPostsGallery) {
+    return (
+      <PostsGalleryScreen
+        user={profileData}
+        onBack={handleBackFromGallery}
+        onUserClick={() => {}} // Since we're already viewing this user's profile
+      />
+    );
+  }
 
   return (
     <div className="h-full bg-black overflow-y-auto">
@@ -88,13 +108,17 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
           <h2 className="text-xl font-semibold mb-6 text-white">Media</h2>
           <div className="grid grid-cols-3 gap-1">
             {Array.from({ length: 9 }).map((_, index) => (
-              <div key={index} className="aspect-square">
+              <button
+                key={index}
+                onClick={handleMediaClick}
+                className="aspect-square active:scale-95 transition-transform"
+              >
                 <img
                   src={`https://picsum.photos/400/400?random=${profileData.id}-${index}`}
                   alt={`Media ${index + 1}`}
                   className="w-full h-full object-cover rounded-lg"
                 />
-              </div>
+              </button>
             ))}
           </div>
         </div>
