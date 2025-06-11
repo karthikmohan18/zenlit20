@@ -22,11 +22,15 @@ export const ChatList = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-4 py-3 bg-white border-b">
-        <h2 className="text-lg font-semibold">Messages</h2>
+    <div className="flex flex-col h-full bg-black">
+      {/* Header with native dark colors */}
+      <div className="px-4 py-3 bg-black border-b border-gray-800">
+        <h2 className="text-xl font-bold text-white">Messages</h2>
+        <p className="text-sm text-gray-400 mt-1">Connect with people nearby</p>
       </div>
-      <div className="flex-1 overflow-y-auto space-y-2">
+      
+      {/* Chat List */}
+      <div className="flex-1 overflow-y-auto">
         {users.map((user) => {
           const latestMessage = getLatestMessage(user.id);
           const isUnread = latestMessage?.senderId !== selectedUser?.id && !latestMessage?.read;
@@ -35,10 +39,10 @@ export const ChatList = ({
             <button
               key={user.id}
               onClick={() => onSelectUser(user)}
-              className={`flex items-center px-4 py-3 ${
+              className={`flex items-center px-4 py-3 w-full text-left transition-colors ${
                 selectedUser?.id === user.id 
-                  ? 'bg-blue-50' 
-                  : 'hover:bg-gray-50'
+                  ? 'bg-gray-800' 
+                  : 'hover:bg-gray-900'
               }`}
             >
               <div className="flex items-center gap-3 w-full">
@@ -46,14 +50,14 @@ export const ChatList = ({
                   <img 
                     src={user.dpUrl} 
                     alt={user.name} 
-                    className="w-12 h-12 rounded-full"
+                    className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500"
                   />
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black" />
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold">{user.name}</h3>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-white truncate">{user.name}</h3>
                   {latestMessage && (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-400 truncate">
                       {latestMessage.content.length > 30 
                         ? `${latestMessage.content.substring(0, 30)}...` 
                         : latestMessage.content}
