@@ -52,7 +52,6 @@ export const CreatePostScreen: React.FC = () => {
           />
           <div>
             <h3 className="font-semibold text-white">Alex Johnson</h3>
-            <p className="text-sm text-gray-400">Sharing to everyone</p>
           </div>
         </div>
 
