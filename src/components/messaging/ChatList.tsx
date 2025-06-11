@@ -51,7 +51,6 @@ export const ChatList = ({
                     alt={user.name} 
                     className="w-12 h-12 rounded-full object-cover ring-2 ring-blue-500"
                   />
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
