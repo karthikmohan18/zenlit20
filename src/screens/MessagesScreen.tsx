@@ -6,16 +6,30 @@ import { User, Message } from '../types';
 import { generateMessages } from '../data/mockData';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
-export const MessagesScreen: React.FC = () => {
+interface Props {
+  selectedUser?: User | null;
+  onClearSelectedUser?: () => void;
+}
+
+export const MessagesScreen: React.FC<Props> = ({ 
+  selectedUser: initialSelectedUser, 
+  onClearSelectedUser 
+}) => {
   const [currentUserId] = useState<string>('current-user-id');
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
+  const [selectedUser, setSelectedUser] = useState<User | undefined>(initialSelectedUser || undefined);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
     setAllUsers([...mockMaleUsers.slice(0, 10), ...mockFemaleUsers.slice(0, 10)]);
   }, []);
+
+  useEffect(() => {
+    if (initialSelectedUser) {
+      setSelectedUser(initialSelectedUser);
+    }
+  }, [initialSelectedUser]);
 
   useEffect(() => {
     if (selectedUser) {
@@ -41,10 +55,16 @@ export const MessagesScreen: React.FC = () => {
 
   const handleSelectUser = (user: User) => {
     setSelectedUser(user);
+    if (onClearSelectedUser) {
+      onClearSelectedUser();
+    }
   };
 
   const handleBackToList = () => {
     setSelectedUser(undefined);
+    if (onClearSelectedUser) {
+      onClearSelectedUser();
+    }
   };
 
   return (

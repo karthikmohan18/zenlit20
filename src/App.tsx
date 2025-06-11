@@ -13,9 +13,14 @@ export default function App() {
   const [userGender] = useState<'male' | 'female'>('male');
   const [activeTab, setActiveTab] = useState('home');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
 
   const handleLogin = () => {
     setIsLoggedIn(true);
+  };
+
+  const handleMessageUser = (user: User) => {
+    setSelectedChatUser(user);
   };
 
   if (!isLoggedIn) {
@@ -33,11 +38,17 @@ export default function App() {
             <RadarScreen 
               userGender={userGender} 
               onNavigate={setActiveTab}
-              onViewProfile={setSelectedUser} 
+              onViewProfile={setSelectedUser}
+              onMessageUser={handleMessageUser}
             />
           )}
           {activeTab === 'create' && <CreatePostScreen />}
-          {activeTab === 'messages' && <MessagesScreen />}
+          {activeTab === 'messages' && (
+            <MessagesScreen 
+              selectedUser={selectedChatUser}
+              onClearSelectedUser={() => setSelectedChatUser(null)}
+            />
+          )}
           {activeTab === 'profile' && (
             <ProfileScreen 
               user={selectedUser} 

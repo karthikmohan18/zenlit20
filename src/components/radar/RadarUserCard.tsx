@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
+import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { UserProfileModal } from './UserProfileModal';
 
 interface Props {
   user: User;
-  onMessage: () => void;
+  onMessage: (user: User) => void;
   onViewProfile: () => void;
 }
 
@@ -39,10 +40,11 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 </p>
               </div>
               <button
-                onClick={onMessage}
-                className="ml-3 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 active:scale-95 transition-all flex-shrink-0"
+                onClick={() => onMessage(user)}
+                className="ml-3 bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 active:scale-95 transition-all flex-shrink-0"
+                title="Send message"
               >
-                Message
+                <ChatBubbleLeftIcon className="w-5 h-5" />
               </button>
             </div>
             
