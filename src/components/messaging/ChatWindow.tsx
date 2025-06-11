@@ -28,6 +28,21 @@ export const ChatWindow = ({
 
   return (
     <div className="h-full flex flex-col bg-black">
+      {/* Pinned Chat Header */}
+      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-gray-800">
+        <div className="flex items-center px-4 py-3">
+          <img 
+            src={user.dpUrl} 
+            alt={user.name} 
+            className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500 mr-3"
+          />
+          <div>
+            <h3 className="font-semibold text-white">{user.name}</h3>
+            <p className="text-xs text-gray-400">Active now</p>
+          </div>
+        </div>
+      </div>
+
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
