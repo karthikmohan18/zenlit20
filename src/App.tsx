@@ -23,6 +23,11 @@ export default function App() {
     setSelectedChatUser(user);
   };
 
+  const handleViewProfile = (user: User) => {
+    setSelectedUser(user);
+    setActiveTab('profile');
+  };
+
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
   }
@@ -47,6 +52,7 @@ export default function App() {
             <MessagesScreen 
               selectedUser={selectedChatUser}
               onClearSelectedUser={() => setSelectedChatUser(null)}
+              onViewProfile={handleViewProfile}
             />
           )}
           {activeTab === 'profile' && (

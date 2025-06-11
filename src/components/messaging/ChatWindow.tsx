@@ -10,6 +10,7 @@ interface ChatWindowProps {
   onSendMessage: (content: string) => void;
   currentUserId: string;
   onBack?: () => void;
+  onViewProfile?: (user: User) => void;
 }
 
 export const ChatWindow = ({ 
@@ -17,7 +18,8 @@ export const ChatWindow = ({
   messages, 
   onSendMessage, 
   currentUserId,
-  onBack
+  onBack,
+  onViewProfile
 }: ChatWindowProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +30,12 @@ export const ChatWindow = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleProfileClick = () => {
+    if (onViewProfile) {
+      onViewProfile(user);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-black">
@@ -42,15 +50,22 @@ export const ChatWindow = ({
               <ChevronLeftIcon className="w-5 h-5 text-white" />
             </button>
           )}
-          <img 
-            src={user.dpUrl} 
-            alt={user.name} 
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500 mr-3"
-          />
-          <div>
-            <h3 className="font-semibold text-white">{user.name}</h3>
-            <p className="text-xs text-gray-400">Active now</p>
-          </div>
+          
+          {/* Clickable profile area */}
+          <button
+            onClick={handleProfileClick}
+            className="flex items-center flex-1 hover:bg-gray-800/50 rounded-lg p-2 -m-2 transition-colors active:scale-95"
+          >
+            <img 
+              src={user.dpUrl} 
+              alt={user.name} 
+              className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500 mr-3"
+            />
+            <div className="text-left">
+              <h3 className="font-semibold text-white">{user.name}</h3>
+              <p className="text-xs text-gray-400">Active now</p>
+            </div>
+          </button>
         </div>
       </div>
 

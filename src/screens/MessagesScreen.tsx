@@ -8,11 +8,13 @@ import { generateMessages } from '../data/mockData';
 interface Props {
   selectedUser?: User | null;
   onClearSelectedUser?: () => void;
+  onViewProfile?: (user: User) => void;
 }
 
 export const MessagesScreen: React.FC<Props> = ({ 
   selectedUser: initialSelectedUser, 
-  onClearSelectedUser 
+  onClearSelectedUser,
+  onViewProfile
 }) => {
   const [currentUserId] = useState<string>('current-user-id');
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -96,6 +98,7 @@ export const MessagesScreen: React.FC<Props> = ({
                 onSendMessage={handleSendMessage}
                 currentUserId={currentUserId}
                 onBack={handleBackToList}
+                onViewProfile={onViewProfile}
               />
             </div>
           )}
@@ -119,6 +122,7 @@ export const MessagesScreen: React.FC<Props> = ({
                 onSendMessage={handleSendMessage}
                 currentUserId={currentUserId}
                 onBack={isMobile ? handleBackToList : undefined}
+                onViewProfile={onViewProfile}
               />
             ) : (
               <div className="flex items-center justify-center h-full">
