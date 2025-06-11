@@ -61,34 +61,6 @@ export const CreatePostScreen: React.FC = () => {
             </span>
           </div>
         </div>
-
-        {/* Privacy Settings */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
-            Who can see this post?
-          </label>
-          <div className="space-y-2">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="privacy"
-                value="public"
-                defaultChecked
-                className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 focus:ring-blue-500"
-              />
-              <span className="ml-3 text-white">Everyone</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="privacy"
-                value="nearby"
-                className="w-4 h-4 text-blue-600 bg-gray-800 border-gray-600 focus:ring-blue-500"
-              />
-              <span className="ml-3 text-white">People nearby</span>
-            </label>
-          </div>
-        </div>
       </div>
     </div>
   );
