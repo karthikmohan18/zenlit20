@@ -4,7 +4,6 @@ import { ChatList } from '../components/messaging/ChatList';
 import { ChatWindow } from '../components/messaging/ChatWindow';
 import { User, Message } from '../types';
 import { generateMessages } from '../data/mockData';
-import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
 interface Props {
   selectedUser?: User | null;
@@ -82,35 +81,14 @@ export const MessagesScreen: React.FC<Props> = ({
               />
             </div>
           ) : (
-            <div className="w-full flex flex-col">
-              {/* Mobile Chat Header with Back Button */}
-              <div className="flex items-center px-4 py-3 bg-gray-900 border-b border-gray-800">
-                <button
-                  onClick={handleBackToList}
-                  className="mr-3 p-2 rounded-full hover:bg-gray-800 active:scale-95 transition-transform"
-                >
-                  <ChevronLeftIcon className="w-5 h-5 text-white" />
-                </button>
-                <img 
-                  src={selectedUser.dpUrl} 
-                  alt={selectedUser.name} 
-                  className="w-8 h-8 rounded-full mr-3"
-                />
-                <div>
-                  <h3 className="font-semibold text-white">{selectedUser.name}</h3>
-                  <p className="text-xs text-gray-400">Active now</p>
-                </div>
-              </div>
-              
-              {/* Chat Content */}
-              <div className="flex-1">
-                <ChatWindow
-                  user={selectedUser}
-                  messages={messages}
-                  onSendMessage={handleSendMessage}
-                  currentUserId={currentUserId}
-                />
-              </div>
+            <div className="w-full">
+              <ChatWindow
+                user={selectedUser}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                currentUserId={currentUserId}
+                onBack={handleBackToList}
+              />
             </div>
           )}
         </>
@@ -132,6 +110,7 @@ export const MessagesScreen: React.FC<Props> = ({
                 messages={messages}
                 onSendMessage={handleSendMessage}
                 currentUserId={currentUserId}
+                onBack={isMobile ? handleBackToList : undefined}
               />
             ) : (
               <div className="flex items-center justify-center h-full">

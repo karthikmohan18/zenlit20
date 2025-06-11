@@ -2,19 +2,22 @@ import { useState, useEffect, useRef } from 'react';
 import { Message, User } from '../../types';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
+import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
 interface ChatWindowProps {
   user: User;
   messages: Message[];
   onSendMessage: (content: string) => void;
   currentUserId: string;
+  onBack?: () => void;
 }
 
 export const ChatWindow = ({ 
   user, 
   messages, 
   onSendMessage, 
-  currentUserId 
+  currentUserId,
+  onBack
 }: ChatWindowProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -28,9 +31,17 @@ export const ChatWindow = ({
 
   return (
     <div className="h-full flex flex-col bg-black">
-      {/* Pinned Chat Header */}
+      {/* Pinned Chat Header with Back Button */}
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-gray-800">
         <div className="flex items-center px-4 py-3">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="mr-3 p-2 rounded-full hover:bg-gray-800 active:scale-95 transition-all"
+            >
+              <ChevronLeftIcon className="w-5 h-5 text-white" />
+            </button>
+          )}
           <img 
             src={user.dpUrl} 
             alt={user.name} 
