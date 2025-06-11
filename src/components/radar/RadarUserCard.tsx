@@ -35,9 +35,6 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
             <div className="flex items-start justify-between mb-2">
               <div className="min-w-0 flex-1">
                 <h3 className="font-semibold text-lg text-white truncate">{user.name}</h3>
-                <p className="text-gray-400 text-sm">
-                  {user.age} y/o • {user.distance}m away
-                </p>
               </div>
               <button
                 onClick={() => onMessage(user)}
