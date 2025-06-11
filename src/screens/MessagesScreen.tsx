@@ -17,12 +17,19 @@ export const MessagesScreen: React.FC<Props> = ({
   const [currentUserId] = useState<string>('current-user-id');
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(initialSelectedUser || undefined);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [isMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    setAllUsers([...mockMaleUsers.slice(0, 10), ...mockFemaleUsers.slice(0, 10)]);
-  }, []);
+    const users = [...mockMaleUsers.slice(0, 10), ...mockFemaleUsers.slice(0, 10)];
+    setAllUsers(users);
+    
+    // Generate messages for all users upfront
+    const messagesForAllUsers = users.flatMap(user => 
+      generateMessages(currentUserId, [user])
+    );
+    setAllMessages(messagesForAllUsers);
+  }, [currentUserId]);
 
   useEffect(() => {
     if (initialSelectedUser) {
@@ -30,12 +37,11 @@ export const MessagesScreen: React.FC<Props> = ({
     }
   }, [initialSelectedUser]);
 
-  useEffect(() => {
-    if (selectedUser) {
-      const userMessages = generateMessages(currentUserId, [selectedUser]);
-      setMessages(userMessages);
-    }
-  }, [selectedUser, currentUserId]);
+  const getMessagesForUser = (userId: string): Message[] => {
+    return allMessages.filter(msg => 
+      msg.senderId === userId || msg.receiverId === userId
+    );
+  };
 
   const handleSendMessage = (content: string) => {
     if (!selectedUser) return;
@@ -49,7 +55,7 @@ export const MessagesScreen: React.FC<Props> = ({
       read: false
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    setAllMessages(prev => [...prev, newMessage]);
   };
 
   const handleSelectUser = (user: User) => {
@@ -66,6 +72,8 @@ export const MessagesScreen: React.FC<Props> = ({
     }
   };
 
+  const selectedUserMessages = selectedUser ? getMessagesForUser(selectedUser.id) : [];
+
   return (
     <div className="h-full bg-black flex">
       {/* Mobile: Show either chat list or chat window */}
@@ -75,7 +83,7 @@ export const MessagesScreen: React.FC<Props> = ({
             <div className="w-full">
               <ChatList
                 users={allUsers}
-                messages={messages}
+                messages={allMessages}
                 selectedUser={selectedUser}
                 onSelectUser={handleSelectUser}
               />
@@ -84,7 +92,7 @@ export const MessagesScreen: React.FC<Props> = ({
             <div className="w-full">
               <ChatWindow
                 user={selectedUser}
-                messages={messages}
+                messages={selectedUserMessages}
                 onSendMessage={handleSendMessage}
                 currentUserId={currentUserId}
                 onBack={handleBackToList}
@@ -98,7 +106,7 @@ export const MessagesScreen: React.FC<Props> = ({
           <div className="w-80 border-r border-gray-800">
             <ChatList
               users={allUsers}
-              messages={messages}
+              messages={allMessages}
               selectedUser={selectedUser}
               onSelectUser={handleSelectUser}
             />
@@ -107,7 +115,7 @@ export const MessagesScreen: React.FC<Props> = ({
             {selectedUser ? (
               <ChatWindow
                 user={selectedUser}
-                messages={messages}
+                messages={selectedUserMessages}
                 onSendMessage={handleSendMessage}
                 currentUserId={currentUserId}
                 onBack={isMobile ? handleBackToList : undefined}
