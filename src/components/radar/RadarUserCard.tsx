@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
+import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { UserProfileModal } from './UserProfileModal';
 
 interface Props {
   user: User;
+  onMessage: (user: User) => void;
   onViewProfile: () => void;
 }
 
-export const RadarUserCard: React.FC<Props> = ({ user, onViewProfile }) => {
+export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile }) => {
   const [showModal, setShowModal] = useState(false);
 
   return (
@@ -37,6 +39,13 @@ export const RadarUserCard: React.FC<Props> = ({ user, onViewProfile }) => {
                   {user.age} y/o • {user.distance}m away
                 </p>
               </div>
+              <button
+                onClick={() => onMessage(user)}
+                className="ml-3 bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 active:scale-95 transition-all flex-shrink-0"
+                title="Send message"
+              >
+                <ChatBubbleLeftIcon className="w-5 h-5" />
+              </button>
             </div>
             
             <p className="text-gray-300 text-sm mb-3 line-clamp-2">{user.bio}</p>
