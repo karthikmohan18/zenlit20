@@ -23,9 +23,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="w-full max-w-md bg-black text-white rounded-lg overflow-hidden">
-        <main className="pb-16 sm:pb-20 md:pb-24">
+    <div className="h-screen bg-black text-white overflow-hidden">
+      {/* Mobile App Container */}
+      <div className="h-full flex flex-col">
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-hidden">
           {activeTab === 'home' && <HomeScreen userGender={userGender} />}
           {activeTab === 'radar' && (
             <RadarScreen 
@@ -36,54 +38,66 @@ export default function App() {
           )}
           {activeTab === 'create' && <CreatePostScreen />}
           {activeTab === 'messages' && <MessagesScreen />}
-          {/* Mobile-friendly padding for content */}
-          <div className="px-4 sm:px-0 md:px-4">
-            {activeTab === 'profile' && (
-              <ProfileScreen 
-                user={selectedUser} 
-                onBack={() => setSelectedUser(null)}
-              />
-            )}
-          </div>
+          {activeTab === 'profile' && (
+            <ProfileScreen 
+              user={selectedUser} 
+              onBack={() => setSelectedUser(null)}
+            />
+          )}
         </main>
-        <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 z-50">
-          <div className="max-w-md mx-auto">
-            <div className="flex justify-around p-4">
-              <button
-                onClick={() => setActiveTab('home')}
-                className={`flex flex-col items-center ${activeTab === 'home' ? 'text-blue-600' : 'text-gray-400'}`}
-              >
-                <HomeIcon className="h-6 w-6" />
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('radar')}
-                className={`flex flex-col items-center ${activeTab === 'radar' ? 'text-blue-600' : 'text-gray-400'}`}
-              >
-                <UserGroupIcon className="h-6 w-6" />
-              </button>
 
-              <button
-                onClick={() => setActiveTab('create')}
-                className={`flex flex-col items-center ${activeTab === 'create' ? 'text-blue-600' : 'text-gray-400'}`}
-              >
-                <PlusIcon className="h-6 w-6" />
-              </button>
+        {/* Bottom Navigation */}
+        <nav className="bg-gray-900 border-t border-gray-800 safe-area-inset-bottom">
+          <div className="flex justify-around items-center py-2 px-4 h-16">
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                activeTab === 'home' ? 'text-blue-500' : 'text-gray-400'
+              }`}
+            >
+              <HomeIcon className="h-6 w-6 mb-1" />
+              <span className="text-xs font-medium">Home</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('radar')}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                activeTab === 'radar' ? 'text-blue-500' : 'text-gray-400'
+              }`}
+            >
+              <UserGroupIcon className="h-6 w-6 mb-1" />
+              <span className="text-xs font-medium">Radar</span>
+            </button>
 
-              <button
-                onClick={() => setActiveTab('messages')}
-                className={`flex flex-col items-center ${activeTab === 'messages' ? 'text-blue-600' : 'text-gray-400'}`}
-              >
-                <ChatBubbleLeftIcon className="h-6 w-6" />
-              </button>
-              
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`flex flex-col items-center ${activeTab === 'profile' ? 'text-blue-600' : 'text-gray-400'}`}
-              >
-                <UserIcon className="h-6 w-6" />
-              </button>
-            </div>
+            <button
+              onClick={() => setActiveTab('create')}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                activeTab === 'create' ? 'text-blue-500' : 'text-gray-400'
+              }`}
+            >
+              <PlusIcon className="h-6 w-6 mb-1" />
+              <span className="text-xs font-medium">Create</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                activeTab === 'messages' ? 'text-blue-500' : 'text-gray-400'
+              }`}
+            >
+              <ChatBubbleLeftIcon className="h-6 w-6 mb-1" />
+              <span className="text-xs font-medium">Messages</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                activeTab === 'profile' ? 'text-blue-500' : 'text-gray-400'
+              }`}
+            >
+              <UserIcon className="h-6 w-6 mb-1" />
+              <span className="text-xs font-medium">Profile</span>
+            </button>
           </div>
         </nav>
       </div>

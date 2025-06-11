@@ -8,16 +8,18 @@ interface MessageBubbleProps {
 
 export const MessageBubble = ({ message, isCurrentUser }: MessageBubbleProps) => {
   return (
-    <div className={`mb-4 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
       <div 
-        className={`px-4 py-2 rounded-lg max-w-[80%] ${
+        className={`max-w-[80%] px-4 py-3 rounded-2xl ${
           isCurrentUser 
-            ? 'bg-blue-600 text-white' 
-            : 'bg-gray-100 text-gray-900'
+            ? 'bg-blue-600 text-white rounded-br-md' 
+            : 'bg-gray-800 text-white rounded-bl-md'
         }`}
       >
-        <p className="text-sm">{message.content}</p>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-sm leading-relaxed">{message.content}</p>
+        <p className={`text-xs mt-1 ${
+          isCurrentUser ? 'text-blue-100' : 'text-gray-400'
+        }`}>
           {format(new Date(message.timestamp), 'HH:mm')}
         </p>
       </div>
