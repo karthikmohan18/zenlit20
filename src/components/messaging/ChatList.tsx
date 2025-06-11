@@ -26,7 +26,6 @@ export const ChatList = ({
       {/* Header with native dark colors */}
       <div className="px-4 py-3 bg-black border-b border-gray-800">
         <h2 className="text-xl font-bold text-white">Messages</h2>
-        <p className="text-sm text-gray-400 mt-1">Connect with people nearby</p>
       </div>
       
       {/* Chat List */}
