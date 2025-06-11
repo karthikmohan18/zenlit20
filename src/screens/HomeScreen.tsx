@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { PostsFeed } from '../components/post/PostsFeed';
 import { UserProfile } from '../components/profile/UserProfile';
-import { mockUsers, generatePosts, getCurrentUserPosts } from '../utils/mockDataGenerator';
+import { mockUsers, generatePosts } from '../utils/mockDataGenerator';
+import { getCurrentUserPosts } from '../data/mockData';
 import { User } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
