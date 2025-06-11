@@ -11,6 +11,7 @@ export const CreatePostScreen: React.FC = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -54,30 +55,78 @@ export const CreatePostScreen: React.FC = () => {
   };
 
   const startCamera = async () => {
+    setCameraError(null);
+    
     try {
+      // Check if we're on HTTPS or localhost
+      const isSecure = location.protocol === 'https:' || location.hostname === 'localhost';
+      
+      if (!isSecure) {
+        throw new Error('Camera access requires HTTPS or localhost');
+      }
+
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access is not supported in this browser');
+      }
+
+      console.log('Requesting camera access...');
+      
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }, // Use back camera on mobile
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false
       });
       
+      console.log('Camera access granted');
       setStream(mediaStream);
       setShowCamera(true);
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+      // Wait for video element to be ready
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          videoRef.current.play().catch(err => {
+            console.error('Error playing video:', err);
+            setCameraError('Failed to start camera preview');
+          });
+        }
+      }, 100);
+      
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      
+      let errorMessage = 'Unable to access camera. ';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage += 'Please allow camera permissions and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += 'No camera found on this device.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage += 'Camera is not supported in this browser.';
+      } else if (error.message.includes('HTTPS')) {
+        errorMessage += 'Camera requires HTTPS connection.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred.';
       }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      alert('Unable to access camera. Please check permissions.');
+      
+      setCameraError(errorMessage);
     }
   };
 
   const stopCamera = () => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach(track => {
+        track.stop();
+        console.log('Camera track stopped');
+      });
       setStream(null);
     }
     setShowCamera(false);
+    setCameraError(null);
   };
 
   const capturePhoto = () => {
@@ -86,7 +135,7 @@ export const CreatePostScreen: React.FC = () => {
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       
-      if (context) {
+      if (context && video.videoWidth > 0 && video.videoHeight > 0) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0);
@@ -94,6 +143,8 @@ export const CreatePostScreen: React.FC = () => {
         const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setSelectedMedia(imageDataUrl);
         stopCamera();
+      } else {
+        setCameraError('Camera preview not ready. Please try again.');
       }
     }
   };
@@ -145,6 +196,38 @@ export const CreatePostScreen: React.FC = () => {
     );
   }
 
+  // Camera Error Display
+  if (cameraError) {
+    return (
+      <div className="h-full bg-black flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XMarkIcon className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Camera Error</h2>
+          <p className="text-gray-300 mb-6">{cameraError}</p>
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                setCameraError(null);
+                startCamera();
+              }}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => setCameraError(null)}
+              className="w-full bg-gray-600 text-white py-3 rounded-lg font-medium hover:bg-gray-700 active:scale-95 transition-all"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Camera Preview Component
   if (showCamera) {
     return (
@@ -162,22 +245,29 @@ export const CreatePostScreen: React.FC = () => {
         </div>
 
         {/* Camera Preview */}
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-hidden bg-gray-900">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
             className="w-full h-full object-cover"
+            onLoadedMetadata={() => {
+              console.log('Video metadata loaded');
+            }}
+            onError={(e) => {
+              console.error('Video error:', e);
+              setCameraError('Failed to load camera preview');
+            }}
           />
           
           {/* Camera Controls */}
           <div className="absolute bottom-8 left-0 right-0 flex justify-center">
             <button
               onClick={capturePhoto}
-              className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 hover:border-gray-400 active:scale-95 transition-all shadow-lg"
+              className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 hover:border-gray-400 active:scale-95 transition-all shadow-lg flex items-center justify-center"
             >
-              <div className="w-full h-full bg-white rounded-full" />
+              <div className="w-12 h-12 bg-white rounded-full" />
             </button>
           </div>
         </div>
