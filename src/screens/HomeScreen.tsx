@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { StoriesList } from '../components/story/StoriesList';
 import { PostsFeed } from '../components/post/PostsFeed';
 import { UserProfile } from '../components/profile/UserProfile';
 import { mockUsers, generatePosts } from '../utils/mockDataGenerator';
@@ -43,11 +42,6 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
         <div className="px-4 py-3">
           <h1 className="text-xl font-bold text-white">Sonar</h1>
         </div>
-      </div>
-
-      {/* Stories Section */}
-      <div className="border-b border-gray-800">
-        <StoriesList users={users} />
       </div>
 
       {/* Posts Feed */}
