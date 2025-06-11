@@ -73,7 +73,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors active:scale-95"
               >
-                <IconBrandX size={24} />
+                <IconBrandX size={28} />
               </a>
               <a
                 href={user.links.Instagram}
@@ -81,7 +81,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors active:scale-95"
               >
-                <IconBrandInstagram size={24} />
+                <IconBrandInstagram size={28} />
               </a>
               <a
                 href={user.links.LinkedIn}
@@ -89,7 +89,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-white transition-colors active:scale-95"
               >
-                <IconBrandLinkedin size={24} />
+                <IconBrandLinkedin size={28} />
               </a>
             </div>
 
