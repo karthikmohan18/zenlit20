@@ -115,25 +115,6 @@ export const CreatePostScreen: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Additional Options */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 bg-gray-900 rounded-xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="text-white font-medium">Tag people</span>
-            </div>
-            <button className="text-gray-400 hover:text-white transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
