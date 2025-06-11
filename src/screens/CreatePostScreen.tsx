@@ -104,6 +104,8 @@ export const CreatePostScreen: React.FC = () => {
         errorMessage += 'Please allow camera permissions and try again.';
       } else if (error.name === 'NotFoundError') {
         errorMessage += 'No camera found on this device.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage += 'The camera is currently in use by another application or process. Please close other applications that might be using the camera and try again.';
       } else if (error.name === 'NotSupportedError') {
         errorMessage += 'Camera is not supported in this browser.';
       } else if (error.message.includes('HTTPS')) {
