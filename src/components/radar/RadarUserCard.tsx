@@ -98,14 +98,14 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
             <div className="flex gap-2">
               <button
                 onClick={onViewProfile}
-                className="bg-gray-700 text-white p-3 rounded-full hover:bg-gray-600 active:scale-95 transition-all"
+                className="bg-gray-700 text-white px-4 py-3 rounded-xl hover:bg-gray-600 active:scale-95 transition-all"
                 title="View full profile"
               >
                 <UserIcon className="w-6 h-6" />
               </button>
               <button
                 onClick={() => onMessage(user)}
-                className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 active:scale-95 transition-all"
+                className="bg-blue-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 active:scale-95 transition-all"
                 title="Send message"
               >
                 <ChatBubbleLeftIcon className="w-6 h-6" />
