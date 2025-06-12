@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../../types';
+import { User, Story } from '../../types';
 import { XMarkIcon } from '@heroicons/react/24/solid';
 
 interface Props {
@@ -32,7 +32,7 @@ export const StoryViewer: React.FC<Props> = ({ user, onClose }) => {
       <div className="w-full h-full max-w-lg mx-auto relative">
         {/* Progress bars */}
         <div className="absolute top-0 left-0 right-0 flex gap-1 p-2 z-10">
-          {stories.map((_, index) => (
+          {stories.map((story: Story, index: number) => (
             <div key={index} className="flex-1 h-0.5 bg-gray-600">
               <div
                 className="h-full bg-white transition-all duration-100"
