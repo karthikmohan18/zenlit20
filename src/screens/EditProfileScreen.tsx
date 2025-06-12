@@ -161,7 +161,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           
           <button
             onClick={() => handleImageSelect('cover')}
-            className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm p-3 rounded-full text-white hover:bg-black/80 active:scale-95 transition-all"
+            className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm p-3 rounded-full text-white hover:bg-black/80 active:scale-95 transition-all z-50"
           >
             <CameraIcon className="w-5 h-5" />
           </button>
@@ -178,7 +178,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               />
               <button
                 onClick={() => handleImageSelect('profile')}
-                className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full text-white hover:bg-blue-700 active:scale-95 transition-all shadow-lg"
+                className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full text-white hover:bg-blue-700 active:scale-95 transition-all shadow-lg z-50"
               >
                 <CameraIcon className="w-4 h-4" />
               </button>
