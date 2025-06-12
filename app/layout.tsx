@@ -2,7 +2,7 @@ import './globals.css'
 import type { ReactNode } from 'react'
 
 export const metadata = {
-  title: 'Sonar - Connect Locally',
+  title: 'Zenlit - Connect Locally',
   description: 'A modern social media application built with Next.js 15',
 }
 
