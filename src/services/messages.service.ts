@@ -77,16 +77,59 @@ export class MessagesService {
     }
   }
 
-  // Get all conversations for a user
+  // Get all conversations for a user (simplified version without complex function)
   static async getConversations(userId: string): Promise<{ conversations: Conversation[]; error: Error | null }> {
     try {
-      // Get all unique conversation partners
-      const { data: conversationData, error: conversationError } = await supabase
-        .rpc('get_conversations', { user_id: userId });
+      // Get all messages where user is sender or receiver
+      const { data: messages, error: messagesError } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:profiles!messages_sender_id_fkey (
+            id,
+            display_name,
+            avatar_url
+          ),
+          receiver:profiles!messages_receiver_id_fkey (
+            id,
+            display_name,
+            avatar_url
+          )
+        `)
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+        .order('created_at', { ascending: false });
 
-      if (conversationError) throw conversationError;
+      if (messagesError) throw messagesError;
 
-      return { conversations: conversationData || [], error: null };
+      // Group messages by conversation partner
+      const conversationMap = new Map<string, {
+        user: { id: string; display_name: string | null; avatar_url: string | null };
+        last_message: Message | null;
+        unread_count: number;
+      }>();
+
+      messages?.forEach((message: any) => {
+        const partnerId = message.sender_id === userId ? message.receiver_id : message.sender_id;
+        const partner = message.sender_id === userId ? message.receiver : message.sender;
+
+        if (!conversationMap.has(partnerId)) {
+          conversationMap.set(partnerId, {
+            user: partner,
+            last_message: message,
+            unread_count: 0
+          });
+        }
+
+        // Count unread messages (messages sent to current user that are unread)
+        if (message.receiver_id === userId && !message.is_read) {
+          const conversation = conversationMap.get(partnerId)!;
+          conversation.unread_count++;
+        }
+      });
+
+      const conversations = Array.from(conversationMap.values());
+
+      return { conversations, error: null };
     } catch (error) {
       console.error('Get conversations error:', error);
       return { conversations: [], error: error as Error };
