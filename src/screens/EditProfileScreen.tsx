@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { User } from '../types';
 import { ChevronLeftIcon, CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
+import { SocialAccountsSection } from '../components/social/SocialAccountsSection';
 
 interface Props {
   user: User;
@@ -18,7 +19,18 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       Twitter: user.links.Twitter,
       Instagram: user.links.Instagram,
       LinkedIn: user.links.LinkedIn,
-    }
+    },
+    // Social verification data
+    instagramUrl: user.instagramUrl,
+    instagramVerified: user.instagramVerified,
+    facebookUrl: user.facebookUrl,
+    facebookVerified: user.facebookVerified,
+    linkedInUrl: user.linkedInUrl,
+    linkedInVerified: user.linkedInVerified,
+    twitterUrl: user.twitterUrl,
+    twitterVerified: user.twitterVerified,
+    googleUrl: user.googleUrl,
+    googleVerified: user.googleVerified,
   });
   
   const [isEditing, setIsEditing] = useState({
@@ -48,6 +60,23 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         [field]: value
       }));
     }
+    setHasChanges(true);
+  };
+
+  const handleUserUpdate = (updatedUser: User) => {
+    setFormData(prev => ({
+      ...prev,
+      instagramUrl: updatedUser.instagramUrl,
+      instagramVerified: updatedUser.instagramVerified,
+      facebookUrl: updatedUser.facebookUrl,
+      facebookVerified: updatedUser.facebookVerified,
+      linkedInUrl: updatedUser.linkedInUrl,
+      linkedInVerified: updatedUser.linkedInVerified,
+      twitterUrl: updatedUser.twitterUrl,
+      twitterVerified: updatedUser.twitterVerified,
+      googleUrl: updatedUser.googleUrl,
+      googleVerified: updatedUser.googleVerified,
+    }));
     setHasChanges(true);
   };
 
@@ -186,7 +215,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           </div>
         </div>
 
-        <div className="px-4 space-y-6">
+        <div className="px-4 space-y-8">
           {/* Basic Information */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">Basic Information</h2>
@@ -231,6 +260,9 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           {/* Social Links */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">Social Links</h2>
+            <p className="text-sm text-gray-400">
+              Add your social media profiles (these are separate from verified accounts below)
+            </p>
             
             {/* Twitter */}
             <div>
@@ -277,6 +309,12 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               />
             </div>
           </div>
+
+          {/* Social Accounts Authentication Section */}
+          <SocialAccountsSection 
+            user={{ ...user, ...formData }}
+            onUserUpdate={handleUserUpdate}
+          />
         </div>
 
         {/* Hidden file inputs */}

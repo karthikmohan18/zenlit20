@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { defaultCurrentUser, getCurrentUserPosts } from '../data/mockData';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
-import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PostsGalleryScreen } from './PostsGalleryScreen';
 import { EditProfileScreen } from './EditProfileScreen.tsx';
 
@@ -47,6 +47,15 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout }) => {
       }
     }
   };
+
+  // Count verified social accounts
+  const verifiedAccountsCount = [
+    profileData.instagramVerified,
+    profileData.facebookVerified,
+    profileData.linkedInVerified,
+    profileData.twitterVerified,
+    profileData.googleVerified
+  ].filter(Boolean).length;
 
   if (showEditProfile) {
     return (
@@ -144,6 +153,12 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout }) => {
               alt={profileData.name}
               className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
             />
+            {/* Verified badge if user has verified accounts */}
+            {verifiedAccountsCount > 0 && (
+              <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border-2 border-black">
+                <CheckCircleIcon className="w-4 h-4 text-white" />
+              </div>
+            )}
           </div>
         </div>
         
@@ -159,34 +174,62 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout }) => {
       {/* Profile Content */}
       <div className="mt-16 px-4 pb-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white">{profileData.name}</h1>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h1 className="text-2xl font-bold text-white">{profileData.name}</h1>
+            {verifiedAccountsCount > 0 && (
+              <CheckCircleIcon className="w-6 h-6 text-blue-500" />
+            )}
+          </div>
+          
+          {/* Verification status */}
+          {verifiedAccountsCount > 0 && (
+            <p className="text-sm text-blue-400 mb-2">
+              {verifiedAccountsCount} verified account{verifiedAccountsCount !== 1 ? 's' : ''}
+            </p>
+          )}
+          
           <p className="text-gray-300 mt-2 text-base leading-relaxed">{profileData.bio}</p>
           
-          {/* Social Links */}
+          {/* Social Links with verification indicators */}
           <div className="flex justify-center gap-8 mt-8">
             <a
               href={profileData.links.Twitter}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
+              className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandX size={24} />
+              {profileData.twitterVerified && (
+                <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
+                  <CheckCircleIcon className="w-3 h-3 text-white" />
+                </div>
+              )}
             </a>
             <a
               href={profileData.links.Instagram}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
+              className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandInstagram size={24} />
+              {profileData.instagramVerified && (
+                <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
+                  <CheckCircleIcon className="w-3 h-3 text-white" />
+                </div>
+              )}
             </a>
             <a
               href={profileData.links.LinkedIn}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
+              className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandLinkedin size={24} />
+              {profileData.linkedInVerified && (
+                <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
+                  <CheckCircleIcon className="w-3 h-3 text-white" />
+                </div>
+              )}
             </a>
           </div>
         </div>

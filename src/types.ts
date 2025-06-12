@@ -12,6 +12,17 @@ export interface User {
     Instagram: string;
     LinkedIn: string;
   };
+  // Social media verification fields
+  instagramUrl?: string;
+  instagramVerified?: boolean;
+  facebookUrl?: string;
+  facebookVerified?: boolean;
+  linkedInUrl?: string;
+  linkedInVerified?: boolean;
+  twitterUrl?: string;
+  twitterVerified?: boolean;
+  googleUrl?: string;
+  googleVerified?: boolean;
 }
 
 export interface Post {
@@ -48,4 +59,17 @@ export interface CurrentUser extends User {
   media: Media[];
   messages: Message[];
   posts: Post[];
+}
+
+export interface SocialProvider {
+  id: 'instagram' | 'facebook' | 'linkedin' | 'twitter' | 'google';
+  name: string;
+  color: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}
+
+export interface OAuthState {
+  isConnecting: boolean;
+  error: string | null;
+  provider: string | null;
 }
