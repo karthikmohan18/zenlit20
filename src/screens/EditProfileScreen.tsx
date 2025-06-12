@@ -191,7 +191,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">Basic Information</h2>
             
-            {/* Name */}
+            {/* Name - Read Only */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Display Name
@@ -199,16 +199,13 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                readOnly
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-300 cursor-not-allowed"
                 placeholder="Enter your name"
-                maxLength={50}
               />
-              <div className="flex justify-end mt-1">
-                <span className={`text-xs ${formData.name.length > 45 ? 'text-red-400' : 'text-gray-400'}`}>
-                  {formData.name.length}/50
-                </span>
-              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Display name cannot be changed
+              </p>
             </div>
 
             {/* Bio */}
