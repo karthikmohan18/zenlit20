@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { User } from '../types';
-import { ChevronLeftIcon, CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
+import { ChevronLeftIcon, CameraIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { SocialAccountsSection } from '../components/social/SocialAccountsSection';
 
 interface Props {
@@ -15,11 +14,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     name: user.name,
     bio: user.bio,
     dpUrl: user.dpUrl,
-    links: {
-      Twitter: user.links.Twitter,
-      Instagram: user.links.Instagram,
-      LinkedIn: user.links.LinkedIn,
-    },
     // Social verification data
     instagramUrl: user.instagramUrl,
     instagramVerified: user.instagramVerified,
@@ -45,21 +39,10 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
-    if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof typeof prev],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [field]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
     setHasChanges(true);
   };
 
@@ -108,7 +91,9 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     
     const updatedUser: User = {
       ...user,
-      ...formData
+      ...formData,
+      // Keep the original links structure for backward compatibility
+      links: user.links
     };
     
     onSave(updatedUser);
@@ -151,7 +136,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   return (
     <div className="h-full bg-black overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-gray-800">
+      <div className="sticky top-0 z-50 bg-black/90 backdrop-blur-sm border-b border-gray-800">
         <div className="flex items-center justify-between px-4 py-3">
           <button
             onClick={handleCancel}
@@ -190,7 +175,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           
           <button
             onClick={() => handleImageSelect('cover')}
-            className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm p-3 rounded-full text-white hover:bg-black/80 active:scale-95 transition-all z-50"
+            className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm p-3 rounded-full text-white hover:bg-black/80 active:scale-95 transition-all z-10"
           >
             <CameraIcon className="w-5 h-5" />
           </button>
@@ -207,7 +192,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               />
               <button
                 onClick={() => handleImageSelect('profile')}
-                className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full text-white hover:bg-blue-700 active:scale-95 transition-all shadow-lg z-50"
+                className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full text-white hover:bg-blue-700 active:scale-95 transition-all shadow-lg z-10"
               >
                 <CameraIcon className="w-4 h-4" />
               </button>
@@ -254,59 +239,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
                   {formData.bio.length}/150
                 </span>
               </div>
-            </div>
-          </div>
-
-          {/* Social Links */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Social Links</h2>
-            <p className="text-sm text-gray-400">
-              Add your social media profiles (these are separate from verified accounts below)
-            </p>
-            
-            {/* Twitter */}
-            <div>
-              <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
-                <IconBrandX size={16} className="mr-2" />
-                X (Twitter)
-              </label>
-              <input
-                type="url"
-                value={formData.links.Twitter}
-                onChange={(e) => handleInputChange('links.Twitter', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://twitter.com/username"
-              />
-            </div>
-
-            {/* Instagram */}
-            <div>
-              <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
-                <IconBrandInstagram size={16} className="mr-2" />
-                Instagram
-              </label>
-              <input
-                type="url"
-                value={formData.links.Instagram}
-                onChange={(e) => handleInputChange('links.Instagram', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://instagram.com/username"
-              />
-            </div>
-
-            {/* LinkedIn */}
-            <div>
-              <label className="flex items-center text-sm font-medium text-gray-300 mb-2">
-                <IconBrandLinkedin size={16} className="mr-2" />
-                LinkedIn
-              </label>
-              <input
-                type="url"
-                value={formData.links.LinkedIn}
-                onChange={(e) => handleInputChange('links.LinkedIn', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://linkedin.com/in/username"
-              />
             </div>
           </div>
 

@@ -184,14 +184,14 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Connected Accounts</h2>
+        <h2 className="text-lg font-semibold text-white">Verify Social Accounts</h2>
         <div className="text-sm text-gray-400">
-          {socialProviders.filter(p => getProviderData(p.id).isVerified).length} of {socialProviders.length} connected
+          {socialProviders.filter(p => getProviderData(p.id).isVerified).length} of {socialProviders.length} verified
         </div>
       </div>
       
       <p className="text-sm text-gray-400 mb-6">
-        Connect your social media accounts to verify your identity and build trust with other users.
+        Connect and verify your social media accounts to build trust with other users and get a verified badge.
       </p>
 
       <div className="space-y-4">
@@ -227,7 +227,7 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-blue-300 mb-1">Why connect your accounts?</h3>
+            <h3 className="text-sm font-medium text-blue-300 mb-1">Why verify your accounts?</h3>
             <ul className="text-xs text-blue-200 space-y-1">
               <li>• Verify your identity to other users</li>
               <li>• Build trust in the community</li>
