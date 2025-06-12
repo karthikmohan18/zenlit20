@@ -1,4 +1,4 @@
-# Sonar - Social Media App
+# Zenlit - Social Media App
 
 A modern social media application built with React, TypeScript, and Tailwind CSS that focuses on local connections and social verification.
 
@@ -24,6 +24,7 @@ A modern social media application built with React, TypeScript, and Tailwind CSS
 - **Touch Interactions** - Smooth animations and transitions
 - **Native Feel** - iOS/Android-like user experience
 - **Dark Theme** - Modern dark UI design
+- **Smooth Animations** - Framer Motion powered transitions
 
 -## 🛠 Tech Stack
 
@@ -31,6 +32,7 @@ A modern social media application built with React, TypeScript, and Tailwind CSS
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Icons**: Heroicons, Tabler Icons
+- **Animation**: Framer Motion
 - **State Management**: React Hooks
 - **Routing**: Component-based navigation
 - **Authentication**: Mock OAuth flows (ready for backend integration)
@@ -51,7 +53,7 @@ A modern social media application built with React, TypeScript, and Tailwind CSS
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd sonar-social
+cd zenlit-social
 ```
 
 2. Install dependencies:
@@ -145,8 +147,8 @@ npm run build
 ### Docker
 You can build a production image using the provided `Dockerfile`:
 ```bash
-docker build -t sonar-social .
-docker run -p 3000:3000 sonar-social
+docker build -t zenlit-social .
+docker run -p 3000:3000 zenlit-social
 ```
 
 ### Progressive Web App
