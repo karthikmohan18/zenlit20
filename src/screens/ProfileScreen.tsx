@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { defaultCurrentUser, getCurrentUserPosts } from '../data/mockData';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
-import { ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { PostsGalleryScreen } from './PostsGalleryScreen';
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
 
 export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
   const [showPostsGallery, setShowPostsGallery] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const profileData = user || defaultCurrentUser;
   const isCurrentUser = !user || user.id === defaultCurrentUser.id;
   
@@ -24,6 +25,20 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
 
   const handleBackFromGallery = () => {
     setShowPostsGallery(false);
+  };
+
+  const handleEditProfile = () => {
+    setShowSettingsMenu(false);
+    // TODO: Navigate to edit profile screen
+    alert('Edit Profile feature coming soon!');
+  };
+
+  const handleLogout = () => {
+    setShowSettingsMenu(false);
+    // TODO: Implement logout functionality
+    if (confirm('Are you sure you want to log out?')) {
+      alert('Logout functionality coming soon!');
+    }
   };
 
   if (showPostsGallery) {
@@ -39,17 +54,66 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
 
   return (
     <div className="h-full bg-black overflow-y-auto">
-      {/* Header with back button if viewing other user's profile */}
-      {user && onBack && (
-        <div className="sticky top-0 z-10 bg-black/80 backdrop-blur-sm">
-          <button
-            onClick={onBack}
-            className="absolute top-4 left-4 bg-gray-900/80 backdrop-blur-sm p-3 rounded-full shadow-lg active:scale-95 transition-transform"
-          >
-            <ChevronLeftIcon className="w-5 h-5 text-white" />
-          </button>
+      {/* Header with back button and settings */}
+      <div className="sticky top-0 z-20 bg-black/80 backdrop-blur-sm">
+        <div className="flex items-center justify-between p-4">
+          {/* Back button (only for other users) */}
+          {user && onBack && (
+            <button
+              onClick={onBack}
+              className="bg-gray-900/80 backdrop-blur-sm p-3 rounded-full shadow-lg active:scale-95 transition-transform"
+            >
+              <ChevronLeftIcon className="w-5 h-5 text-white" />
+            </button>
+          )}
+          
+          {/* Spacer for centering when no back button */}
+          {(!user || !onBack) && <div className="w-12" />}
+          
+          {/* Settings button (only for current user) */}
+          {isCurrentUser && (
+            <div className="relative">
+              <button
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                className="bg-gray-900/80 backdrop-blur-sm p-3 rounded-full shadow-lg active:scale-95 transition-transform"
+              >
+                <Cog6ToothIcon className="w-5 h-5 text-white" />
+              </button>
+              
+              {/* Settings Dropdown Menu */}
+              {showSettingsMenu && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden">
+                  <button
+                    onClick={handleEditProfile}
+                    className="w-full flex items-center px-4 py-3 text-left text-white hover:bg-gray-800 active:bg-gray-700 transition-colors"
+                  >
+                    <UserIcon className="w-5 h-5 mr-3 text-gray-400" />
+                    <span>Edit Profile</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center px-4 py-3 text-left text-white hover:bg-gray-800 active:bg-gray-700 transition-colors"
+                  >
+                    <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3 text-gray-400" />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Spacer when viewing other user's profile */}
+          {!isCurrentUser && <div className="w-12" />}
         </div>
-      )}
+        
+        {/* Click outside to close menu */}
+        {showSettingsMenu && (
+          <div 
+            className="fixed inset-0 z-10" 
+            onClick={() => setShowSettingsMenu(false)}
+          />
+        )}
+      </div>
 
       {/* Profile Header */}
       <div className="relative">
