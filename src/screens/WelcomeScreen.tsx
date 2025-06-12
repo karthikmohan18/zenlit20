@@ -10,11 +10,11 @@ export const WelcomeScreen: React.FC<Props> = ({ onGetStarted }) => {
       <div className="text-center max-w-md">
         {/* Logo */}
         <div className="mb-8">
-          <div className="w-32 h-32 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
-            <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
+          <img
+            src="https://media.istockphoto.com/id/696912200/vector/radar-scan-or-sonar-communicating-with-transmission-waves-back-and-forth.jpg?s=612x612&w=0&k=20&c=MEM4t0wmdLhl88KW-73N0-4V1KT4CmVgUwJIA52F6-U="
+            alt="Sonar"
+            className="w-32 h-32 mx-auto object-contain rounded-lg mb-6"
+          />
           
           <h1 className="text-5xl font-bold text-white mb-4">Sonar</h1>
           <p className="text-xl text-gray-300 mb-2">Connect Locally</p>
