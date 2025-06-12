@@ -26,6 +26,14 @@ export default function App() {
     setCurrentScreen('app');
   };
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentScreen('welcome');
+    setActiveTab('home');
+    setSelectedUser(null);
+    setSelectedChatUser(null);
+  };
+
   const handleMessageUser = (user: User) => {
     setSelectedChatUser(user);
   };
@@ -73,6 +81,7 @@ export default function App() {
             <ProfileScreen 
               user={selectedUser} 
               onBack={() => setSelectedUser(null)}
+              onLogout={handleLogout}
             />
           )}
         </main>

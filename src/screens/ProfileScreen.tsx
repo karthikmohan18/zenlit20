@@ -9,9 +9,10 @@ import { EditProfileScreen } from './EditProfileScreen.tsx';
 interface Props {
   user?: User | null;
   onBack?: () => void;
+  onLogout?: () => void;
 }
 
-export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
+export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout }) => {
   const [showPostsGallery, setShowPostsGallery] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -41,8 +42,9 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack }) => {
   const handleLogout = () => {
     setShowSettingsMenu(false);
     if (confirm('Are you sure you want to log out?')) {
-      // TODO: Implement actual logout functionality
-      alert('Logout functionality will be implemented');
+      if (onLogout) {
+        onLogout();
+      }
     }
   };
 
