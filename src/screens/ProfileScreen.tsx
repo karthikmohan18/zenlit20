@@ -1,27 +1,57 @@
-import React, { useState } from 'react';
-import { User } from '../types';
-import { defaultCurrentUser, getCurrentUserPosts } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import { User, PostWithProfile, postWithProfileToLegacyPost } from '../types';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
 import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PostsGalleryScreen } from './PostsGalleryScreen';
-import { EditProfileScreen } from './EditProfileScreen.tsx';
+import { EditProfileScreen } from './EditProfileScreen';
+import { PostsService } from '../services/posts.service';
+import { useAuth } from '../hooks/useAuth';
 
 interface Props {
   user?: User | null;
+  currentUser?: User | null;
   onBack?: () => void;
   onLogout?: () => void;
   onNavigateToCreate?: () => void;
 }
 
-export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavigateToCreate }) => {
+export const ProfileScreen: React.FC<Props> = ({ user, currentUser, onBack, onLogout, onNavigateToCreate }) => {
+  const { signOut } = useAuth();
   const [showPostsGallery, setShowPostsGallery] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const profileData = user || defaultCurrentUser;
-  const isCurrentUser = !user || user.id === defaultCurrentUser.id;
+  const [userPosts, setUserPosts] = useState<PostWithProfile[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  // Get current user's posts if viewing own profile
-  const userPosts = isCurrentUser ? getCurrentUserPosts() : [];
+  const profileData = user || currentUser;
+  const isCurrentUser = !user || (currentUser && user.id === currentUser.id);
+
+  useEffect(() => {
+    if (profileData && isCurrentUser) {
+      loadUserPosts();
+    }
+  }, [profileData, isCurrentUser]);
+
+  const loadUserPosts = async () => {
+    if (!profileData) return;
+    
+    try {
+      setLoading(true);
+      const { posts, error: postsError } = await PostsService.getUserPosts(profileData.id);
+      
+      if (postsError) {
+        throw postsError;
+      }
+      
+      setUserPosts(posts);
+    } catch (err) {
+      console.error('Error loading user posts:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load posts');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleMediaClick = () => {
     setShowPostsGallery(true);
@@ -40,11 +70,17 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
     setShowEditProfile(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowSettingsMenu(false);
     if (confirm('Are you sure you want to log out?')) {
-      if (onLogout) {
-        onLogout();
+      try {
+        await signOut();
+        if (onLogout) {
+          onLogout();
+        }
+      } catch (err) {
+        console.error('Error signing out:', err);
+        setError(err instanceof Error ? err.message : 'Failed to sign out');
       }
     }
   };
@@ -54,6 +90,16 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
       onNavigateToCreate();
     }
   };
+
+  if (!profileData) {
+    return (
+      <div className="h-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white mb-4">Profile not found</p>
+        </div>
+      </div>
+    );
+  }
 
   // Count verified social accounts
   const verifiedAccountsCount = [
@@ -82,7 +128,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
     return (
       <PostsGalleryScreen
         user={profileData}
-        posts={userPosts}
+        posts={userPosts.map(postWithProfileToLegacyPost)}
         onBack={handleBackFromGallery}
         onUserClick={() => {}} // Since we're already viewing this user's profile
       />
@@ -180,6 +226,19 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
 
       {/* Profile Content */}
       <div className="mt-16 px-4 pb-8">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 bg-red-900/30 border border-red-700 rounded-lg p-3">
+            <p className="text-red-400 text-sm">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-blue-400 hover:text-blue-300 text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <h1 className="text-2xl font-bold text-white">{profileData.name}</h1>
@@ -255,7 +314,12 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
           </div>
           
           {/* Posts Grid */}
-          {isCurrentUser && userPosts.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading posts...</p>
+            </div>
+          ) : isCurrentUser && userPosts.length > 0 ? (
             <div className="grid grid-cols-3 gap-1">
               {userPosts.slice(0, 9).map((post) => (
                 <button
@@ -264,7 +328,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
                   className="aspect-square active:scale-95 transition-transform relative group"
                 >
                   <img
-                    src={post.mediaUrl}
+                    src={post.media_url}
                     alt={post.caption}
                     className="w-full h-full object-cover rounded-lg"
                   />
