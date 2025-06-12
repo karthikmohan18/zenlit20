@@ -1,74 +1,69 @@
-# Dummy Data and Test Login Information
+# 🎯 Sonar App - Test Data Setup
 
-## Test Login Credentials
+## 🔑 Login Credentials
 
 **Email:** `test@sonar.app`  
 **Password:** `password123`
 
-This test user (Alex Johnson) has:
-- Complete profile with bio, interests, and location
-- 3 verified social media accounts (Instagram, Twitter, LinkedIn)
-- 3 sample posts with images
-- Active conversations with 5 other users
-- Interests: Technology, Photography, Hiking, Coffee
+## 📊 What Happens When You Sign Up
 
-## Available Users in the Database
+When you sign up with the test email above, the system will automatically:
 
-### Female Users:
-1. **Sarah Wilson** - Digital artist & illustrator
-   - Email: sarah.wilson@example.com
-   - Interests: Art, Design, Coffee
-   - 2 social accounts (Instagram verified)
+1. **Create your profile** with:
+   - Name: Alex Johnson
+   - Bio: Tech enthusiast & software developer 💻 | Love hiking and photography 📸
+   - Location: San Francisco, CA
+   - Profile picture from Pravatar
 
-2. **Emily Chen** - Yoga instructor & wellness coach
-   - Email: emily.chen@example.com
-   - Interests: Yoga, Wellness, Nature
-   - 2 social accounts (both verified)
+2. **Add verified social accounts**:
+   - ✅ Instagram: @alexjohnson_dev (verified)
+   - ✅ Twitter: @alexjohnson_dev (verified) 
+   - ✅ LinkedIn: /in/alexjohnson-dev (verified)
 
-3. **Jessica Martinez** - Fashion blogger
-   - Email: jessica.martinez@example.com
-   - Interests: Fashion, Style, Sustainability
+3. **Set your interests**:
+   - Technology
+   - Photography  
+   - Hiking
+   - Coffee
 
-4. **Olivia Taylor** - Food photographer
-   - Email: olivia.taylor@example.com
-   - Interests: Food, Photography, Cooking
+## 🎮 Testing Features
 
-### Male Users:
-1. **Mike Davis** - Adventure seeker & mountain climber
-   - Email: mike.davis@example.com
-   - Interests: Adventure, Hiking, Rock Climbing
-   - 2 social accounts (both verified)
+### 📱 Radar Screen
+- You'll see other users to connect with (mock data)
+- Each user has realistic profiles and interests
 
-2. **David Brown** - Professional photographer
-   - Email: david.brown@example.com
-   - Interests: Photography, Art, Travel
+### 📰 Feed Screen  
+- 21 sample posts from various users
+- Mix of content: tech, art, fitness, food, travel
+- Realistic captions and engagement
 
-3. **Chris Anderson** - Fitness trainer
-   - Email: chris.anderson@example.com
-   - Interests: Fitness, Nutrition, Health
+### 💬 Messages Screen
+- 5 sample conversations waiting for you
+- Messages about photography, hiking, tech collaboration
+- Mix of read/unread status
 
-4. **James Wilson** - Music producer & DJ
-   - Email: james.wilson@example.com
-   - Interests: Music, Technology, Electronic Music
+### 👤 Profile Screen
+- Your verified social accounts will show with checkmarks
+- Create new posts and they'll be saved to the database
+- All data persists between sessions
 
-5. **Ryan Garcia** - Startup founder
-   - Email: ryan.garcia@example.com
-   - Interests: Technology, Entrepreneurship, Innovation
+## 🔄 Real Database Integration
 
-## What's Included:
+Everything is now connected to Supabase:
+- ✅ User authentication
+- ✅ Profile management  
+- ✅ Post creation and storage
+- ✅ Message sending and receiving
+- ✅ Social account verification
+- ✅ Interest management
 
-- **10 user profiles** with realistic bios, interests, and profile pictures
-- **21 sample posts** with captions and placeholder images
-- **Social media accounts** with verification status
-- **Active message conversations** between the test user and 5 other users
-- **User interests** categorized by hobbies and professions
+When you create posts, send messages, or update your profile, it all gets saved to the real database!
 
-## How to Use:
+## 🚀 Getting Started
 
-1. Sign up with the test credentials above
-2. Explore the Radar screen to see other users
-3. Check the Feed to see posts from all users
-4. Go to Messages to see existing conversations
-5. Visit your Profile to see your posts and verified accounts
+1. Go to the app
+2. Click "Get Started" 
+3. Sign up with: `test@sonar.app` / `password123`
+4. Explore all the features!
 
-All data is stored in Supabase and will persist between sessions!
+Your test account is fully set up with realistic data and verified social accounts. Enjoy testing! 🎉
