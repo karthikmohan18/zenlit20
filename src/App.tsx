@@ -43,6 +43,10 @@ export default function App() {
     setActiveTab('profile');
   };
 
+  const handleNavigateToCreate = () => {
+    setActiveTab('create');
+  };
+
   // Show welcome screen first
   if (currentScreen === 'welcome') {
     return <WelcomeScreen onGetStarted={handleGetStarted} />;
@@ -82,6 +86,7 @@ export default function App() {
               user={selectedUser} 
               onBack={() => setSelectedUser(null)}
               onLogout={handleLogout}
+              onNavigateToCreate={handleNavigateToCreate}
             />
           )}
         </main>

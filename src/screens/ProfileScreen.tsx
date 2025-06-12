@@ -10,9 +10,10 @@ interface Props {
   user?: User | null;
   onBack?: () => void;
   onLogout?: () => void;
+  onNavigateToCreate?: () => void;
 }
 
-export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout }) => {
+export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavigateToCreate }) => {
   const [showPostsGallery, setShowPostsGallery] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -45,6 +46,12 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout }) => {
       if (onLogout) {
         onLogout();
       }
+    }
+  };
+
+  const handleCreatePost = () => {
+    if (onNavigateToCreate) {
+      onNavigateToCreate();
     }
   };
 
@@ -267,11 +274,14 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout }) => {
             </div>
           ) : isCurrentUser ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <button
+                onClick={handleCreatePost}
+                className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 hover:bg-gray-700 active:scale-95 transition-all cursor-pointer"
+              >
                 <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-              </div>
+              </button>
               <p className="text-gray-400 mb-2">No posts yet</p>
               <p className="text-gray-500 text-sm">Share your first post to get started!</p>
             </div>
