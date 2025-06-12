@@ -4,7 +4,7 @@ import { defaultCurrentUser, getCurrentUserPosts } from '../data/mockData';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
 import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { PostsGalleryScreen } from './PostsGalleryScreen';
-import { EditProfileScreen } from './EditProfileScreen';
+import { EditProfileScreen } from './EditProfileScreen.tsx';
 
 interface Props {
   user?: User | null;
