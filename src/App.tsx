@@ -6,14 +6,14 @@ import { RadarScreen } from './screens/RadarScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { CreatePostScreen } from './screens/CreatePostScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
-import { HomeIcon, UserGroupIcon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
+import { UserGroupIcon, Squares2X2Icon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { User } from './types';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'app'>('welcome');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userGender] = useState<'male' | 'female'>('male');
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('radar'); // Changed default to radar
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
 
@@ -29,7 +29,7 @@ export default function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentScreen('welcome');
-    setActiveTab('home');
+    setActiveTab('radar'); // Changed default to radar
     setSelectedUser(null);
     setSelectedChatUser(null);
   };
@@ -60,7 +60,6 @@ export default function App() {
       <div className="h-full flex flex-col">
         {/* Main Content Area */}
         <main className="flex-1 overflow-hidden">
-          {activeTab === 'home' && <HomeScreen userGender={userGender} />}
           {activeTab === 'radar' && (
             <RadarScreen 
               userGender={userGender} 
@@ -69,6 +68,7 @@ export default function App() {
               onMessageUser={handleMessageUser}
             />
           )}
+          {activeTab === 'feed' && <HomeScreen userGender={userGender} />}
           {activeTab === 'create' && <CreatePostScreen />}
           {activeTab === 'messages' && (
             <MessagesScreen 
@@ -90,16 +90,6 @@ export default function App() {
         <nav className="bg-gray-900 border-t border-gray-800 safe-area-inset-bottom">
           <div className="flex justify-around items-center py-2 px-4 h-16">
             <button
-              onClick={() => setActiveTab('home')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                activeTab === 'home' ? 'text-blue-500' : 'text-gray-400'
-              }`}
-            >
-              <HomeIcon className="h-6 w-6 mb-1" />
-              <span className="text-xs font-medium">Home</span>
-            </button>
-            
-            <button
               onClick={() => setActiveTab('radar')}
               className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'radar' ? 'text-blue-500' : 'text-gray-400'
@@ -107,6 +97,16 @@ export default function App() {
             >
               <UserGroupIcon className="h-6 w-6 mb-1" />
               <span className="text-xs font-medium">Radar</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('feed')}
+              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                activeTab === 'feed' ? 'text-blue-500' : 'text-gray-400'
+              }`}
+            >
+              <Squares2X2Icon className="h-6 w-6 mb-1" />
+              <span className="text-xs font-medium">Feed</span>
             </button>
 
             <button

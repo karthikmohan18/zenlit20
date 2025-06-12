@@ -49,12 +49,10 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
       {/* Header - Now scrolls with content */}
       <div className="bg-black border-b border-gray-800">
         <div className="px-4 py-3 flex items-center">
-          <img
-            src="https://media.istockphoto.com/id/696912200/vector/radar-scan-or-sonar-communicating-with-transmission-waves-back-and-forth.jpg?s=612x612&w=0&k=20&c=MEM4t0wmdLhl88KW-73N0-4V1KT4CmVgUwJIA52F6-U="
-            alt="Sonar"
-            className="w-8 h-8 object-contain rounded mr-3"
-          />
-          <h1 className="text-xl font-bold text-white">Sonar</h1>
+          <svg className="w-8 h-8 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          <h1 className="text-xl font-bold text-white">Feed</h1>
         </div>
       </div>
 
