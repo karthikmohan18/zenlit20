@@ -25,6 +25,13 @@ export const useAuth = () => {
         const { user, error: userError } = await AuthService.getCurrentUser();
         
         if (userError) {
+          // If the error is "Auth session missing!", treat it as a normal logged-out state
+          if (userError.message === 'Auth session missing!') {
+            setState(prev => ({ ...prev, user: null, profile: null, loading: false, error: null }));
+            return;
+          }
+          
+          // For any other error, set the error state
           setState(prev => ({ ...prev, loading: false, error: userError }));
           return;
         }
