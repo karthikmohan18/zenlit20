@@ -12,7 +12,9 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     email: '',
     password: '',
     confirmPassword: '',
-    name: ''
+    firstName: '',
+    lastName: '',
+    dateOfBirth: ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -46,16 +48,18 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       email: '',
       password: '',
       confirmPassword: '',
-      name: ''
+      firstName: '',
+      lastName: '',
+      dateOfBirth: ''
     });
   };
 
   return (
     <div className="min-h-screen bg-black overflow-y-auto">
-      <div className="min-h-screen flex items-center justify-center p-4 py-8">
+      <div className="min-h-screen flex items-center justify-center p-4 py-12">
         <div className="w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-8">
+          {/* Header with more space above */}
+          <div className="text-center mb-8 pt-8">
             <h1 className="text-3xl font-bold text-white mb-2">Sonar</h1>
             <p className="text-gray-400">Connect with people around you</p>
           </div>
@@ -72,20 +76,53 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name field for signup */}
+              {/* Name fields for signup - side by side */}
+              {!isLogin && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="First name"
+                      required={!isLogin}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Last name"
+                      required={!isLogin}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Date of Birth for signup */}
               {!isLogin && (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Full Name
+                    Date of Birth
                   </label>
                   <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter your full name"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [color-scheme:dark]"
                     required={!isLogin}
+                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
                   />
+                  <p className="text-xs text-gray-500 mt-1">You must be at least 13 years old</p>
                 </div>
               )}
 
@@ -117,6 +154,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
                     placeholder="Enter your password"
                     required
+                    minLength={6}
                   />
                   <button
                     type="button"
@@ -130,6 +168,9 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     )}
                   </button>
                 </div>
+                {!isLogin && (
+                  <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters</p>
+                )}
               </div>
 
               {/* Confirm Password for signup */}
@@ -145,6 +186,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Confirm your password"
                     required={!isLogin}
+                    minLength={6}
                   />
                 </div>
               )}
