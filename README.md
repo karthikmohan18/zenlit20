@@ -25,10 +25,11 @@ A modern social media application built with React, TypeScript, and Tailwind CSS
 - **Native Feel** - iOS/Android-like user experience
 - **Dark Theme** - Modern dark UI design
 
-## 🛠 Tech Stack
+-## 🛠 Tech Stack
 
-- **Frontend**: React 18, TypeScript, Tailwind CSS
-- **Build Tool**: Vite
+- **Framework**: Next.js 15 with the App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS with shadcn/ui components
 - **Icons**: Heroicons, Tabler Icons
 - **State Management**: React Hooks
 - **Routing**: Component-based navigation
@@ -63,7 +64,7 @@ npm install
 npm run dev
 ```
 
-4. Open your browser and navigate to `http://localhost:5173`
+4. Open your browser and navigate to `http://localhost:3000`
 
 ## 🏗 Project Structure
 
@@ -140,20 +141,16 @@ The app is designed to work with the following database structure:
 npm run build
 ```
 
-### Preview Production Build
-```bash
-npm run preview
-```
 
 ### Docker
 You can build a production image using the provided `Dockerfile`:
 ```bash
 docker build -t sonar-social .
-docker run -p 4173:4173 sonar-social
+docker run -p 3000:3000 sonar-social
 ```
 
 ### Progressive Web App
-The project is configured as a PWA using `vite-plugin-pwa`. When built for
+The project is configured as a PWA using `next-pwa`. When built for
 production, the app can be installed on mobile devices and works offline.
 
 ## 🔮 Future Enhancements
