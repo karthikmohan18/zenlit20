@@ -7,9 +7,17 @@ interface Props {
   users: User[];
   initialUserIndex: number;
   onClose: () => void;
+  onNext: () => void;
+  onPrevious: () => void;
 }
 
-export const StoryModal: React.FC<Props> = ({ users, initialUserIndex, onClose }) => {
+export const StoryModal: React.FC<Props> = ({
+  users,
+  initialUserIndex,
+  onClose,
+  onNext,
+  onPrevious
+}) => {
   const {
     currentUserIndex,
     handleNext,

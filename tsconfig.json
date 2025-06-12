@@ -17,5 +17,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
-  "exclude": ["lib", "app"]
+  "exclude": ["lib", "app", "src/pages", "src/view-models"]
 }
