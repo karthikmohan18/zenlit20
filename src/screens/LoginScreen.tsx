@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { PasswordResetScreen } from './PasswordResetScreen';
 
 interface Props {
   onLogin: () => void;
 }
 
 export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
+  const [currentView, setCurrentView] = useState<'login' | 'passwordReset'>('login');
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -124,6 +126,19 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       countdown: 0
     });
   };
+
+  const handleForgotPassword = () => {
+    setCurrentView('passwordReset');
+  };
+
+  const handleBackFromPasswordReset = () => {
+    setCurrentView('login');
+  };
+
+  // Show password reset screen
+  if (currentView === 'passwordReset') {
+    return <PasswordResetScreen onBack={handleBackFromPasswordReset} />;
+  }
 
   const canProceedToPassword = isLogin || emailVerification.otpVerified;
 
@@ -350,6 +365,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                 <div className="text-right">
                   <button
                     type="button"
+                    onClick={handleForgotPassword}
                     className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                   >
                     Forgot password?
