@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -7,41 +7,29 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { CreatePostScreen } from './screens/CreatePostScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
 import { UserGroupIcon, Squares2X2Icon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
-import { User, ProfileWithSocial, profileToUser } from './types';
-import { useAuth } from './hooks/useAuth';
+import { User } from './types';
 
 export default function App() {
-  const { user, profile, loading, isAuthenticated } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'app'>('welcome');
-  const [activeTab, setActiveTab] = useState('radar');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userGender] = useState<'male' | 'female'>('male');
+  const [activeTab, setActiveTab] = useState('radar'); // Changed default to radar
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
-
-  // Convert profile to User type for legacy components
-  const currentUser: User | null = profile ? profileToUser(profile) : null;
-
-  useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated && profile) {
-        setCurrentScreen('app');
-      } else {
-        setCurrentScreen('welcome');
-      }
-    }
-  }, [loading, isAuthenticated, profile]);
 
   const handleGetStarted = () => {
     setCurrentScreen('login');
   };
 
   const handleLogin = () => {
-    // Auth state will be handled by useAuth hook
+    setIsLoggedIn(true);
     setCurrentScreen('app');
   };
 
   const handleLogout = () => {
+    setIsLoggedIn(false);
     setCurrentScreen('welcome');
-    setActiveTab('radar');
+    setActiveTab('radar'); // Changed default to radar
     setSelectedUser(null);
     setSelectedChatUser(null);
   };
@@ -58,18 +46,6 @@ export default function App() {
   const handleNavigateToCreate = () => {
     setActiveTab('create');
   };
-
-  // Show loading while checking auth state
-  if (loading) {
-    return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Show welcome screen first
   if (currentScreen === 'welcome') {
@@ -90,17 +66,16 @@ export default function App() {
         <main className="flex-1 overflow-hidden">
           {activeTab === 'radar' && (
             <RadarScreen 
-              currentUser={currentUser}
+              userGender={userGender} 
               onNavigate={setActiveTab}
               onViewProfile={setSelectedUser}
               onMessageUser={handleMessageUser}
             />
           )}
-          {activeTab === 'feed' && <HomeScreen currentUser={currentUser} />}
-          {activeTab === 'create' && <CreatePostScreen currentUser={currentUser} />}
+          {activeTab === 'feed' && <HomeScreen userGender={userGender} />}
+          {activeTab === 'create' && <CreatePostScreen />}
           {activeTab === 'messages' && (
             <MessagesScreen 
-              currentUser={currentUser}
               selectedUser={selectedChatUser}
               onClearSelectedUser={() => setSelectedChatUser(null)}
               onViewProfile={handleViewProfile}
@@ -109,7 +84,6 @@ export default function App() {
           {activeTab === 'profile' && (
             <ProfileScreen 
               user={selectedUser} 
-              currentUser={currentUser}
               onBack={() => setSelectedUser(null)}
               onLogout={handleLogout}
               onNavigateToCreate={handleNavigateToCreate}

@@ -1,58 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PostsFeed } from '../components/post/PostsFeed';
 import { UserProfile } from '../components/profile/UserProfile';
-import { User, PostWithProfile, postWithProfileToLegacyPost, profileToUser } from '../types';
-import { PostsService } from '../services/posts.service';
-import { ProfileService } from '../services/profile.service';
+import { mockUsers, generatePosts } from '../utils/mockDataGenerator';
+import { getCurrentUserPosts } from '../data/mockData';
+import { User } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
 interface Props {
-  currentUser: User | null;
+  userGender: 'male' | 'female';
 }
 
-export const HomeScreen: React.FC<Props> = ({ currentUser }) => {
+export const HomeScreen: React.FC<Props> = ({ userGender }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [posts, setPosts] = useState<PostWithProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const users = userGender === 'male' ? mockUsers.female : mockUsers.male;
+  
+  // Combine current user's posts with other users' posts
+  const currentUserPosts = getCurrentUserPosts();
+  const otherUsersPosts = users.flatMap(user => generatePosts(user));
+  
+  // Merge and sort all posts by timestamp (latest first)
+  const allPosts = [...currentUserPosts, ...otherUsersPosts].sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 
-  useEffect(() => {
-    loadPosts();
-  }, []);
-
-  const loadPosts = async () => {
-    try {
-      setLoading(true);
-      const { posts: fetchedPosts, error: postsError } = await PostsService.getFeed(20, 0);
-      
-      if (postsError) {
-        throw postsError;
-      }
-      
-      setPosts(fetchedPosts);
-    } catch (err) {
-      console.error('Error loading posts:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load posts');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUserClick = async (userId: string) => {
-    try {
-      const { profile, error: profileError } = await ProfileService.getProfile(userId);
-      
-      if (profileError) {
-        throw profileError;
-      }
-      
-      if (profile) {
-        const user = profileToUser(profile);
-        setSelectedUser(user);
-      }
-    } catch (err) {
-      console.error('Error loading user profile:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load user profile');
+  const handleUserClick = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setSelectedUser(user);
     }
   };
 
@@ -82,34 +56,10 @@ export const HomeScreen: React.FC<Props> = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <div className="mx-4 mt-4 bg-red-900/30 border border-red-700 rounded-lg p-3">
-          <p className="text-red-400 text-sm">{error}</p>
-          <button
-            onClick={() => {
-              setError(null);
-              loadPosts();
-            }}
-            className="mt-2 text-blue-400 hover:text-blue-300 text-sm"
-          >
-            Try again
-          </button>
-        </div>
-      )}
-
       {/* Posts Feed */}
       <div className="px-4 py-4 space-y-6">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading posts...</p>
-          </div>
-        ) : posts.length > 0 ? (
-          <PostsFeed 
-            posts={posts.map(postWithProfileToLegacyPost)} 
-            onUserClick={handleUserClick} 
-          />
+        {allPosts.length > 0 ? (
+          <PostsFeed posts={allPosts} onUserClick={handleUserClick} />
         ) : (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -118,7 +68,7 @@ export const HomeScreen: React.FC<Props> = ({ currentUser }) => {
               </svg>
             </div>
             <p className="text-gray-400 mb-2">No posts yet</p>
-            <p className="text-gray-500 text-sm">Be the first to share something!</p>
+            <p className="text-gray-500 text-sm">Create your first post to get started!</p>
           </div>
         )}
       </div>

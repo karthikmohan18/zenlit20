@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PasswordResetScreen } from './PasswordResetScreen';
-import { useAuth } from '../hooks/useAuth';
 
 interface Props {
   onLogin: () => void;
 }
 
 export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
-  const { signIn, signUp, loading } = useAuth();
   const [currentView, setCurrentView] = useState<'login' | 'passwordReset'>('login');
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +19,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     dateOfBirth: '',
     otp: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
   const [emailVerification, setEmailVerification] = useState({
     otpSent: false,
     otpVerified: false,
@@ -28,19 +27,17 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     isSendingOtp: false,
     countdown: 0
   });
-  const [error, setError] = useState<string | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-    setError(null);
   };
 
   const handleSendOtp = async () => {
     if (!formData.email) {
-      setError('Please enter your email address first');
+      alert('Please enter your email address first');
       return;
     }
 
@@ -70,7 +67,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
 
   const handleVerifyOtp = async () => {
     if (!formData.otp || formData.otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP');
+      alert('Please enter a valid 6-digit OTP');
       return;
     }
 
@@ -89,45 +86,25 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     
-    try {
-      if (isLogin) {
-        const result = await signIn(formData.email, formData.password);
-        if (result.success) {
-          onLogin();
-        } else {
-          setError(result.error?.message || 'Login failed');
-        }
-      } else {
-        // For signup, require email verification
-        if (!emailVerification.otpVerified) {
-          setError('Please verify your email address first');
-          return;
-        }
-        
-        if (formData.password !== formData.confirmPassword) {
-          setError('Passwords do not match');
-          return;
-        }
-
-        const result = await signUp({
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          dateOfBirth: formData.dateOfBirth
-        });
-
-        if (result.success) {
-          onLogin();
-        } else {
-          setError(result.error?.message || 'Signup failed');
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+    // For signup, require email verification
+    if (!isLogin && !emailVerification.otpVerified) {
+      alert('Please verify your email address first');
+      return;
     }
+    
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    // Simulate authentication delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    setIsLoading(false);
+    onLogin();
   };
 
   const toggleMode = () => {
@@ -148,7 +125,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       isSendingOtp: false,
       countdown: 0
     });
-    setError(null);
   };
 
   const handleForgotPassword = () => {
@@ -186,13 +162,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                 {isLogin ? 'Sign in to your account' : 'Join the Sonar community'}
               </p>
             </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="mb-4 bg-red-900/30 border border-red-700 rounded-lg p-3">
-                <p className="text-red-400 text-sm">{error}</p>
-              </div>
-            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name fields for signup - side by side */}
@@ -407,10 +376,10 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || (!isLogin && !emailVerification.otpVerified)}
+                disabled={isLoading || (!isLogin && !emailVerification.otpVerified)}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading ? (
+                {isLoading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     {isLogin ? 'Signing In...' : 'Creating Account...'}

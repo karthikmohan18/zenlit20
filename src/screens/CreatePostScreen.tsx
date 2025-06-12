@@ -1,82 +1,56 @@
 import React, { useState, useRef } from 'react';
 import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { User } from '../types';
-import { PostsService } from '../services/posts.service';
-import { StorageService } from '../services/storage.service';
+import { defaultCurrentUser, addPostToCurrentUser } from '../data/mockData';
+import { generateId } from '../utils/generateId';
+import { Post } from '../types';
 
-interface Props {
-  currentUser: User | null;
-}
-
-export const CreatePostScreen: React.FC<Props> = ({ currentUser }) => {
+export const CreatePostScreen: React.FC = () => {
   const [caption, setCaption] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePost = async () => {
-    if (!currentUser) {
-      setError('You must be logged in to create a post');
-      return;
-    }
-
     if (!selectedMedia && !caption.trim()) {
-      setError('Please add some content to your post');
+      alert('Please add some content to your post');
       return;
     }
     
     setIsPosting(true);
-    setError(null);
     
-    try {
-      let mediaUrl = '';
-      
-      // Upload media if selected
-      if (selectedFile && currentUser) {
-        const { url, error: uploadError } = await StorageService.uploadPostMedia(currentUser.id, selectedFile);
-        if (uploadError) {
-          throw uploadError;
-        }
-        mediaUrl = url || '';
-      }
-      
-      // Create post in database
-      const { post, error: postError } = await PostsService.createPost({
-        user_id: currentUser.id,
-        title: `Post by ${currentUser.name}`,
-        caption: caption.trim() || 'New post from Sonar!',
-        media_url: mediaUrl || selectedMedia || `https://picsum.photos/800/600?random=${Date.now()}`,
-        media_type: 'image'
-      });
-      
-      if (postError) {
-        throw postError;
-      }
-      
-      setIsPosting(false);
-      setShowSuccess(true);
-      
-      // Reset form after success animation
-      setTimeout(() => {
-        setCaption('');
-        setSelectedMedia(null);
-        setSelectedFile(null);
-        setShowSuccess(false);
-      }, 2000);
-      
-    } catch (err) {
-      console.error('Error creating post:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create post');
-      setIsPosting(false);
-    }
+    // Simulate posting delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Create new post
+    const newPost: Post = {
+      id: generateId(),
+      userId: defaultCurrentUser.id,
+      userName: defaultCurrentUser.name,
+      userDpUrl: defaultCurrentUser.dpUrl,
+      title: `Post by ${defaultCurrentUser.name}`,
+      mediaUrl: selectedMedia || `https://picsum.photos/800/600?random=${generateId()}`,
+      caption: caption.trim() || 'New post from Sonar!',
+      timestamp: new Date().toISOString()
+    };
+    
+    // Add to current user's posts (latest first)
+    addPostToCurrentUser(newPost);
+    
+    setIsPosting(false);
+    setShowSuccess(true);
+    
+    // Reset form after success animation
+    setTimeout(() => {
+      setCaption('');
+      setSelectedMedia(null);
+      setShowSuccess(false);
+    }, 2000);
   };
 
   const startCamera = async () => {
@@ -167,15 +141,8 @@ export const CreatePostScreen: React.FC<Props> = ({ currentUser }) => {
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0);
         
-        // Convert to blob and create file
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            setSelectedFile(file);
-            setSelectedMedia(canvas.toDataURL('image/jpeg', 0.8));
-          }
-        }, 'image/jpeg', 0.8);
-        
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        setSelectedMedia(imageDataUrl);
         stopCamera();
       } else {
         setCameraError('Camera preview not ready. Please try again.');
@@ -192,14 +159,13 @@ export const CreatePostScreen: React.FC<Props> = ({ currentUser }) => {
     if (file) {
       // Check if it's an image
       if (file.type.startsWith('image/')) {
-        setSelectedFile(file);
         const reader = new FileReader();
         reader.onload = (e) => {
           setSelectedMedia(e.target?.result as string);
         };
         reader.readAsDataURL(file);
       } else {
-        setError('Please select an image file');
+        alert('Please select an image file');
       }
     }
   };
@@ -214,18 +180,7 @@ export const CreatePostScreen: React.FC<Props> = ({ currentUser }) => {
 
   const removeMedia = () => {
     setSelectedMedia(null);
-    setSelectedFile(null);
   };
-
-  if (!currentUser) {
-    return (
-      <div className="h-full bg-black flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white mb-4">Please log in to create posts</p>
-        </div>
-      </div>
-    );
-  }
 
   // Success Animation Component
   if (showSuccess) {
@@ -348,22 +303,15 @@ export const CreatePostScreen: React.FC<Props> = ({ currentUser }) => {
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-900/30 border border-red-700 rounded-lg p-3">
-            <p className="text-red-400 text-sm">{error}</p>
-          </div>
-        )}
-
         {/* User Info */}
         <div className="flex items-center space-x-3">
           <img
-            src={currentUser.dpUrl}
+            src={defaultCurrentUser.dpUrl}
             alt="Your profile"
             className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500"
           />
           <div>
-            <h3 className="font-semibold text-white">{currentUser.name}</h3>
+            <h3 className="font-semibold text-white">{defaultCurrentUser.name}</h3>
           </div>
         </div>
 
