@@ -12,15 +12,8 @@ export interface User {
     Instagram: string;
     LinkedIn: string;
   };
-  stories?: Story[];
 }
 
-export interface Story {
-  id: string;
-  mediaUrl: string;
-  caption: string;
-  timestamp: string;
-}
 
 export interface Post {
   id: string;
