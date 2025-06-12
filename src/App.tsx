@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { WelcomeScreen } from './screens/WelcomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { RadarScreen } from './screens/RadarScreen';
@@ -9,14 +10,20 @@ import { HomeIcon, UserGroupIcon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from 
 import { User } from './types';
 
 export default function App() {
+  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'app'>('welcome');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userGender] = useState<'male' | 'female'>('male');
   const [activeTab, setActiveTab] = useState('home');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
 
+  const handleGetStarted = () => {
+    setCurrentScreen('login');
+  };
+
   const handleLogin = () => {
     setIsLoggedIn(true);
+    setCurrentScreen('app');
   };
 
   const handleMessageUser = (user: User) => {
@@ -28,10 +35,17 @@ export default function App() {
     setActiveTab('profile');
   };
 
-  if (!isLoggedIn) {
+  // Show welcome screen first
+  if (currentScreen === 'welcome') {
+    return <WelcomeScreen onGetStarted={handleGetStarted} />;
+  }
+
+  // Show login screen after get started is clicked
+  if (currentScreen === 'login') {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
+  // Show main app after login
   return (
     <div className="h-screen bg-black text-white overflow-hidden">
       {/* Mobile App Container */}
