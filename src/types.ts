@@ -14,8 +14,6 @@ export interface User {
     Instagram: string;
     LinkedIn: string;
   };
-  /** Stories posted by the user */
-  stories?: Story[];
   // Social media verification fields
   instagramUrl?: string;
   instagramVerified?: boolean;
@@ -53,13 +51,6 @@ export interface Media {
   id: string;
   mediaUrl: string;
   caption?: string;
-  timestamp: string;
-}
-
-export interface Story {
-  id: string;
-  mediaUrl: string;
-  caption: string;
   timestamp: string;
 }
 
