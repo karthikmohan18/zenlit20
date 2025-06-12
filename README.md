@@ -145,6 +145,17 @@ npm run build
 npm run preview
 ```
 
+### Docker
+You can build a production image using the provided `Dockerfile`:
+```bash
+docker build -t sonar-social .
+docker run -p 4173:4173 sonar-social
+```
+
+### Progressive Web App
+The project is configured as a PWA using `vite-plugin-pwa`. When built for
+production, the app can be installed on mobile devices and works offline.
+
 ## 🔮 Future Enhancements
 
 - **Real-time Messaging** - WebSocket integration

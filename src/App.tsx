@@ -92,7 +92,7 @@ export default function App() {
         </main>
 
         {/* Bottom Navigation */}
-        <nav className="bg-gray-900 border-t border-gray-800 safe-area-inset-bottom">
+        <nav className="bg-gray-900 border-t border-gray-800 safe-area-inset-bottom fixed bottom-0 left-0 right-0 z-10">
           <div className="flex justify-around items-center py-2 px-4 h-16">
             <button
               onClick={() => setActiveTab('radar')}
