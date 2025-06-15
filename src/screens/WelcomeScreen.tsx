@@ -8,7 +8,7 @@ interface Props {
 
 export const WelcomeScreen: React.FC<Props> = ({ onGetStarted }) => {
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center p-4 overflow-y-auto mobile-scroll">
+    <div className="auth-screen mobile-screen bg-black flex items-center justify-center p-4">
       <motion.div
         className="text-center w-full max-w-md"
         initial={{ opacity: 0, scale: 0.95 }}

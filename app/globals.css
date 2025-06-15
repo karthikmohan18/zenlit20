@@ -120,6 +120,7 @@ p, span, .message-content {
   -webkit-overflow-scrolling: touch;
   overflow-y: auto;
   overscroll-behavior: contain;
+  height: 100%;
 }
 
 /* Prevent zoom on input focus on iOS */
@@ -143,11 +144,66 @@ input, textarea, select {
     min-height: 100vh;
     min-height: -webkit-fill-available;
   }
+  
+  /* Ensure mobile screens are properly sized */
+  .mobile-container {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+  
+  /* Fix for mobile browsers that hide/show address bar */
+  .mobile-full-height {
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
 }
 
 /* Fix for mobile browsers that hide/show address bar */
 @supports (height: 100dvh) {
   html, body {
+    height: 100dvh;
+  }
+}
+
+/* Ensure proper mobile viewport */
+@media screen and (max-width: 480px) {
+  html {
+    width: 100vw;
+    overflow-x: hidden;
+  }
+  
+  body {
+    width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+  }
+  
+  /* Standard mobile dimensions */
+  .mobile-screen {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 100vw;
+    overflow: hidden;
+  }
+}
+
+/* Specific fixes for login/signup screens */
+.auth-screen {
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media screen and (max-width: 768px) {
+  .auth-screen {
+    height: 100vh;
     height: 100dvh;
   }
 }

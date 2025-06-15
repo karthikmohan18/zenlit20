@@ -14,8 +14,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#000000" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className="min-h-screen bg-black text-white overflow-hidden">{children}</body>
+      <body className="mobile-container bg-black text-white overflow-hidden">{children}</body>
     </html>
   )
 }

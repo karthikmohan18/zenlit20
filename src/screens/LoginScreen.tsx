@@ -1,9 +1,9 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PasswordResetScreen } from './PasswordResetScreen';
-import { supabase } from '../lib/supabase';
+import { sendOTP, verifyOTP, signInWithPassword, signUpWithPassword } from '../lib/auth';
 
 interface Props {
   onLogin: () => void;
@@ -28,14 +28,34 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     otpVerified: false,
     isVerifying: false,
     isSendingOtp: false,
-    countdown: 0
+    countdown: 0,
+    error: null as string | null
   });
+
+  // Countdown timer effect
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (emailVerification.countdown > 0) {
+      timer = setTimeout(() => {
+        setEmailVerification(prev => ({
+          ...prev,
+          countdown: prev.countdown - 1
+        }));
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [emailVerification.countdown]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    
+    // Clear OTP error when user starts typing
+    if (field === 'otp' && emailVerification.error) {
+      setEmailVerification(prev => ({ ...prev, error: null }));
+    }
   };
 
   const handleSendOtp = async () => {
@@ -44,51 +64,91 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       return;
     }
 
-    setEmailVerification(prev => ({ ...prev, isSendingOtp: true }));
-    
-    // Simulate OTP sending delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
     setEmailVerification(prev => ({ 
       ...prev, 
-      otpSent: true, 
-      isSendingOtp: false,
-      countdown: 60 
+      isSendingOtp: true, 
+      error: null 
     }));
-
-    // Start countdown timer
-    const timer = setInterval(() => {
-      setEmailVerification(prev => {
-        if (prev.countdown <= 1) {
-          clearInterval(timer);
-          return { ...prev, countdown: 0 };
-        }
-        return { ...prev, countdown: prev.countdown - 1 };
-      });
-    }, 1000);
+    
+    try {
+      const result = await sendOTP(formData.email);
+      
+      if (result.success) {
+        setEmailVerification(prev => ({ 
+          ...prev, 
+          otpSent: true, 
+          isSendingOtp: false,
+          countdown: 60,
+          error: null
+        }));
+      } else {
+        setEmailVerification(prev => ({ 
+          ...prev, 
+          isSendingOtp: false,
+          error: result.error || 'Failed to send OTP'
+        }));
+      }
+    } catch (error) {
+      setEmailVerification(prev => ({ 
+        ...prev, 
+        isSendingOtp: false,
+        error: 'Network error. Please try again.'
+      }));
+    }
   };
 
   const handleVerifyOtp = async () => {
     if (!formData.otp || formData.otp.length !== 6) {
-      alert('Please enter a valid 6-digit OTP');
+      setEmailVerification(prev => ({ 
+        ...prev, 
+        error: 'Please enter a valid 6-digit OTP' 
+      }));
       return;
     }
 
-    setEmailVerification(prev => ({ ...prev, isVerifying: true }));
+    setEmailVerification(prev => ({ ...prev, isVerifying: true, error: null }));
     
-    // Simulate OTP verification delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // For demo purposes, accept any 6-digit OTP
-    setEmailVerification(prev => ({ 
-      ...prev, 
-      otpVerified: true, 
-      isVerifying: false 
-    }));
+    try {
+      const result = await verifyOTP(formData.email, formData.otp);
+      
+      if (result.success) {
+        setEmailVerification(prev => ({ 
+          ...prev, 
+          otpVerified: true, 
+          isVerifying: false,
+          error: null
+        }));
+      } else {
+        setEmailVerification(prev => ({ 
+          ...prev, 
+          isVerifying: false,
+          error: result.error || 'Invalid OTP. Please try again.'
+        }));
+      }
+    } catch (error) {
+      setEmailVerification(prev => ({ 
+        ...prev, 
+        isVerifying: false,
+        error: 'Network error. Please try again.'
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validation
+    if (!formData.email || !formData.password) {
+      alert('Please fill in all required fields');
+      return;
+    }
 
     // For signup, require email verification
     if (!isLogin && !emailVerification.otpVerified) {
@@ -101,45 +161,48 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       return;
     }
 
+    if (!isLogin && formData.password.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
+
+    if (!isLogin && (!formData.firstName || !formData.lastName)) {
+      alert('Please enter your first and last name');
+      return;
+    }
+
     setIsLoading(true);
 
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
-      })
-      setIsLoading(false)
-      if (error) {
-        alert(error.message)
-        return
+    try {
+      if (isLogin) {
+        // Existing user login with password
+        const result = await signInWithPassword(formData.email, formData.password);
+        
+        if (result.success) {
+          onLogin();
+        } else {
+          alert(result.error || 'Login failed');
+        }
+      } else {
+        // New user signup (OTP already verified)
+        const result = await signUpWithPassword(
+          formData.email, 
+          formData.password,
+          formData.firstName,
+          formData.lastName
+        );
+        
+        if (result.success) {
+          alert('Account created successfully! You are now logged in.');
+          onLogin();
+        } else {
+          alert(result.error || 'Account creation failed');
+        }
       }
-      alert('Logged in!')
-      onLogin()
-    } else {
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password
-      })
-      if (error) {
-        setIsLoading(false)
-        alert(error.message)
-        return
-      }
-
-      const fullName = `${formData.firstName} ${formData.lastName}`.trim()
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user?.id,
-        name: fullName,
-        email: formData.email
-      })
-      setIsLoading(false)
-      if (profileError) {
-        alert(profileError.message)
-        return
-      }
-
-      alert('Account created!')
-      onLogin()
+    } catch (error) {
+      alert('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -159,7 +222,8 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       otpVerified: false,
       isVerifying: false,
       isSendingOtp: false,
-      countdown: 0
+      countdown: 0,
+      error: null
     });
   };
 
@@ -179,9 +243,9 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
   const canProceedToPassword = isLogin || emailVerification.otpVerified;
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-black overflow-y-auto mobile-scroll">
+    <div className="auth-screen mobile-screen bg-black">
       <motion.div
-        className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 py-8"
+        className="mobile-full-height flex items-center justify-center p-4 py-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -295,6 +359,10 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     </button>
                   )}
                 </div>
+                {/* Email verification error */}
+                {!isLogin && emailVerification.error && !emailVerification.otpVerified && (
+                  <p className="text-red-400 text-xs mt-1">{emailVerification.error}</p>
+                )}
               </div>
 
               {/* OTP Input (only show for signup after OTP is sent) */}
@@ -334,6 +402,10 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                   <p className="text-xs text-gray-500 mt-1">
                     Enter the 6-digit code sent to your email
                   </p>
+                  {/* OTP verification error */}
+                  {emailVerification.error && (
+                    <p className="text-red-400 text-xs mt-1">{emailVerification.error}</p>
+                  )}
                 </div>
               )}
 
