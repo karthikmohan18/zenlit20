@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PostsFeed } from '../components/post/PostsFeed';
 import { UserProfile } from '../components/profile/UserProfile';
-import { mockUsers, generatePosts } from '../utils/mockDataGenerator';
 import { getCurrentUserPosts } from '../data/mockData';
+import { generatePosts } from '../utils/mockDataGenerator';
 import { User } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   userGender: 'male' | 'female';
@@ -12,7 +13,40 @@ interface Props {
 
 export const HomeScreen: React.FC<Props> = ({ userGender }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const users = userGender === 'male' ? mockUsers.female : mockUsers.male;
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    loadUsers();
+  }, [userGender]);
+
+  const loadUsers = async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) return;
+
+      // Get all users who have completed their profiles (for posts)
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', currentUser.id) // Exclude current user
+        .not('name', 'is', null)
+        .not('bio', 'is', null)
+        .limit(10);
+
+      if (error) {
+        console.error('Error loading users:', error);
+        return;
+      }
+
+      setUsers(profiles || []);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Combine current user's posts with other users' posts
   const currentUserPosts = getCurrentUserPosts();
@@ -26,7 +60,34 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
   const handleUserClick = (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (user) {
-      setSelectedUser(user);
+      // Transform database profile to User type
+      const transformedUser: User = {
+        id: user.id,
+        name: user.name,
+        dpUrl: user.profile_photo_url || `https://i.pravatar.cc/300?img=${user.id}`,
+        bio: user.bio,
+        gender: user.gender,
+        age: user.date_of_birth ? 
+          new Date().getFullYear() - new Date(user.date_of_birth).getFullYear() : 25,
+        distance: Math.floor(Math.random() * 50) + 1,
+        interests: user.interests || [],
+        links: {
+          Twitter: user.twitter_url || '#',
+          Instagram: user.instagram_url || '#',
+          LinkedIn: user.linked_in_url || '#',
+        },
+        instagramUrl: user.instagram_url,
+        instagramVerified: user.instagram_verified,
+        facebookUrl: user.facebook_url,
+        facebookVerified: user.facebook_verified,
+        linkedInUrl: user.linked_in_url,
+        linkedInVerified: user.linked_in_verified,
+        twitterUrl: user.twitter_url,
+        twitterVerified: user.twitter_verified,
+        googleUrl: user.google_url,
+        googleVerified: user.google_verified,
+      };
+      setSelectedUser(transformedUser);
     }
   };
 
@@ -40,6 +101,17 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
           <ChevronLeftIcon className="w-5 h-5 text-white" />
         </button>
         <UserProfile user={selectedUser} />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading feed...</p>
+        </div>
       </div>
     );
   }

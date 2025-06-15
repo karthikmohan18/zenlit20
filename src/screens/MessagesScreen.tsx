@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { mockMaleUsers, mockFemaleUsers } from '../data/mockData';
 import { ChatList } from '../components/messaging/ChatList';
 import { ChatWindow } from '../components/messaging/ChatWindow';
 import { User, Message } from '../types';
 import { generateMessages } from '../data/mockData';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   selectedUser?: User | null;
@@ -16,28 +16,86 @@ export const MessagesScreen: React.FC<Props> = ({
   onClearSelectedUser,
   onViewProfile
 }) => {
-  const [currentUserId] = useState<string>('current-user-id');
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(initialSelectedUser || undefined);
   const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [isMobile] = useState(window.innerWidth < 768);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const users = [...mockMaleUsers.slice(0, 10), ...mockFemaleUsers.slice(0, 10)];
-    setAllUsers(users);
-    
-    // Generate messages for all users upfront
-    const messagesForAllUsers = users.flatMap(user => 
-      generateMessages(currentUserId, [user])
-    );
-    setAllMessages(messagesForAllUsers);
-  }, [currentUserId]);
+    loadUsersAndMessages();
+  }, []);
 
   useEffect(() => {
     if (initialSelectedUser) {
       setSelectedUser(initialSelectedUser);
     }
   }, [initialSelectedUser]);
+
+  const loadUsersAndMessages = async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) return;
+
+      setCurrentUserId(currentUser.id);
+
+      // Get users who have completed their profiles for messaging
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', currentUser.id) // Exclude current user
+        .not('name', 'is', null)
+        .not('bio', 'is', null)
+        .limit(10);
+
+      if (error) {
+        console.error('Error loading users:', error);
+        return;
+      }
+
+      // Transform database profiles to User type
+      const transformedUsers: User[] = (profiles || []).map(profile => ({
+        id: profile.id,
+        name: profile.name,
+        dpUrl: profile.profile_photo_url || `https://i.pravatar.cc/300?img=${profile.id}`,
+        bio: profile.bio,
+        gender: profile.gender,
+        age: profile.date_of_birth ? 
+          new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear() : 25,
+        distance: Math.floor(Math.random() * 50) + 1,
+        interests: profile.interests || [],
+        links: {
+          Twitter: profile.twitter_url || '#',
+          Instagram: profile.instagram_url || '#',
+          LinkedIn: profile.linked_in_url || '#',
+        },
+        instagramUrl: profile.instagram_url,
+        instagramVerified: profile.instagram_verified,
+        facebookUrl: profile.facebook_url,
+        facebookVerified: profile.facebook_verified,
+        linkedInUrl: profile.linked_in_url,
+        linkedInVerified: profile.linked_in_verified,
+        twitterUrl: profile.twitter_url,
+        twitterVerified: profile.twitter_verified,
+        googleUrl: profile.google_url,
+        googleVerified: profile.google_verified,
+      }));
+
+      setAllUsers(transformedUsers);
+      
+      // Generate messages for all users upfront (this would be replaced with real messages from database)
+      const messagesForAllUsers = transformedUsers.flatMap(user => 
+        generateMessages(currentUser.id, [user])
+      );
+      setAllMessages(messagesForAllUsers);
+    } catch (error) {
+      console.error('Error loading users and messages:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getMessagesForUser = (userId: string): Message[] => {
     return allMessages.filter(msg => 
@@ -75,6 +133,17 @@ export const MessagesScreen: React.FC<Props> = ({
   };
 
   const selectedUserMessages = selectedUser ? getMessagesForUser(selectedUser.id) : [];
+
+  if (isLoading) {
+    return (
+      <div className="h-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading messages...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full bg-black flex">

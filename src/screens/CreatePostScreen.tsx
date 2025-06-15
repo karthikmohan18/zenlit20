@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { defaultCurrentUser, addPostToCurrentUser } from '../data/mockData';
+import { addPostToCurrentUser } from '../data/mockData';
 import { generateId } from '../utils/generateId';
 import { Post } from '../types';
+import { supabase } from '../lib/supabase';
 
 export const CreatePostScreen: React.FC = () => {
   const [caption, setCaption] = useState('');
@@ -12,13 +13,47 @@ export const CreatePostScreen: React.FC = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load current user data
+  React.useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) return;
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        return;
+      }
+
+      setCurrentUser(profile);
+    } catch (error) {
+      console.error('Load user error:', error);
+    }
+  };
+
   const handlePost = async () => {
     if (!selectedMedia && !caption.trim()) {
       alert('Please add some content to your post');
+      return;
+    }
+
+    if (!currentUser) {
+      alert('Please log in to create a post');
       return;
     }
     
@@ -30,10 +65,10 @@ export const CreatePostScreen: React.FC = () => {
     // Create new post
     const newPost: Post = {
       id: generateId(),
-      userId: defaultCurrentUser.id,
-      userName: defaultCurrentUser.name,
-      userDpUrl: defaultCurrentUser.dpUrl,
-      title: `Post by ${defaultCurrentUser.name}`,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userDpUrl: currentUser.profile_photo_url || `https://i.pravatar.cc/300?img=${currentUser.id}`,
+      title: `Post by ${currentUser.name}`,
       mediaUrl: selectedMedia || `https://picsum.photos/800/600?random=${generateId()}`,
       caption: caption.trim() || 'New post from Zenlit!',
       timestamp: new Date().toISOString()
@@ -182,6 +217,18 @@ export const CreatePostScreen: React.FC = () => {
     setSelectedMedia(null);
   };
 
+  // Show loading if user not loaded yet
+  if (!currentUser) {
+    return (
+      <div className="h-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Success Animation Component
   if (showSuccess) {
     return (
@@ -306,12 +353,12 @@ export const CreatePostScreen: React.FC = () => {
         {/* User Info */}
         <div className="flex items-center space-x-3">
           <img
-            src={defaultCurrentUser.dpUrl}
+            src={currentUser.profile_photo_url || `https://i.pravatar.cc/300?img=${currentUser.id}`}
             alt="Your profile"
             className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500"
           />
           <div>
-            <h3 className="font-semibold text-white">{defaultCurrentUser.name}</h3>
+            <h3 className="font-semibold text-white">{currentUser.name}</h3>
           </div>
         </div>
 

@@ -1,60 +1,31 @@
-import { nanoid } from 'nanoid';
-import { User, Post } from '../types';
-import {
-  maleFirstNames,
-  femaleFirstNames,
-  lastNames,
-  bios,
-  interests,
-  postCaptions
-} from './mockData/constants';
+// This file is now empty as we only use real user data from the database
+// All user data comes from Supabase profiles table
 
+import { Post } from '../types';
+import { generateId } from './generateId';
 
-function generateUser(gender: 'male' | 'female', index: number): User {
-  const id = nanoid();
-  const firstName = gender === 'male' 
-    ? maleFirstNames[index % maleFirstNames.length]
-    : femaleFirstNames[index % femaleFirstNames.length];
-  const lastName = lastNames[index % lastNames.length];
-  const name = `${firstName} ${lastName}`;
-  const username = `${firstName.toLowerCase()}${lastName.toLowerCase()}${index}`;
-  
-  const userInterests = Array.from({ length: 3 }, () => 
-    interests[Math.floor(Math.random() * interests.length)]
-  );
+// Only keep post generation for real users
+const postCaptions = [
+  'Living my best life! 🌟',
+  'Another beautiful day in paradise 🌅',
+  'Can\'t beat this view 😍',
+  'Weekend vibes 🎉',
+  'Making memories 📸',
+  'Adventure awaits 🌎',
+  'Good times with great people 🥰',
+  'Living in the moment ✨',
+  'Blessed and grateful 🙏',
+  'Dreams do come true 💫'
+];
 
-  return {
-    id,
-    name,
-    dpUrl: `https://i.pravatar.cc/300?img=${index}${gender === 'male' ? 'm' : 'f'}`,
-    bio: gender === 'male' 
-      ? bios.male[index % bios.male.length]
-      : bios.female[index % bios.female.length],
-    gender,
-    age: Math.floor(Math.random() * (45 - 18) + 18),
-    distance: Math.floor(Math.random() * 250),
-    interests: Array.from(new Set(userInterests)),
-    links: {
-      Twitter: `https://twitter.com/${username}`,
-      Instagram: `https://instagram.com/${username}`,
-      LinkedIn: `https://linkedin.com/in/${username}`,
-    }
-  };
-}
-
-export const mockUsers = {
-  male: Array.from({ length: 10 }, (_, i) => generateUser('male', i)),
-  female: Array.from({ length: 10 }, (_, i) => generateUser('female', i))
-};
-
-export function generatePosts(user: User): Post[] {
+export function generatePosts(user: any): Post[] {
   return Array.from({ length: 6 }, () => ({
-    id: nanoid(),
+    id: generateId(),
     userId: user.id,
     userName: user.name,
-    userDpUrl: user.dpUrl,
+    userDpUrl: user.profile_photo_url || `https://i.pravatar.cc/300?img=${user.id}`,
     title: `Post by ${user.name}`,
-    mediaUrl: `https://picsum.photos/800/600?random=${nanoid()}`,
+    mediaUrl: `https://picsum.photos/800/600?random=${generateId()}`,
     caption: postCaptions[Math.floor(Math.random() * postCaptions.length)],
     timestamp: new Date().toISOString()
   }));
