@@ -312,11 +312,11 @@ export const PasswordResetScreen: React.FC<Props> = ({ onBack }) => {
   );
 
   return (
-    <div className="min-h-screen bg-black overflow-y-auto">
-      <div className="min-h-screen flex items-center justify-center p-4 py-12">
+    <div className="min-h-screen min-h-[100dvh] bg-black overflow-y-auto mobile-scroll">
+      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 py-8">
         <div className="w-full max-w-md">
           {/* Header */}
-          <div className="flex items-center mb-8">
+          <div className="flex items-center mb-6">
             <button
               onClick={onBack}
               className="mr-4 p-2 rounded-full hover:bg-gray-800 active:scale-95 transition-all"
@@ -343,7 +343,7 @@ export const PasswordResetScreen: React.FC<Props> = ({ onBack }) => {
 
           {/* Help Text */}
           {step !== 'success' && (
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center pb-8">
               <p className="text-xs text-gray-500">
                 Remember your password?{' '}
                 <button

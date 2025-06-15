@@ -1,3 +1,4 @@
+'use client'
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
@@ -178,16 +179,16 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
   const canProceedToPassword = isLogin || emailVerification.otpVerified;
 
   return (
-    <div className="min-h-screen bg-black overflow-y-auto">
+    <div className="min-h-screen min-h-[100dvh] bg-black overflow-y-auto mobile-scroll">
       <motion.div
-        className="min-h-screen flex items-center justify-center p-4 py-12"
+        className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 py-8"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
         <div className="w-full max-w-md">
           {/* Header with more space above */}
-          <div className="text-center mb-8 pt-8">
+          <div className="text-center mb-6 pt-4">
             <h1 className="text-3xl font-bold text-white mb-2">Zenlit</h1>
             <p className="text-gray-400">Connect with people around you</p>
           </div>
@@ -472,7 +473,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           </div>
 
           {/* Terms and Privacy */}
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center pb-8">
             <p className="text-xs text-gray-500">
               By continuing, you agree to our{' '}
               <button className="text-blue-400 hover:text-blue-300 transition-colors">

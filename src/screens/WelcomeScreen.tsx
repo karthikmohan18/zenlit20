@@ -7,9 +7,9 @@ interface Props {
 
 export const WelcomeScreen: React.FC<Props> = ({ onGetStarted }) => {
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+    <div className="min-h-screen min-h-[100dvh] bg-black flex items-center justify-center p-4 overflow-y-auto mobile-scroll">
       <motion.div
-        className="text-center"
+        className="text-center w-full max-w-md"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
