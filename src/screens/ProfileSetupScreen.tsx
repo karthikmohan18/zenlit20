@@ -1,0 +1,489 @@
+'use client'
+import React, { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { CameraIcon, CheckIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { supabase } from '../lib/supabase';
+
+interface Props {
+  onComplete: (profileData: any) => void;
+  onBack?: () => void;
+}
+
+const interests = [
+  'Photography', 'Travel', 'Fitness', 'Music', 'Art', 'Technology', 'Food', 'Fashion',
+  'Sports', 'Reading', 'Gaming', 'Movies', 'Dancing', 'Hiking', 'Cooking', 'Yoga',
+  'Writing', 'Pets', 'Nature', 'Coffee', 'Design', 'Business', 'Science', 'History'
+];
+
+export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
+  const [step, setStep] = useState<'basic' | 'photo' | 'interests' | 'bio'>('basic');
+  const [isLoading, setIsLoading] = useState(false);
+  const [profileData, setProfileData] = useState({
+    displayName: '',
+    dateOfBirth: '',
+    gender: '' as 'male' | 'female' | '',
+    profilePhoto: null as string | null,
+    selectedInterests: [] as string[],
+    bio: '',
+    location: ''
+  });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleInputChange = (field: string, value: any) => {
+    setProfileData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleInterestToggle = (interest: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      selectedInterests: prev.selectedInterests.includes(interest)
+        ? prev.selectedInterests.filter(i => i !== interest)
+        : [...prev.selectedInterests, interest]
+    }));
+  };
+
+  const handlePhotoSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileData(prev => ({
+          ...prev,
+          profilePhoto: e.target?.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const canProceedFromBasic = () => {
+    return profileData.displayName.trim() && 
+           profileData.dateOfBirth && 
+           profileData.gender;
+  };
+
+  const canProceedFromInterests = () => {
+    return profileData.selectedInterests.length >= 3;
+  };
+
+  const handleNext = () => {
+    if (step === 'basic' && canProceedFromBasic()) {
+      setStep('photo');
+    } else if (step === 'photo') {
+      setStep('interests');
+    } else if (step === 'interests' && canProceedFromInterests()) {
+      setStep('bio');
+    }
+  };
+
+  const handleBack = () => {
+    if (step === 'photo') {
+      setStep('basic');
+    } else if (step === 'interests') {
+      setStep('photo');
+    } else if (step === 'bio') {
+      setStep('interests');
+    } else if (onBack) {
+      onBack();
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!profileData.bio.trim()) {
+      alert('Please add a bio to complete your profile');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('User not found');
+      }
+
+      // Upload profile photo if selected
+      let profilePhotoUrl = null;
+      if (profileData.profilePhoto) {
+        // In a real app, you would upload to Supabase Storage
+        // For now, we'll use the base64 data URL
+        profilePhotoUrl = profileData.profilePhoto;
+      }
+
+      // Update user profile in database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          name: profileData.displayName,
+          bio: profileData.bio,
+          date_of_birth: profileData.dateOfBirth,
+          gender: profileData.gender,
+          location: profileData.location,
+          interests: profileData.selectedInterests,
+          profile_photo_url: profilePhotoUrl,
+          profile_completed: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Complete profile setup
+      onComplete({
+        ...profileData,
+        userId: user.id,
+        profilePhotoUrl
+      });
+
+    } catch (error) {
+      console.error('Profile setup error:', error);
+      alert('Failed to save profile. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderBasicInfo = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">Tell us about yourself</h2>
+        <p className="text-gray-400">Let's set up your profile</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Display Name *
+        </label>
+        <input
+          type="text"
+          value={profileData.displayName}
+          onChange={(e) => handleInputChange('displayName', e.target.value)}
+          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="How should people know you?"
+          maxLength={50}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Date of Birth *
+        </label>
+        <input
+          type="date"
+          value={profileData.dateOfBirth}
+          onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [color-scheme:dark]"
+          max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Gender *
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => handleInputChange('gender', 'male')}
+            className={`p-3 rounded-lg border-2 transition-all ${
+              profileData.gender === 'male'
+                ? 'border-blue-500 bg-blue-600/20 text-blue-400'
+                : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
+            }`}
+          >
+            Male
+          </button>
+          <button
+            type="button"
+            onClick={() => handleInputChange('gender', 'female')}
+            className={`p-3 rounded-lg border-2 transition-all ${
+              profileData.gender === 'female'
+                ? 'border-blue-500 bg-blue-600/20 text-blue-400'
+                : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
+            }`}
+          >
+            Female
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Location (Optional)
+        </label>
+        <input
+          type="text"
+          value={profileData.location}
+          onChange={(e) => handleInputChange('location', e.target.value)}
+          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="City, Country"
+          maxLength={100}
+        />
+      </div>
+    </motion.div>
+  );
+
+  const renderPhotoStep = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">Add a profile photo</h2>
+        <p className="text-gray-400">Help others recognize you</p>
+      </div>
+
+      <div className="flex flex-col items-center space-y-6">
+        <div className="relative">
+          {profileData.profilePhoto ? (
+            <img
+              src={profileData.profilePhoto}
+              alt="Profile"
+              className="w-32 h-32 rounded-full object-cover border-4 border-blue-500"
+            />
+          ) : (
+            <div className="w-32 h-32 rounded-full bg-gray-800 border-4 border-gray-600 flex items-center justify-center">
+              <CameraIcon className="w-12 h-12 text-gray-400" />
+            </div>
+          )}
+          
+          <button
+            onClick={handlePhotoSelect}
+            className="absolute bottom-0 right-0 bg-blue-600 p-3 rounded-full text-white hover:bg-blue-700 active:scale-95 transition-all shadow-lg"
+          >
+            <CameraIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="text-center">
+          <button
+            onClick={handlePhotoSelect}
+            className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
+          >
+            {profileData.profilePhoto ? 'Change Photo' : 'Add Photo'}
+          </button>
+          <p className="text-gray-500 text-sm mt-2">
+            You can skip this step and add a photo later
+          </p>
+        </div>
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+    </motion.div>
+  );
+
+  const renderInterestsStep = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">What are you into?</h2>
+        <p className="text-gray-400">
+          Select at least 3 interests (Selected: {profileData.selectedInterests.length})
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
+        {interests.map((interest) => (
+          <button
+            key={interest}
+            onClick={() => handleInterestToggle(interest)}
+            className={`p-3 rounded-lg border-2 transition-all text-sm ${
+              profileData.selectedInterests.includes(interest)
+                ? 'border-blue-500 bg-blue-600/20 text-blue-400'
+                : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
+            }`}
+          >
+            {interest}
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  );
+
+  const renderBioStep = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="space-y-6"
+    >
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">Tell your story</h2>
+        <p className="text-gray-400">Write a bio that represents you</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Bio *
+        </label>
+        <textarea
+          value={profileData.bio}
+          onChange={(e) => handleInputChange('bio', e.target.value)}
+          className="w-full h-32 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          placeholder="Tell people about yourself, your interests, what you're looking for..."
+          maxLength={200}
+        />
+        <div className="flex justify-end mt-1">
+          <span className={`text-xs ${profileData.bio.length > 180 ? 'text-red-400' : 'text-gray-400'}`}>
+            {profileData.bio.length}/200
+          </span>
+        </div>
+      </div>
+
+      <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
+        <h3 className="text-sm font-medium text-blue-300 mb-2">Profile Preview</h3>
+        <div className="flex items-start gap-3">
+          {profileData.profilePhoto ? (
+            <img
+              src={profileData.profilePhoto}
+              alt="Profile"
+              className="w-12 h-12 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center">
+              <span className="text-gray-400 text-xs">No Photo</span>
+            </div>
+          )}
+          <div className="flex-1">
+            <h4 className="font-semibold text-white">{profileData.displayName || 'Your Name'}</h4>
+            <p className="text-gray-300 text-sm mt-1">
+              {profileData.bio || 'Your bio will appear here...'}
+            </p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {profileData.selectedInterests.slice(0, 3).map((interest) => (
+                <span
+                  key={interest}
+                  className="px-2 py-1 bg-blue-600/20 text-blue-400 text-xs rounded-full"
+                >
+                  {interest}
+                </span>
+              ))}
+              {profileData.selectedInterests.length > 3 && (
+                <span className="px-2 py-1 bg-gray-600/20 text-gray-400 text-xs rounded-full">
+                  +{profileData.selectedInterests.length - 3} more
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  const getStepProgress = () => {
+    const steps = ['basic', 'photo', 'interests', 'bio'];
+    return ((steps.indexOf(step) + 1) / steps.length) * 100;
+  };
+
+  const canProceed = () => {
+    switch (step) {
+      case 'basic':
+        return canProceedFromBasic();
+      case 'photo':
+        return true; // Photo is optional
+      case 'interests':
+        return canProceedFromInterests();
+      case 'bio':
+        return profileData.bio.trim().length > 0;
+      default:
+        return false;
+    }
+  };
+
+  return (
+    <div className="auth-screen mobile-screen bg-black">
+      <div className="mobile-full-height flex flex-col p-4 py-8">
+        <div className="w-full max-w-md mx-auto flex-1 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={handleBack}
+              className="p-2 rounded-full hover:bg-gray-800 active:scale-95 transition-all"
+            >
+              <ChevronLeftIcon className="w-5 h-5 text-white" />
+            </button>
+            
+            <div className="flex-1 mx-4">
+              <div className="w-full bg-gray-800 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${getStepProgress()}%` }}
+                />
+              </div>
+            </div>
+            
+            <span className="text-sm text-gray-400 min-w-0">
+              {step === 'basic' && '1/4'}
+              {step === 'photo' && '2/4'}
+              {step === 'interests' && '3/4'}
+              {step === 'bio' && '4/4'}
+            </span>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto mobile-scroll">
+            {step === 'basic' && renderBasicInfo()}
+            {step === 'photo' && renderPhotoStep()}
+            {step === 'interests' && renderInterestsStep()}
+            {step === 'bio' && renderBioStep()}
+          </div>
+
+          {/* Footer */}
+          <div className="mt-6 pt-4">
+            {step === 'bio' ? (
+              <button
+                onClick={handleComplete}
+                disabled={!canProceed() || isLoading}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Creating Profile...
+                  </>
+                ) : (
+                  <>
+                    <CheckIcon className="w-5 h-5" />
+                    Complete Profile
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                disabled={!canProceed()}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed"
+              >
+                Continue
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

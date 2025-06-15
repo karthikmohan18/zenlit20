@@ -1,27 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { defaultCurrentUser, getCurrentUserPosts } from '../data/mockData';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
 import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PostsGalleryScreen } from './PostsGalleryScreen';
 import { EditProfileScreen } from './EditProfileScreen';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   user?: User | null;
+  currentUser?: any;
   onBack?: () => void;
   onLogout?: () => void;
   onNavigateToCreate?: () => void;
 }
 
-export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavigateToCreate }) => {
+export const ProfileScreen: React.FC<Props> = ({ 
+  user, 
+  currentUser, 
+  onBack, 
+  onLogout, 
+  onNavigateToCreate 
+}) => {
   const [showPostsGallery, setShowPostsGallery] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const profileData = user || defaultCurrentUser;
-  const isCurrentUser = !user || user.id === defaultCurrentUser.id;
+  const [profileData, setProfileData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Determine if viewing own profile or another user's profile
+  const isCurrentUser = !user || (currentUser && user?.id === currentUser.id);
+  
+  // Use current user data if viewing own profile, otherwise use passed user
+  const displayUser = isCurrentUser ? currentUser : user;
   
   // Get current user's posts if viewing own profile
   const userPosts = isCurrentUser ? getCurrentUserPosts() : [];
+
+  // Load profile data when component mounts or user changes
+  useEffect(() => {
+    if (displayUser) {
+      setProfileData(displayUser);
+    } else if (isCurrentUser && currentUser) {
+      setProfileData(currentUser);
+    } else {
+      // Load current user profile from database
+      loadCurrentUserProfile();
+    }
+  }, [displayUser, currentUser, isCurrentUser]);
+
+  const loadCurrentUserProfile = async () => {
+    if (!isCurrentUser) return;
+    
+    setIsLoading(true);
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.error('User fetch error:', userError);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        return;
+      }
+
+      setProfileData(profile);
+    } catch (error) {
+      console.error('Load profile error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleMediaClick = () => {
     setShowPostsGallery(true);
@@ -40,6 +97,40 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
     setShowEditProfile(false);
   };
 
+  const handleSaveProfile = async (updatedProfile: any) => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('User not found');
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          name: updatedProfile.name,
+          bio: updatedProfile.bio,
+          location: updatedProfile.location,
+          interests: updatedProfile.interests,
+          profile_photo_url: updatedProfile.profilePhoto,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Update local state
+      setProfileData(updatedProfile);
+      setShowEditProfile(false);
+      
+    } catch (error) {
+      console.error('Save profile error:', error);
+      alert('Failed to save profile. Please try again.');
+    }
+  };
+
   const handleLogout = () => {
     setShowSettingsMenu(false);
     if (confirm('Are you sure you want to log out?')) {
@@ -55,6 +146,18 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
     }
   };
 
+  // Show loading state
+  if (isLoading || !profileData) {
+    return (
+      <div className="min-h-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Count verified social accounts
   const verifiedAccountsCount = [
     profileData.instagramVerified,
@@ -69,11 +172,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
       <EditProfileScreen
         user={profileData}
         onBack={handleBackFromEdit}
-        onSave={(updatedUser) => {
-          // TODO: Implement save functionality
-          console.log('Updated user:', updatedUser);
-          setShowEditProfile(false);
-        }}
+        onSave={handleSaveProfile}
       />
     );
   }
@@ -95,7 +194,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
       <div className="relative">
         <div className="h-48 bg-gradient-to-b from-blue-900 to-black">
           <img
-            src={`https://picsum.photos/800/400?random=${profileData.id}`}
+            src={`https://picsum.photos/800/400?random=${profileData.id || 'default'}`}
             alt="Profile Cover"
             className="w-full h-full object-cover opacity-60"
           />
@@ -156,7 +255,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
         <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <div className="relative">
             <img
-              src={profileData.dpUrl}
+              src={profileData.profile_photo_url || profileData.dpUrl || `https://i.pravatar.cc/300?img=${profileData.id || 'default'}`}
               alt={profileData.name}
               className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
             />
@@ -195,12 +294,38 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
             </p>
           )}
           
-          <p className="text-gray-300 mt-2 text-base leading-relaxed">{profileData.bio}</p>
+          <p className="text-gray-300 mt-2 text-base leading-relaxed">
+            {profileData.bio || 'No bio available'}
+          </p>
+
+          {/* Location */}
+          {profileData.location && (
+            <p className="text-gray-400 text-sm mt-2">📍 {profileData.location}</p>
+          )}
+
+          {/* Interests */}
+          {profileData.interests && profileData.interests.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
+              {profileData.interests.slice(0, 6).map((interest: string) => (
+                <span
+                  key={interest}
+                  className="px-3 py-1 bg-blue-600/20 text-blue-400 text-sm rounded-full"
+                >
+                  {interest}
+                </span>
+              ))}
+              {profileData.interests.length > 6 && (
+                <span className="px-3 py-1 bg-gray-600/20 text-gray-400 text-sm rounded-full">
+                  +{profileData.interests.length - 6} more
+                </span>
+              )}
+            </div>
+          )}
           
           {/* Social Links with verification indicators */}
           <div className="flex justify-center gap-8 mt-8">
             <a
-              href={profileData.links.Twitter}
+              href={profileData.links?.Twitter || '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
@@ -213,7 +338,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
               )}
             </a>
             <a
-              href={profileData.links.Instagram}
+              href={profileData.links?.Instagram || '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
@@ -226,7 +351,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
               )}
             </a>
             <a
-              href={profileData.links.LinkedIn}
+              href={profileData.links?.LinkedIn || '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
@@ -294,7 +419,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
                   className="aspect-square active:scale-95 transition-transform"
                 >
                   <img
-                    src={`https://picsum.photos/400/400?random=${profileData.id}-${index}`}
+                    src={`https://picsum.photos/400/400?random=${profileData.id || 'default'}-${index}`}
                     alt={`Media ${index + 1}`}
                     className="w-full h-full object-cover rounded-lg"
                   />

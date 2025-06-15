@@ -1,7 +1,8 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { LoginScreen } from './screens/LoginScreen';
+import { ProfileSetupScreen } from './screens/ProfileSetupScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { RadarScreen } from './screens/RadarScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
@@ -9,30 +10,122 @@ import { CreatePostScreen } from './screens/CreatePostScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
 import { UserGroupIcon, Squares2X2Icon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { User } from './types';
+import { supabase } from './lib/supabase';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'app'>('welcome');
+  const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'profileSetup' | 'app'>('welcome');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userGender] = useState<'male' | 'female'>('male');
   const [activeTab, setActiveTab] = useState('radar');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check authentication status on app load
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        setCurrentScreen('welcome');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user has completed profile setup
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        console.error('Profile fetch error:', profileError);
+        setCurrentScreen('welcome');
+        setIsLoading(false);
+        return;
+      }
+
+      setCurrentUser(profile);
+      setIsLoggedIn(true);
+
+      // Check if profile is complete
+      if (!profile.profile_completed) {
+        setCurrentScreen('profileSetup');
+      } else {
+        setCurrentScreen('app');
+      }
+      
+    } catch (error) {
+      console.error('Auth check error:', error);
+      setCurrentScreen('welcome');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleGetStarted = () => {
     setCurrentScreen('login');
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setIsLoggedIn(true);
+    
+    // Check if user needs to complete profile setup
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        setCurrentScreen('welcome');
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        setCurrentScreen('profileSetup');
+        return;
+      }
+
+      setCurrentUser(profile);
+
+      if (!profile.profile_completed) {
+        setCurrentScreen('profileSetup');
+      } else {
+        setCurrentScreen('app');
+      }
+    } catch (error) {
+      console.error('Login check error:', error);
+      setCurrentScreen('profileSetup');
+    }
+  };
+
+  const handleProfileSetupComplete = (profileData: any) => {
+    setCurrentUser(profileData);
     setCurrentScreen('app');
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentScreen('welcome');
-    setActiveTab('radar');
-    setSelectedUser(null);
-    setSelectedChatUser(null);
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      setCurrentScreen('welcome');
+      setActiveTab('radar');
+      setSelectedUser(null);
+      setSelectedChatUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const handleMessageUser = (user: User) => {
@@ -48,6 +141,18 @@ export default function App() {
     setActiveTab('create');
   };
 
+  // Show loading screen while checking auth
+  if (isLoading) {
+    return (
+      <div className="h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show welcome screen first
   if (currentScreen === 'welcome') {
     return <WelcomeScreen onGetStarted={handleGetStarted} />;
@@ -58,7 +163,17 @@ export default function App() {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  // Show main app after login
+  // Show profile setup screen for new users
+  if (currentScreen === 'profileSetup') {
+    return (
+      <ProfileSetupScreen 
+        onComplete={handleProfileSetupComplete}
+        onBack={() => setCurrentScreen('login')}
+      />
+    );
+  }
+
+  // Show main app after login and profile setup
   return (
     <div className="h-screen bg-black text-white overflow-hidden flex flex-col">
       {/* Mobile App Container */}
@@ -99,6 +214,7 @@ export default function App() {
               <div className="h-full overflow-y-auto mobile-scroll">
                 <ProfileScreen 
                   user={selectedUser} 
+                  currentUser={currentUser}
                   onBack={() => setSelectedUser(null)}
                   onLogout={handleLogout}
                   onNavigateToCreate={handleNavigateToCreate}
