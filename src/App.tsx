@@ -150,35 +150,10 @@ export default function App() {
     }
   };
 
-  const handleProfileSetupComplete = async (profileData: any) => {
-    // Refresh the user profile from database to get the latest data
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (error || !user) {
-        console.error('User fetch error:', error);
-        return;
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle() instead of single()
-
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-        setCurrentUser(profileData);
-      } else if (profile) {
-        setCurrentUser(profile);
-      } else {
-        setCurrentUser(profileData);
-      }
-    } catch (error) {
-      console.error('Profile refresh error:', error);
-      setCurrentUser(profileData);
-    }
-    
+  const handleProfileSetupComplete = (profileData: any) => {
+    // Use the profile data directly from the setup screen
+    // This data already includes profile_completed: true
+    setCurrentUser(profileData);
     setCurrentScreen('app');
   };
 
