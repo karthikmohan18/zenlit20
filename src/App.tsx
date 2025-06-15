@@ -37,12 +37,12 @@ export default function App() {
         return;
       }
 
-      // Check if user has completed profile setup
+      // Check if user has a profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle() instead of single() to handle cases where no profile exists yet
+        .maybeSingle();
 
       if (profileError) {
         console.error('Profile fetch error:', profileError);
@@ -71,7 +71,13 @@ export default function App() {
             setCurrentUser(retryProfile);
             setIsLoggedIn(true);
             
-            if (retryProfile.profile_completed) {
+            // Check if profile has essential fields filled out
+            const isProfileComplete = retryProfile.name && 
+                                    retryProfile.bio && 
+                                    retryProfile.date_of_birth && 
+                                    retryProfile.gender;
+            
+            if (isProfileComplete) {
               setCurrentScreen('app');
             } else {
               setCurrentScreen('profileSetup');
@@ -88,8 +94,13 @@ export default function App() {
       setCurrentUser(profile);
       setIsLoggedIn(true);
 
-      // Check if profile is complete - if so, go directly to app
-      if (profile.profile_completed) {
+      // Check if profile has essential fields filled out (not just the profile_completed flag)
+      const isProfileComplete = profile.name && 
+                               profile.bio && 
+                               profile.date_of_birth && 
+                               profile.gender;
+
+      if (isProfileComplete) {
         setCurrentScreen('app');
       } else {
         setCurrentScreen('profileSetup');
@@ -123,7 +134,7 @@ export default function App() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle() instead of single()
+        .maybeSingle();
 
       if (profileError) {
         console.error('Profile fetch error:', profileError);
@@ -138,8 +149,13 @@ export default function App() {
 
       setCurrentUser(profile);
 
-      // If profile is complete, go to app, otherwise go to profile setup
-      if (profile.profile_completed) {
+      // Check if profile has essential fields filled out
+      const isProfileComplete = profile.name && 
+                               profile.bio && 
+                               profile.date_of_birth && 
+                               profile.gender;
+
+      if (isProfileComplete) {
         setCurrentScreen('app');
       } else {
         setCurrentScreen('profileSetup');
