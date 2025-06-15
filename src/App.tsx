@@ -42,12 +42,46 @@ export default function App() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle cases where no profile exists yet
 
-      if (profileError || !profile) {
+      if (profileError) {
         console.error('Profile fetch error:', profileError);
         setCurrentScreen('welcome');
         setIsLoading(false);
+        return;
+      }
+
+      // If no profile exists yet, wait a moment and try again (database trigger might still be processing)
+      if (!profile) {
+        setTimeout(async () => {
+          const { data: retryProfile, error: retryError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (retryError) {
+            console.error('Profile retry fetch error:', retryError);
+            setCurrentScreen('profileSetup');
+            setIsLoading(false);
+            return;
+          }
+
+          if (retryProfile) {
+            setCurrentUser(retryProfile);
+            setIsLoggedIn(true);
+            
+            if (retryProfile.profile_completed) {
+              setCurrentScreen('app');
+            } else {
+              setCurrentScreen('profileSetup');
+            }
+          } else {
+            // Still no profile, go to profile setup
+            setCurrentScreen('profileSetup');
+          }
+          setIsLoading(false);
+        }, 1000);
         return;
       }
 
@@ -89,9 +123,15 @@ export default function App() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
-      if (profileError || !profile) {
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        setCurrentScreen('profileSetup');
+        return;
+      }
+
+      if (!profile) {
         setCurrentScreen('profileSetup');
         return;
       }
@@ -124,13 +164,15 @@ export default function App() {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single()
 
       if (profileError) {
         console.error('Profile fetch error:', profileError);
         setCurrentUser(profileData);
-      } else {
+      } else if (profile) {
         setCurrentUser(profile);
+      } else {
+        setCurrentUser(profileData);
       }
     } catch (error) {
       console.error('Profile refresh error:', error);

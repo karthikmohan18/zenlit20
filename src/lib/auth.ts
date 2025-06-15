@@ -93,23 +93,8 @@ export const signUpWithPassword = async (
       return { success: false, error: error.message }
     }
 
-    // Create profile record
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          name: `${firstName} ${lastName}`.trim(),
-          email: email,
-          bio: 'New to Zenlit! 👋',
-          created_at: new Date().toISOString()
-        })
-
-      if (profileError) {
-        console.error('Profile creation error:', profileError)
-        // Don't fail the signup if profile creation fails
-      }
-    }
+    // Profile creation is handled by the database trigger
+    // No need to create profile manually here
 
     return { success: true, data }
   } catch (error) {
