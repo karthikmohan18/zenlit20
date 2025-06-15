@@ -1,6 +1,6 @@
 # Zenlit - Social Media App
 
-A modern social media application built with React, TypeScript, and Tailwind CSS that focuses on local connections and social verification.
+A modern social media application built with Next.js 15, TypeScript, and Tailwind CSS that focuses on local connections and social verification.
 
 ## 🚀 Features
 
@@ -26,16 +26,17 @@ A modern social media application built with React, TypeScript, and Tailwind CSS
 - **Dark Theme** - Modern dark UI design
 - **Smooth Animations** - Framer Motion powered transitions
 
--## 🛠 Tech Stack
+## 🛠 Tech Stack
 
-- **Framework**: Next.js 15 with the App Router
+- **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Icons**: Heroicons, Tabler Icons
 - **Animation**: Framer Motion
+- **Database**: Supabase (configured)
+- **Authentication**: Supabase Auth
 - **State Management**: React Hooks
-- **Routing**: Component-based navigation
-- **Authentication**: Mock OAuth flows (ready for backend integration)
+- **PWA**: Next-PWA for offline functionality
 
 ## 📱 Screens
 
@@ -48,44 +49,58 @@ A modern social media application built with React, TypeScript, and Tailwind CSS
 7. **Profile Screen** - User profiles with social verification
 8. **Edit Profile** - Update profile information and verify social accounts
 
-## 🔧 Installation
+## 🔧 Installation & Setup
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
-git clone <repository-url>
+git clone <your-repository-url>
 cd zenlit-social
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Start the development server:
+3. **Set up environment variables:**
+   - Copy `.env.example` to `.env.local`
+   - Update the Supabase credentials if needed
+
+4. **Start the development server:**
 ```bash
 npm run dev
 ```
 
-4. Open your browser and navigate to `http://localhost:3000`
+5. **Open your browser:**
+   Navigate to `http://localhost:3000`
 
 ## 🏗 Project Structure
 
 ```
-src/
-├── components/          # Reusable UI components
-│   ├── common/         # Common components (Avatar, SocialLinks)
-│   ├── messaging/      # Chat-related components
-│   ├── post/          # Post-related components
-│   ├── profile/       # Profile components
-│   ├── radar/         # Radar screen components
-│   ├── social/        # Social verification components
-│   └── story/         # Stories components
-├── screens/            # Main application screens
-├── data/              # Mock data and generators
-├── hooks/             # Custom React hooks
-├── types/             # TypeScript type definitions
-├── utils/             # Utility functions
-└── styles/            # CSS and styling
+├── app/                    # Next.js 15 App Router
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Home page
+├── src/
+│   ├── components/        # Reusable UI components
+│   │   ├── common/       # Common components (Avatar, SocialLinks)
+│   │   ├── messaging/    # Chat-related components
+│   │   ├── post/         # Post-related components
+│   │   ├── profile/      # Profile components
+│   │   ├── radar/        # Radar screen components
+│   │   ├── social/       # Social verification components
+│   │   └── ui/           # shadcn/ui components
+│   ├── screens/          # Main application screens
+│   ├── data/             # Mock data and generators
+│   ├── hooks/            # Custom React hooks
+│   ├── types/            # TypeScript type definitions
+│   ├── utils/            # Utility functions
+│   └── App.tsx           # Main app component
+├── lib/                  # Library configurations
+│   ├── supabaseClient.ts # Supabase client setup
+│   └── utils.ts          # Utility functions
+├── components/ui/        # shadcn/ui components
+└── public/               # Static assets
 ```
 
 ## 🔐 Social Media Authentication
@@ -112,29 +127,14 @@ The app includes a comprehensive social media verification system:
 - Secure token handling and profile verification
 - Error handling for failed authentications
 
-## 📊 Database Schema
+## 📊 Database Integration
 
-The app is designed to work with the following database structure:
+The app is configured to work with Supabase:
 
-### Users Table
-- Basic user information (name, email, bio, etc.)
-- Profile and cover photo URLs
-- Location data for radar functionality
-
-### Social Accounts Table
-- Verified social media accounts
-- OAuth tokens and profile URLs
-- Verification status and timestamps
-
-### Posts Table
-- User-generated content
-- Media URLs and captions
-- Timestamps and metadata
-
-### Messages Table
-- Chat functionality
-- Sender/receiver relationships
-- Message content and read status
+- **Authentication**: Email/password with OTP verification
+- **Real-time**: Ready for real-time messaging
+- **Storage**: Profile pictures and post media
+- **Database**: User profiles, posts, messages, social accounts
 
 ## 🚀 Deployment
 
@@ -143,17 +143,13 @@ The app is designed to work with the following database structure:
 npm run build
 ```
 
-
-### Docker
-You can build a production image using the provided `Dockerfile`:
-```bash
-docker build -t zenlit-social .
-docker run -p 3000:3000 zenlit-social
-```
+### Environment Variables for Production
+Make sure to set these in your deployment platform:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ### Progressive Web App
-The project is configured as a PWA using `next-pwa`. When built for
-production, the app can be installed on mobile devices and works offline.
+The project is configured as a PWA using `next-pwa`. When built for production, the app can be installed on mobile devices and works offline.
 
 ## 🔮 Future Enhancements
 
@@ -179,8 +175,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Acknowledgments
 
 - React team for the amazing framework
+- Next.js team for the excellent framework
 - Tailwind CSS for the utility-first styling
 - Heroicons and Tabler Icons for beautiful icons
+- Supabase for the backend infrastructure
 - All contributors and testers
 
 ---

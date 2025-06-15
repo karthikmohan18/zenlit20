@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PasswordResetScreen } from './PasswordResetScreen';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   onLogin: () => void;
