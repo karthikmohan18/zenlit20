@@ -112,7 +112,7 @@ export const ProfileScreen: React.FC<Props> = ({
           bio: updatedProfile.bio,
           location: updatedProfile.location,
           interests: updatedProfile.interests,
-          profile_photo_url: updatedProfile.profilePhoto,
+          profile_photo_url: updatedProfile.dpUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -160,11 +160,11 @@ export const ProfileScreen: React.FC<Props> = ({
 
   // Count verified social accounts
   const verifiedAccountsCount = [
-    profileData.instagramVerified,
-    profileData.facebookVerified,
-    profileData.linkedInVerified,
-    profileData.twitterVerified,
-    profileData.googleVerified
+    profileData.instagram_verified,
+    profileData.facebook_verified,
+    profileData.linked_in_verified,
+    profileData.twitter_verified,
+    profileData.google_verified
   ].filter(Boolean).length;
 
   if (showEditProfile) {
@@ -255,7 +255,7 @@ export const ProfileScreen: React.FC<Props> = ({
         <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <div className="relative">
             <img
-              src={profileData.profile_photo_url || profileData.dpUrl || `https://i.pravatar.cc/300?img=${profileData.id || 'default'}`}
+              src={profileData.profile_photo_url || `https://i.pravatar.cc/300?img=${profileData.id || 'default'}`}
               alt={profileData.name}
               className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
             />
@@ -325,39 +325,39 @@ export const ProfileScreen: React.FC<Props> = ({
           {/* Social Links with verification indicators */}
           <div className="flex justify-center gap-8 mt-8">
             <a
-              href={profileData.links?.Twitter || '#'}
+              href={profileData.twitter_url || '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandX size={24} />
-              {profileData.twitterVerified && (
+              {profileData.twitter_verified && (
                 <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
                   <CheckCircleIcon className="w-3 h-3 text-white" />
                 </div>
               )}
             </a>
             <a
-              href={profileData.links?.Instagram || '#'}
+              href={profileData.instagram_url || '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandInstagram size={24} />
-              {profileData.instagramVerified && (
+              {profileData.instagram_verified && (
                 <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
                   <CheckCircleIcon className="w-3 h-3 text-white" />
                 </div>
               )}
             </a>
             <a
-              href={profileData.links?.LinkedIn || '#'}
+              href={profileData.linked_in_url || '#'}
               target="_blank"
               rel="noopener noreferrer"
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandLinkedin size={24} />
-              {profileData.linkedInVerified && (
+              {profileData.linked_in_verified && (
                 <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
                   <CheckCircleIcon className="w-3 h-3 text-white" />
                 </div>

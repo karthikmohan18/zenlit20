@@ -54,11 +54,11 @@ export default function App() {
       setCurrentUser(profile);
       setIsLoggedIn(true);
 
-      // Check if profile is complete
-      if (!profile.profile_completed) {
-        setCurrentScreen('profileSetup');
-      } else {
+      // Check if profile is complete - if so, go directly to app
+      if (profile.profile_completed) {
         setCurrentScreen('app');
+      } else {
+        setCurrentScreen('profileSetup');
       }
       
     } catch (error) {
@@ -98,10 +98,11 @@ export default function App() {
 
       setCurrentUser(profile);
 
-      if (!profile.profile_completed) {
-        setCurrentScreen('profileSetup');
-      } else {
+      // If profile is complete, go to app, otherwise go to profile setup
+      if (profile.profile_completed) {
         setCurrentScreen('app');
+      } else {
+        setCurrentScreen('profileSetup');
       }
     } catch (error) {
       console.error('Login check error:', error);
@@ -109,8 +110,33 @@ export default function App() {
     }
   };
 
-  const handleProfileSetupComplete = (profileData: any) => {
-    setCurrentUser(profileData);
+  const handleProfileSetupComplete = async (profileData: any) => {
+    // Refresh the user profile from database to get the latest data
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        console.error('User fetch error:', error);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        setCurrentUser(profileData);
+      } else {
+        setCurrentUser(profile);
+      }
+    } catch (error) {
+      console.error('Profile refresh error:', error);
+      setCurrentUser(profileData);
+    }
+    
     setCurrentScreen('app');
   };
 

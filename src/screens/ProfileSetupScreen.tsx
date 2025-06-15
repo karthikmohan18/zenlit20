@@ -111,14 +111,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         throw new Error('User not found');
       }
 
-      // Upload profile photo if selected
-      let profilePhotoUrl = null;
-      if (profileData.profilePhoto) {
-        // In a real app, you would upload to Supabase Storage
-        // For now, we'll use the base64 data URL
-        profilePhotoUrl = profileData.profilePhoto;
-      }
-
       // Update user profile in database
       const { error: updateError } = await supabase
         .from('profiles')
@@ -129,7 +121,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           gender: profileData.gender,
           location: profileData.location,
           interests: profileData.selectedInterests,
-          profile_photo_url: profilePhotoUrl,
+          profile_photo_url: profileData.profilePhoto, // Store the base64 image directly
           profile_completed: true,
           updated_at: new Date().toISOString()
         })
@@ -139,11 +131,18 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         throw updateError;
       }
 
-      // Complete profile setup
+      // Complete profile setup with the updated data
       onComplete({
-        ...profileData,
-        userId: user.id,
-        profilePhotoUrl
+        id: user.id,
+        name: profileData.displayName,
+        bio: profileData.bio,
+        date_of_birth: profileData.dateOfBirth,
+        gender: profileData.gender,
+        location: profileData.location,
+        interests: profileData.selectedInterests,
+        profile_photo_url: profileData.profilePhoto,
+        profile_completed: true,
+        email: user.email
       });
 
     } catch (error) {
