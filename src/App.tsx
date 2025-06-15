@@ -14,7 +14,7 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'app'>('welcome');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userGender] = useState<'male' | 'female'>('male');
-  const [activeTab, setActiveTab] = useState('radar'); // Changed default to radar
+  const [activeTab, setActiveTab] = useState('radar');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
 
@@ -30,7 +30,7 @@ export default function App() {
   const handleLogout = () => {
     setIsLoggedIn(false);
     setCurrentScreen('welcome');
-    setActiveTab('radar'); // Changed default to radar
+    setActiveTab('radar');
     setSelectedUser(null);
     setSelectedChatUser(null);
   };
@@ -60,40 +60,56 @@ export default function App() {
 
   // Show main app after login
   return (
-    <div className="h-screen bg-black text-white overflow-hidden">
+    <div className="h-screen bg-black text-white overflow-hidden flex flex-col">
       {/* Mobile App Container */}
-      <div className="h-full flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* Main Content Area */}
-        <main className="flex-1 overflow-hidden">
-          {activeTab === 'radar' && (
-            <RadarScreen 
-              userGender={userGender} 
-              onNavigate={setActiveTab}
-              onViewProfile={setSelectedUser}
-              onMessageUser={handleMessageUser}
-            />
-          )}
-          {activeTab === 'feed' && <HomeScreen userGender={userGender} />}
-          {activeTab === 'create' && <CreatePostScreen />}
-          {activeTab === 'messages' && (
-            <MessagesScreen 
-              selectedUser={selectedChatUser}
-              onClearSelectedUser={() => setSelectedChatUser(null)}
-              onViewProfile={handleViewProfile}
-            />
-          )}
-          {activeTab === 'profile' && (
-            <ProfileScreen 
-              user={selectedUser} 
-              onBack={() => setSelectedUser(null)}
-              onLogout={handleLogout}
-              onNavigateToCreate={handleNavigateToCreate}
-            />
-          )}
+        <main className="flex-1 overflow-hidden relative">
+          <div className="h-full">
+            {activeTab === 'radar' && (
+              <div className="h-full overflow-y-auto mobile-scroll">
+                <RadarScreen 
+                  userGender={userGender} 
+                  onNavigate={setActiveTab}
+                  onViewProfile={setSelectedUser}
+                  onMessageUser={handleMessageUser}
+                />
+              </div>
+            )}
+            {activeTab === 'feed' && (
+              <div className="h-full overflow-y-auto mobile-scroll">
+                <HomeScreen userGender={userGender} />
+              </div>
+            )}
+            {activeTab === 'create' && (
+              <div className="h-full overflow-y-auto mobile-scroll">
+                <CreatePostScreen />
+              </div>
+            )}
+            {activeTab === 'messages' && (
+              <div className="h-full">
+                <MessagesScreen 
+                  selectedUser={selectedChatUser}
+                  onClearSelectedUser={() => setSelectedChatUser(null)}
+                  onViewProfile={handleViewProfile}
+                />
+              </div>
+            )}
+            {activeTab === 'profile' && (
+              <div className="h-full overflow-y-auto mobile-scroll">
+                <ProfileScreen 
+                  user={selectedUser} 
+                  onBack={() => setSelectedUser(null)}
+                  onLogout={handleLogout}
+                  onNavigateToCreate={handleNavigateToCreate}
+                />
+              </div>
+            )}
+          </div>
         </main>
 
         {/* Bottom Navigation */}
-        <nav className="bg-gray-900 border-t border-gray-800 safe-area-inset-bottom fixed bottom-0 left-0 right-0 z-10">
+        <nav className="bg-gray-900 border-t border-gray-800 safe-area-inset-bottom flex-shrink-0">
           <div className="flex justify-around items-center py-2 px-4 h-16">
             <button
               onClick={() => setActiveTab('radar')}

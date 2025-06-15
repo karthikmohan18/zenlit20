@@ -32,7 +32,7 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
 
   if (selectedUser) {
     return (
-      <div className="h-full bg-black">
+      <div className="min-h-full bg-black">
         <button
           onClick={() => setSelectedUser(null)}
           className="fixed top-4 left-4 z-50 bg-gray-900/80 backdrop-blur-sm p-3 rounded-full shadow-lg active:scale-95 transition-transform"
@@ -45,8 +45,8 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
   }
 
   return (
-    <div className="h-full bg-black overflow-y-auto">
-      {/* Header - Now scrolls with content */}
+    <div className="min-h-full bg-black">
+      {/* Header */}
       <div className="bg-black border-b border-gray-800">
         <div className="px-4 py-3 flex items-center">
           <svg className="w-8 h-8 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +57,7 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
       </div>
 
       {/* Posts Feed */}
-      <div className="px-4 py-4 space-y-6">
+      <div className="px-4 py-4 space-y-6 pb-20">
         {allPosts.length > 0 ? (
           <PostsFeed posts={allPosts} onUserClick={handleUserClick} />
         ) : (

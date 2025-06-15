@@ -90,7 +90,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
   }
 
   return (
-    <div className="h-full bg-black overflow-y-auto">
+    <div className="min-h-full bg-black">
       {/* Profile Header with Cover Photo */}
       <div className="relative">
         <div className="h-48 bg-gradient-to-b from-blue-900 to-black">
@@ -179,7 +179,7 @@ export const ProfileScreen: React.FC<Props> = ({ user, onBack, onLogout, onNavig
       </div>
 
       {/* Profile Content */}
-      <div className="mt-16 px-4 pb-8">
+      <div className="mt-16 px-4 pb-20">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <h1 className="text-2xl font-bold text-white">{profileData.name}</h1>

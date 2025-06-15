@@ -280,7 +280,7 @@ export const CreatePostScreen: React.FC = () => {
   }
 
   return (
-    <div className="h-full bg-black overflow-y-auto">
+    <div className="min-h-full bg-black">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-gray-800">
         <div className="flex items-center justify-between px-4 py-3">
@@ -302,7 +302,7 @@ export const CreatePostScreen: React.FC = () => {
         </div>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-6 pb-20">
         {/* User Info */}
         <div className="flex items-center space-x-3">
           <img
