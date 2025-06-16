@@ -54,6 +54,13 @@ export const ProfileScreen: React.FC<Props> = ({
     
     setIsLoading(true);
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('Supabase not available, using offline mode');
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
@@ -121,6 +128,13 @@ export const ProfileScreen: React.FC<Props> = ({
 
   const handleSaveProfile = async (updatedProfile: any) => {
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('Supabase not available, using offline mode');
+        alert('Profile saving is not available in offline mode');
+        return;
+      }
+
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
