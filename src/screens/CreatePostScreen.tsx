@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { generateId } from '../utils/generateId';
-import { Post } from '../types';
 import { supabase } from '../lib/supabase';
+import { uploadPostImage } from '../lib/storage';
+import { createPost } from '../lib/posts';
 
 export const CreatePostScreen: React.FC = () => {
   const [caption, setCaption] = useState('');
@@ -88,67 +89,6 @@ export const CreatePostScreen: React.FC = () => {
     }
   };
 
-  const uploadImageToSupabase = async (imageDataUrl: string): Promise<string | null> => {
-    try {
-      // Convert data URL to blob
-      const response = await fetch(imageDataUrl);
-      const blob = await response.blob();
-      
-      // Generate unique filename
-      const fileName = `post_${currentUser.id}_${Date.now()}.jpg`;
-      const filePath = `posts/${fileName}`;
-      
-      // First, check if the bucket exists and create it if it doesn't
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      
-      if (bucketsError) {
-        console.error('Error listing buckets:', bucketsError);
-        return null;
-      }
-      
-      const postsBucket = buckets.find(bucket => bucket.name === 'posts');
-      
-      if (!postsBucket) {
-        // Create the bucket if it doesn't exist
-        const { error: createBucketError } = await supabase.storage.createBucket('posts', {
-          public: true,
-          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
-          fileSizeLimit: 10485760 // 10MB
-        });
-        
-        if (createBucketError) {
-          console.error('Error creating bucket:', createBucketError);
-          return null;
-        }
-        
-        console.log('Created posts bucket successfully');
-      }
-      
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('posts')
-        .upload(filePath, blob, {
-          contentType: 'image/jpeg',
-          upsert: false
-        });
-      
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        return null;
-      }
-      
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('posts')
-        .getPublicUrl(filePath);
-      
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      return null;
-    }
-  };
-
   const handlePost = async () => {
     if (!selectedMedia && !caption.trim()) {
       alert('Please add some content to your post');
@@ -168,7 +108,7 @@ export const CreatePostScreen: React.FC = () => {
       // If we have a selected media that's a data URL (captured photo), upload it
       if (selectedMedia && selectedMedia.startsWith('data:')) {
         console.log('Uploading image to Supabase...');
-        const uploadedUrl = await uploadImageToSupabase(selectedMedia);
+        const uploadedUrl = await uploadPostImage(currentUser.id, selectedMedia);
         
         if (uploadedUrl) {
           mediaUrl = uploadedUrl;
@@ -183,24 +123,19 @@ export const CreatePostScreen: React.FC = () => {
         mediaUrl = `https://picsum.photos/800/600?random=${generateId()}`;
       }
 
-      // Save post to Supabase database
-      const { data: newPost, error: postError } = await supabase
-        .from('posts')
-        .insert({
-          user_id: currentUser.id,
-          title: `Post by ${currentUser.name}`,
-          caption: caption.trim() || 'New post from Zenlit!',
-          media_url: mediaUrl,
-          media_type: 'image'
-        })
-        .select()
-        .single();
+      // Create post using the posts service
+      const newPost = await createPost({
+        title: `Post by ${currentUser.name}`,
+        caption: caption.trim() || 'New post from Zenlit!',
+        mediaUrl: mediaUrl!,
+        mediaType: 'image'
+      });
 
-      if (postError) {
-        throw postError;
+      if (!newPost) {
+        throw new Error('Failed to create post');
       }
 
-      console.log('Post saved to database:', newPost);
+      console.log('Post created successfully:', newPost);
       
       setIsPosting(false);
       setShowSuccess(true);
@@ -218,9 +153,9 @@ export const CreatePostScreen: React.FC = () => {
       
       // Show user-friendly error message
       if (error instanceof Error) {
-        if (error.message.includes('storage')) {
+        if (error.message.includes('storage') || error.message.includes('bucket')) {
           alert('Failed to upload image. Please check your internet connection and try again.');
-        } else if (error.message.includes('posts')) {
+        } else if (error.message.includes('posts') || error.message.includes('database')) {
           alert('Failed to save post. Please try again.');
         } else {
           alert(`Failed to create post: ${error.message}`);
@@ -396,7 +331,7 @@ export const CreatePostScreen: React.FC = () => {
             <CheckIcon className="w-10 h-10 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Post Shared!</h2>
-          <p className="text-gray-400">Your post has been saved to the database</p>
+          <p className="text-gray-400">Your post has been saved successfully</p>
         </div>
       </div>
     );

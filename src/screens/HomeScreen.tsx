@@ -4,6 +4,7 @@ import { UserProfile } from '../components/profile/UserProfile';
 import { User, Post } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
+import { getAllPosts } from '../lib/posts';
 
 interface Props {
   userGender: 'male' | 'female';
@@ -20,42 +21,8 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
 
   const loadPosts = async () => {
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      if (!currentUser) return;
-
-      // Get all posts with user profile information
-      const { data: postsData, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            name,
-            profile_photo_url
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error('Error loading posts:', error);
-        return;
-      }
-
-      // Transform database posts to Post type
-      const transformedPosts: Post[] = (postsData || []).map(post => ({
-        id: post.id,
-        userId: post.user_id,
-        userName: post.profiles?.name || 'Unknown User',
-        userDpUrl: post.profiles?.profile_photo_url || `https://i.pravatar.cc/300?img=${post.user_id}`,
-        title: post.title,
-        mediaUrl: post.media_url,
-        caption: post.caption,
-        timestamp: post.created_at
-      }));
-
-      setPosts(transformedPosts);
+      const allPosts = await getAllPosts(50);
+      setPosts(allPosts);
     } catch (error) {
       console.error('Error loading posts:', error);
     } finally {

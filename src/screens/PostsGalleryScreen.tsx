@@ -2,7 +2,7 @@ import React from 'react';
 import { User, Post } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { generatePosts } from '../utils/mockDataGenerator';
-import { format } from 'date-fns';
+import { formatPostDate } from '../utils/dateUtils';
 
 interface Props {
   user: User;
@@ -10,34 +10,6 @@ interface Props {
   onBack: () => void;
   onUserClick?: (userId: string) => void;
 }
-
-// Helper function to safely format dates
-const formatPostDate = (dateValue: any): string => {
-  try {
-    // Handle different date formats and fallbacks
-    let date: Date;
-    
-    if (!dateValue) {
-      date = new Date();
-    } else if (typeof dateValue === 'string') {
-      date = new Date(dateValue);
-    } else if (dateValue instanceof Date) {
-      date = dateValue;
-    } else {
-      date = new Date();
-    }
-    
-    // Check if the date is valid
-    if (isNaN(date.getTime())) {
-      date = new Date();
-    }
-    
-    return format(date, 'MMM d, yyyy • h:mm a');
-  } catch (error) {
-    console.warn('Date formatting error:', error);
-    return format(new Date(), 'MMM d, yyyy • h:mm a');
-  }
-};
 
 export const PostsGalleryScreen: React.FC<Props> = ({ user, posts, onBack, onUserClick }) => {
   // Use provided posts or generate mock posts
@@ -91,14 +63,14 @@ export const PostsGalleryScreen: React.FC<Props> = ({ user, posts, onBack, onUse
                   <div className="flex-1">
                     <h3 className="font-semibold text-white">{post.userName}</h3>
                     <p className="text-xs text-gray-400">
-                      {formatPostDate(post.created_at || post.timestamp)}
+                      {formatPostDate(post.timestamp)}
                     </p>
                   </div>
                 </button>
 
                 {/* Post Image */}
                 <img
-                  src={post.mediaUrl || post.media_url}
+                  src={post.mediaUrl}
                   alt={post.title}
                   className="w-full aspect-square object-cover"
                 />
@@ -114,7 +86,7 @@ export const PostsGalleryScreen: React.FC<Props> = ({ user, posts, onBack, onUse
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <p className="text-gray-400 mb-2">No posts yet</p>
