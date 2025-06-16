@@ -35,6 +35,13 @@ export const MessagesScreen: React.FC<Props> = ({
 
   const loadUsersAndMessages = async () => {
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('Supabase not available, using offline mode');
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
       if (!currentUser) return;
