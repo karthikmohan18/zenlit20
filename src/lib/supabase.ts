@@ -4,13 +4,13 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Validate environment variables
+// Validate environment variables and throw error if missing
 if (!supabaseUrl) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
 }
 
 if (!supabaseAnonKey) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
 }
 
 // Custom fetch function to suppress expected auth error logs
@@ -45,13 +45,11 @@ const customFetch = async (url: RequestInfo | URL, options?: RequestInit) => {
   return response
 }
 
-// Only create client if environment variables are available
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        fetch: customFetch
-      }
-    })
-  : null
+// Create client - now guaranteed to be non-null
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  global: {
+    fetch: customFetch
+  }
+})
 
 export type { User } from '@supabase/supabase-js'
