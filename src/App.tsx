@@ -48,17 +48,32 @@ export default function App() {
 
       const { data: { user }, error } = await supabase.auth.getUser();
       
-      if (error || !user) {
+      if (error) {
+        console.error('Auth check error:', error);
         setCurrentScreen('welcome');
         setIsLoading(false);
         return;
       }
 
-      // Ensure profile exists for this user
-      await ensureProfileExists(user);
+      if (!user) {
+        setCurrentScreen('welcome');
+        setIsLoading(false);
+        return;
+      }
 
-      // Wait a moment for profile creation to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('User found:', user.id);
+
+      // Ensure profile exists for this user
+      try {
+        await ensureProfileExists(user);
+        console.log('Profile ensured for user:', user.id);
+      } catch (profileError) {
+        console.error('Profile creation failed:', profileError);
+        // Continue anyway, we'll handle this in profile setup
+      }
+
+      // Wait a moment for profile operations to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Check if user has a profile
       const { data: profile, error: profileError } = await supabase
@@ -67,62 +82,25 @@ export default function App() {
         .eq('id', user.id)
         .maybeSingle();
 
-      // Only log errors that are not expected "no rows found" scenarios
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
-        setCurrentScreen('welcome');
+        setCurrentScreen('profileSetup');
         setIsLoading(false);
         return;
       }
 
-      // If still no profile exists after ensuring it, try one more time
       if (!profile) {
-        console.log('Profile not found, retrying...');
-        await ensureProfileExists(user);
-        
-        // Wait a bit more and try again
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const { data: retryProfile, error: retryError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (retryError && retryError.code !== 'PGRST116') {
-          console.error('Profile retry fetch error:', retryError);
-          setCurrentScreen('profileSetup');
-          setIsLoading(false);
-          return;
-        }
-
-        if (retryProfile) {
-          setCurrentUser(retryProfile);
-          setIsLoggedIn(true);
-          
-          // Check if profile has essential fields filled out
-          const isProfileComplete = retryProfile.name && 
-                                  retryProfile.bio && 
-                                  retryProfile.date_of_birth && 
-                                  retryProfile.gender;
-          
-          if (isProfileComplete) {
-            setCurrentScreen('app');
-          } else {
-            setCurrentScreen('profileSetup');
-          }
-        } else {
-          // Still no profile, go to profile setup
-          setCurrentScreen('profileSetup');
-        }
+        console.log('No profile found, redirecting to profile setup');
+        setCurrentScreen('profileSetup');
         setIsLoading(false);
         return;
       }
 
+      console.log('Profile found:', profile);
       setCurrentUser(profile);
       setIsLoggedIn(true);
 
-      // Check if profile has essential fields filled out (not just the profile_completed flag)
+      // Check if profile has essential fields filled out
       const isProfileComplete = profile.name && 
                                profile.bio && 
                                profile.date_of_birth && 
@@ -147,6 +125,7 @@ export default function App() {
   };
 
   const handleLogin = async () => {
+    console.log('Login successful, checking user state...');
     setIsLoggedIn(true);
     
     // Check if user needs to complete profile setup
@@ -158,16 +137,32 @@ export default function App() {
 
       const { data: { user }, error } = await supabase.auth.getUser();
       
-      if (error || !user) {
+      if (error) {
+        console.error('User fetch error after login:', error);
         setCurrentScreen('welcome');
         return;
       }
 
+      if (!user) {
+        console.error('No user found after login');
+        setCurrentScreen('welcome');
+        return;
+      }
+
+      console.log('User after login:', user.id);
+
       // Ensure profile exists
-      await ensureProfileExists(user);
+      try {
+        await ensureProfileExists(user);
+        console.log('Profile ensured after login for user:', user.id);
+      } catch (profileError) {
+        console.error('Profile creation failed after login:', profileError);
+        setCurrentScreen('profileSetup');
+        return;
+      }
 
       // Wait a moment for profile creation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -175,18 +170,19 @@ export default function App() {
         .eq('id', user.id)
         .maybeSingle();
 
-      // Only log errors that are not expected "no rows found" scenarios
       if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Profile fetch error:', profileError);
+        console.error('Profile fetch error after login:', profileError);
         setCurrentScreen('profileSetup');
         return;
       }
 
       if (!profile) {
+        console.log('No profile found after login, redirecting to setup');
         setCurrentScreen('profileSetup');
         return;
       }
 
+      console.log('Profile found after login:', profile);
       setCurrentUser(profile);
 
       // Check if profile has essential fields filled out
@@ -207,6 +203,7 @@ export default function App() {
   };
 
   const handleProfileSetupComplete = (profileData: any) => {
+    console.log('Profile setup completed:', profileData);
     // Use the profile data directly from the setup screen
     // This data already includes profile_completed: true
     setCurrentUser(profileData);

@@ -65,6 +65,11 @@ export const verifyOTP = async (email: string, token: string): Promise<AuthRespo
       return { success: false, error: errorData.message }
     }
 
+    // Ensure profile exists after successful OTP verification
+    if (data.user) {
+      await ensureProfileExists(data.user)
+    }
+
     return { success: true, data }
   } catch (error) {
     return { 
@@ -94,6 +99,11 @@ export const signInWithPassword = async (email: string, password: string): Promi
         }
       }
       return { success: false, error: error.message }
+    }
+
+    // Ensure profile exists after successful login
+    if (data.user) {
+      await ensureProfileExists(data.user)
     }
 
     return { success: true, data }
@@ -158,9 +168,10 @@ export const signUpWithPassword = async (
   }
 }
 
-// Helper function to ensure profile exists
+// Helper function to ensure profile exists with better error handling
 export const ensureProfileExists = async (user: any, firstName?: string, lastName?: string) => {
   if (!isSupabaseAvailable()) {
+    console.warn('Supabase not available, skipping profile creation')
     return
   }
 
@@ -197,12 +208,16 @@ export const ensureProfileExists = async (user: any, firstName?: string, lastNam
 
       if (createError) {
         console.error('Profile creation error:', createError)
+        throw new Error(`Failed to create profile: ${createError.message}`)
       } else {
         console.log('Profile created successfully for user:', user.id)
       }
+    } else {
+      console.log('Profile already exists for user:', user.id)
     }
   } catch (error) {
     console.error('Error ensuring profile exists:', error)
+    throw error
   }
 }
 
