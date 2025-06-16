@@ -43,8 +43,9 @@ export const verifyOTP = async (email: string, token: string): Promise<AuthRespo
 
     // Check if the response contains a suppressed error (from our custom fetch)
     if (data && typeof data === 'object' && 'code' in data && 'message' in data) {
-      // This is actually an error that was suppressed by our custom fetch
-      return { success: false, error: data.message }
+      // Type assertion to safely access the message property
+      const errorData = data as { code: string; message: string }
+      return { success: false, error: errorData.message }
     }
 
     return { success: true, data }
