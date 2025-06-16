@@ -23,6 +23,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     otp: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [emailVerification, setEmailVerification] = useState({
     otpSent: false,
     otpVerified: false,
@@ -52,7 +53,8 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       [field]: value
     }));
     
-    // Clear OTP error when user starts typing
+    // Clear errors when user starts typing
+    if (error) setError(null);
     if (field === 'otp' && emailVerification.error) {
       setEmailVerification(prev => ({ ...prev, error: null }));
     }
@@ -60,14 +62,14 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
 
   const handleSendOtp = async () => {
     if (!formData.email) {
-      alert('Please enter your email address first');
+      setError('Please enter your email address first');
       return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      alert('Please enter a valid email address');
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -76,6 +78,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       isSendingOtp: true, 
       error: null 
     }));
+    setError(null);
     
     try {
       const result = await sendOTP(formData.email);
@@ -143,31 +146,32 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     // Validation
     if (!formData.email || !formData.password) {
-      alert('Please fill in all required fields');
+      setError('Please fill in all required fields');
       return;
     }
 
     // For signup, require email verification
     if (!isLogin && !emailVerification.otpVerified) {
-      alert('Please verify your email address first');
+      setError('Please verify your email address first');
       return;
     }
 
     if (!isLogin && formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
 
     if (!isLogin && formData.password.length < 6) {
-      alert('Password must be at least 6 characters long');
+      setError('Password must be at least 6 characters long');
       return;
     }
 
     if (!isLogin && (!formData.firstName || !formData.lastName)) {
-      alert('Please enter your first and last name');
+      setError('Please enter your first and last name');
       return;
     }
 
@@ -181,7 +185,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         if (result.success) {
           onLogin();
         } else {
-          alert(result.error || 'Login failed');
+          setError(result.error || 'Login failed');
         }
       } else {
         // New user signup (OTP already verified)
@@ -193,14 +197,13 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         );
         
         if (result.success) {
-          alert('Account created successfully! You are now logged in.');
           onLogin();
         } else {
-          alert(result.error || 'Account creation failed');
+          setError(result.error || 'Account creation failed');
         }
       }
     } catch (error) {
-      alert('Network error. Please try again.');
+      setError('Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -225,6 +228,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       countdown: 0,
       error: null
     });
+    setError(null);
   };
 
   const handleForgotPassword = () => {
@@ -267,6 +271,13 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                 {isLogin ? 'Sign in to your account' : 'Join the Zenlit community'}
               </p>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 bg-red-900/30 border border-red-700 rounded-lg p-3">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name fields for signup - side by side */}

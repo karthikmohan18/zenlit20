@@ -58,6 +58,13 @@ export const signInWithPassword = async (email: string, password: string): Promi
     })
 
     if (error) {
+      // If invalid credentials, suggest using OTP instead
+      if (error.message.includes('Invalid login credentials')) {
+        return { 
+          success: false, 
+          error: 'Invalid email or password. If you signed up recently, try using "Forgot password?" to set up your password.' 
+        }
+      }
       return { success: false, error: error.message }
     }
 
@@ -77,6 +84,14 @@ export const signUpWithPassword = async (
   lastName: string
 ): Promise<AuthResponse> => {
   try {
+    // First check if user already exists
+    const { data: existingUser } = await supabase.auth.signInWithPassword({
+      email,
+      password: 'dummy' // This will fail but tell us if user exists
+    })
+
+    // If we get here without error, user might already exist
+    // Let's try to sign up anyway and handle the error
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -90,17 +105,45 @@ export const signUpWithPassword = async (
     })
 
     if (error) {
+      // If user already exists, try to sign them in instead
+      if (error.message.includes('User already registered')) {
+        const signInResult = await signInWithPassword(email, password)
+        if (signInResult.success) {
+          return { success: true, data: signInResult.data }
+        } else {
+          return { 
+            success: false, 
+            error: 'Account already exists. Please sign in instead or use "Forgot password?" if you need to reset your password.' 
+          }
+        }
+      }
       return { success: false, error: error.message }
     }
-
-    // Profile creation is handled by the database trigger
-    // No need to create profile manually here
 
     return { success: true, data }
   } catch (error) {
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to create account' 
+    }
+  }
+}
+
+export const resetPassword = async (email: string): Promise<AuthResponse> => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`
+    })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true }
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to send reset email' 
     }
   }
 }
