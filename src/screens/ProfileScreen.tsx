@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
-import { getCurrentUserPosts } from '../data/mockData';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
 import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PostsGalleryScreen } from './PostsGalleryScreen';
@@ -27,27 +26,46 @@ export const ProfileScreen: React.FC<Props> = ({
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [userPostsState, setUserPostsState] = useState<any[]>([]);
   
   // Determine if viewing own profile or another user's profile
   const isCurrentUser = !user || (currentUser && user?.id === currentUser.id);
   
   // Use current user data if viewing own profile, otherwise use passed user
   const displayUser = isCurrentUser ? currentUser : user;
-  
-  // Get current user's posts if viewing own profile
-  const userPosts = isCurrentUser ? getCurrentUserPosts() : [];
 
   // Load profile data when component mounts or user changes
   useEffect(() => {
     if (displayUser) {
       setProfileData(displayUser);
+      loadUserPosts(displayUser.id);
     } else if (isCurrentUser && currentUser) {
       setProfileData(currentUser);
+      loadUserPosts(currentUser.id);
     } else {
       // Load current user profile from database
       loadCurrentUserProfile();
     }
   }, [displayUser, currentUser, isCurrentUser]);
+
+  const loadUserPosts = async (userId: string) => {
+    try {
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading user posts:', error);
+        return;
+      }
+
+      setUserPostsState(posts || []);
+    } catch (error) {
+      console.error('Load user posts error:', error);
+    }
+  };
 
   const loadCurrentUserProfile = async () => {
     if (!isCurrentUser) return;
@@ -92,8 +110,12 @@ export const ProfileScreen: React.FC<Props> = ({
         }
 
         setProfileData(newProfile);
+        if (newProfile) {
+          loadUserPosts(newProfile.id);
+        }
       } else {
         setProfileData(profile);
+        loadUserPosts(profile.id);
       }
     } catch (error) {
       console.error('Load profile error:', error);
@@ -209,7 +231,7 @@ export const ProfileScreen: React.FC<Props> = ({
     return (
       <PostsGalleryScreen
         user={profileData}
-        posts={userPosts}
+        posts={userPostsState}
         onBack={handleBackFromGallery}
         onUserClick={() => {}} // Since we're already viewing this user's profile
       />
@@ -400,24 +422,24 @@ export const ProfileScreen: React.FC<Props> = ({
             <h2 className="text-xl font-semibold text-white">
               {isCurrentUser ? 'My Posts' : 'Posts'}
             </h2>
-            {isCurrentUser && userPosts.length > 0 && (
+            {isCurrentUser && userPostsState.length > 0 && (
               <span className="text-sm text-gray-400">
-                {userPosts.length} post{userPosts.length !== 1 ? 's' : ''}
+                {userPostsState.length} post{userPostsState.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
           
           {/* Posts Grid */}
-          {isCurrentUser && userPosts.length > 0 ? (
+          {isCurrentUser && userPostsState.length > 0 ? (
             <div className="grid grid-cols-3 gap-1">
-              {userPosts.slice(0, 9).map((post) => (
+              {userPostsState.slice(0, 9).map((post) => (
                 <button
                   key={post.id}
                   onClick={handleMediaClick}
                   className="aspect-square active:scale-95 transition-transform relative group"
                 >
                   <img
-                    src={post.mediaUrl}
+                    src={post.media_url || post.mediaUrl}
                     alt={post.caption}
                     className="w-full h-full object-cover rounded-lg"
                   />
