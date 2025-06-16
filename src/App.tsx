@@ -30,6 +30,14 @@ export default function App() {
 
   const checkAuthStatus = async () => {
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('Supabase not available, using offline mode');
+        setCurrentScreen('welcome');
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error || !user) {
@@ -135,6 +143,11 @@ export default function App() {
     
     // Check if user needs to complete profile setup
     try {
+      if (!supabase) {
+        setCurrentScreen('app');
+        return;
+      }
+
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error || !user) {
@@ -194,7 +207,9 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
       setIsLoggedIn(false);
       setCurrentUser(null);
       setCurrentScreen('welcome');

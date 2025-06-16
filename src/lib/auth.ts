@@ -6,9 +6,22 @@ export interface AuthResponse {
   data?: any
 }
 
+// Check if Supabase is available
+const isSupabaseAvailable = () => {
+  if (!supabase) {
+    console.error('Supabase client not initialized. Check environment variables.')
+    return false
+  }
+  return true
+}
+
 export const sendOTP = async (email: string): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
   try {
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase!.auth.signInWithOtp({
       email: email,
       options: {
         shouldCreateUser: true,
@@ -30,8 +43,12 @@ export const sendOTP = async (email: string): Promise<AuthResponse> => {
 }
 
 export const verifyOTP = async (email: string, token: string): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
   try {
-    const { data, error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase!.auth.verifyOtp({
       email: email,
       token: token,
       type: 'email'
@@ -58,8 +75,12 @@ export const verifyOTP = async (email: string, token: string): Promise<AuthRespo
 }
 
 export const signInWithPassword = async (email: string, password: string): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase!.auth.signInWithPassword({
       email,
       password
     })
@@ -90,8 +111,12 @@ export const signUpWithPassword = async (
   firstName: string, 
   lastName: string
 ): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
   try {
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await supabase!.auth.signUp({
       email,
       password,
       options: {
@@ -135,9 +160,13 @@ export const signUpWithPassword = async (
 
 // Helper function to ensure profile exists
 export const ensureProfileExists = async (user: any, firstName?: string, lastName?: string) => {
+  if (!isSupabaseAvailable()) {
+    return
+  }
+
   try {
     // Check if profile already exists
-    const { data: existingProfile, error: checkError } = await supabase
+    const { data: existingProfile, error: checkError } = await supabase!
       .from('profiles')
       .select('id')
       .eq('id', user.id)
@@ -155,7 +184,7 @@ export const ensureProfileExists = async (user: any, firstName?: string, lastNam
         ? `${firstName} ${lastName}`.trim()
         : user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'New User'
 
-      const { error: createError } = await supabase
+      const { error: createError } = await supabase!
         .from('profiles')
         .insert({
           id: user.id,
@@ -178,8 +207,12 @@ export const ensureProfileExists = async (user: any, firstName?: string, lastNam
 }
 
 export const resetPassword = async (email: string): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase!.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`
     })
 
@@ -197,8 +230,12 @@ export const resetPassword = async (email: string): Promise<AuthResponse> => {
 }
 
 export const getCurrentUser = async () => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
   try {
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const { data: { user }, error } = await supabase!.auth.getUser()
     
     if (error) {
       return { success: false, error: error.message }
@@ -219,8 +256,12 @@ export const getCurrentUser = async () => {
 }
 
 export const signOut = async (): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
   try {
-    const { error } = await supabase.auth.signOut()
+    const { error } = await supabase!.auth.signOut()
     
     if (error) {
       return { success: false, error: error.message }
