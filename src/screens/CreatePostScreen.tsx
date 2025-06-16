@@ -98,6 +98,32 @@ export const CreatePostScreen: React.FC = () => {
       const fileName = `post_${currentUser.id}_${Date.now()}.jpg`;
       const filePath = `posts/${fileName}`;
       
+      // First, check if the bucket exists and create it if it doesn't
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error listing buckets:', bucketsError);
+        return null;
+      }
+      
+      const postsBucket = buckets.find(bucket => bucket.name === 'posts');
+      
+      if (!postsBucket) {
+        // Create the bucket if it doesn't exist
+        const { error: createBucketError } = await supabase.storage.createBucket('posts', {
+          public: true,
+          allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+          fileSizeLimit: 10485760 // 10MB
+        });
+        
+        if (createBucketError) {
+          console.error('Error creating bucket:', createBucketError);
+          return null;
+        }
+        
+        console.log('Created posts bucket successfully');
+      }
+      
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('posts')
