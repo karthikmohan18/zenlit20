@@ -18,10 +18,14 @@ const customFetch = async (url: RequestInfo | URL, options?: RequestInit) => {
       const body = await clonedResponse.text()
       const errorData = JSON.parse(body)
       
-      // Suppress console logs for expected auth errors
+      // Suppress console logs for expected auth errors by returning 200 status
       if (errorData.code === 'otp_expired' || errorData.code === 'invalid_credentials') {
-        // Return the response without letting Supabase log it
-        return response
+        // Return a 200 response with the error data in the body to prevent Supabase from logging
+        return new Response(body, {
+          status: 200,
+          statusText: 'OK',
+          headers: response.headers
+        })
       }
     } catch (e) {
       // If we can't parse the body, let the default behavior handle it

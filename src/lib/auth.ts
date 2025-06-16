@@ -41,6 +41,12 @@ export const verifyOTP = async (email: string, token: string): Promise<AuthRespo
       return { success: false, error: error.message }
     }
 
+    // Check if the response contains a suppressed error (from our custom fetch)
+    if (data && typeof data === 'object' && 'code' in data && 'message' in data) {
+      // This is actually an error that was suppressed by our custom fetch
+      return { success: false, error: data.message }
+    }
+
     return { success: true, data }
   } catch (error) {
     return { 

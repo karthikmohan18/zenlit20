@@ -44,7 +44,8 @@ export default function App() {
         .eq('id', user.id)
         .maybeSingle();
 
-      if (profileError) {
+      // Only log errors that are not expected "no rows found" scenarios
+      if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
         setCurrentScreen('welcome');
         setIsLoading(false);
@@ -60,7 +61,8 @@ export default function App() {
             .eq('id', user.id)
             .maybeSingle();
 
-          if (retryError) {
+          // Only log errors that are not expected "no rows found" scenarios
+          if (retryError && retryError.code !== 'PGRST116') {
             console.error('Profile retry fetch error:', retryError);
             setCurrentScreen('profileSetup');
             setIsLoading(false);
@@ -136,7 +138,8 @@ export default function App() {
         .eq('id', user.id)
         .maybeSingle();
 
-      if (profileError) {
+      // Only log errors that are not expected "no rows found" scenarios
+      if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
         setCurrentScreen('profileSetup');
         return;

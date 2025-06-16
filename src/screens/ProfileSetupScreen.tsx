@@ -111,7 +111,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         throw new Error('User not found');
       }
 
-      // Update user profile in database
+      // Update user profile in database - use maybeSingle() instead of single()
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -127,10 +127,15 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         })
         .eq('id', user.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (updateError) {
         throw updateError;
+      }
+
+      // Handle case where profile was not found for update
+      if (!updatedProfile) {
+        throw new Error('Profile not found for update. Please try logging out and back in.');
       }
 
       // Complete profile setup with the updated data from database
