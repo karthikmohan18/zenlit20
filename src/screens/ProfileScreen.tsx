@@ -65,14 +65,36 @@ export const ProfileScreen: React.FC<Props> = ({
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single
 
-      if (profileError) {
+      if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
         return;
       }
 
-      setProfileData(profile);
+      // If no profile exists, create one
+      if (!profile) {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'New User',
+            email: user.email,
+            bio: 'New to Zenlit! 👋',
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .maybeSingle();
+
+        if (createError) {
+          console.error('Profile creation error:', createError);
+          return;
+        }
+
+        setProfileData(newProfile);
+      } else {
+        setProfileData(profile);
+      }
     } catch (error) {
       console.error('Load profile error:', error);
     } finally {
@@ -105,7 +127,7 @@ export const ProfileScreen: React.FC<Props> = ({
         throw new Error('User not found');
       }
 
-      const { error: updateError } = await supabase
+      const { data: savedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({
           name: updatedProfile.name,
@@ -115,14 +137,20 @@ export const ProfileScreen: React.FC<Props> = ({
           profile_photo_url: updatedProfile.dpUrl,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select()
+        .maybeSingle(); // Use maybeSingle instead of single
 
       if (updateError) {
         throw updateError;
       }
 
+      if (!savedProfile) {
+        throw new Error('Profile not found for update');
+      }
+
       // Update local state
-      setProfileData(updatedProfile);
+      setProfileData(savedProfile);
       setShowEditProfile(false);
       
     } catch (error) {

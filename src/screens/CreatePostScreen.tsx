@@ -33,14 +33,36 @@ export const CreatePostScreen: React.FC = () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single
 
-      if (profileError) {
+      if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
         return;
       }
 
-      setCurrentUser(profile);
+      // If no profile exists, create one
+      if (!profile) {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'New User',
+            email: user.email,
+            bio: 'New to Zenlit! 👋',
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .maybeSingle();
+
+        if (createError) {
+          console.error('Profile creation error:', createError);
+          return;
+        }
+
+        setCurrentUser(newProfile);
+      } else {
+        setCurrentUser(profile);
+      }
     } catch (error) {
       console.error('Load user error:', error);
     }
