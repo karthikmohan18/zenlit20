@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { User } from '../types';
 import { ChevronLeftIcon, CameraIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { SocialAccountsSection } from '../components/social/SocialAccountsSection';
+import { supabase } from '../../lib/supabase';
+import { uploadProfileImage, transformProfileToUser } from '../../lib/utils';
 
 interface Props {
   user: User;
@@ -86,26 +88,93 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Simulate save delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const updatedUser: User = {
-      ...user,
-      ...formData,
-      // Keep the original links structure for backward compatibility
-      links: user.links
-    };
-    
-    onSave(updatedUser);
-    setIsSaving(false);
-    setShowSuccess(true);
-    setHasChanges(false);
-    
-    // Auto close success message and go back
-    setTimeout(() => {
-      setShowSuccess(false);
-      onBack();
-    }, 2000);
+    try {
+      // Get current user
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !currentUser) {
+        throw new Error('User not found');
+      }
+
+      let profilePhotoUrl = formData.dpUrl;
+
+      // Handle profile photo upload if a new photo was selected (base64 data URL)
+      if (formData.dpUrl && formData.dpUrl.startsWith('data:')) {
+        console.log('Uploading new profile photo...');
+        const uploadedUrl = await uploadProfileImage(supabase, currentUser.id, formData.dpUrl);
+        
+        if (uploadedUrl) {
+          profilePhotoUrl = uploadedUrl;
+          console.log('Profile photo uploaded successfully:', uploadedUrl);
+        } else {
+          console.warn('Profile photo upload failed, keeping existing photo');
+          // Keep the original photo URL if upload fails
+          profilePhotoUrl = user.dpUrl;
+        }
+      }
+
+      // Update user profile in database
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          name: formData.name,
+          bio: formData.bio,
+          profile_photo_url: profilePhotoUrl,
+          instagram_url: formData.instagramUrl,
+          instagram_verified: formData.instagramVerified,
+          facebook_url: formData.facebookUrl,
+          facebook_verified: formData.facebookVerified,
+          linked_in_url: formData.linkedInUrl,
+          linked_in_verified: formData.linkedInVerified,
+          twitter_url: formData.twitterUrl,
+          twitter_verified: formData.twitterVerified,
+          google_url: formData.googleUrl,
+          google_verified: formData.googleVerified,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentUser.id)
+        .select()
+        .maybeSingle();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      if (!updatedProfile) {
+        throw new Error('Profile not found for update');
+      }
+
+      console.log('Profile updated successfully');
+
+      // Transform the database profile to User type and call onSave
+      const transformedUser = transformProfileToUser(updatedProfile);
+      onSave(transformedUser);
+      
+      setIsSaving(false);
+      setShowSuccess(true);
+      setHasChanges(false);
+      
+      // Auto close success message and go back
+      setTimeout(() => {
+        setShowSuccess(false);
+        onBack();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Profile save error:', error);
+      setIsSaving(false);
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('avatars')) {
+          alert('Failed to upload profile photo. Please ensure you have a stable internet connection and try again.');
+        } else {
+          alert(`Failed to save profile: ${error.message}`);
+        }
+      } else {
+        alert('Failed to save profile. Please try again.');
+      }
+    }
   };
 
   const handleCancel = () => {

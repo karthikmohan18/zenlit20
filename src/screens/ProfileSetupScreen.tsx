@@ -2,7 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { CameraIcon, CheckIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
+import { uploadProfileImage } from '../../lib/utils';
 
 interface Props {
   onComplete: (profileData: any) => void;
@@ -111,7 +112,22 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         throw new Error('User not found');
       }
 
-      // Update user profile in database - use maybeSingle() instead of single()
+      let profilePhotoUrl = null;
+
+      // Handle profile photo upload if a new photo was selected
+      if (profileData.profilePhoto && profileData.profilePhoto.startsWith('data:')) {
+        console.log('Uploading profile photo...');
+        profilePhotoUrl = await uploadProfileImage(supabase, user.id, profileData.profilePhoto);
+        
+        if (!profilePhotoUrl) {
+          // Photo upload failed, but continue with profile creation
+          console.warn('Profile photo upload failed, continuing without photo');
+        } else {
+          console.log('Profile photo uploaded successfully:', profilePhotoUrl);
+        }
+      }
+
+      // Update user profile in database
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -121,7 +137,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           gender: profileData.gender,
           location: profileData.location,
           interests: profileData.selectedInterests,
-          profile_photo_url: profileData.profilePhoto, // Store the base64 image directly
+          profile_photo_url: profilePhotoUrl, // Use uploaded URL or null
           profile_completed: true,
           updated_at: new Date().toISOString()
         })
@@ -138,12 +154,24 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         throw new Error('Profile not found for update. Please try logging out and back in.');
       }
 
+      console.log('Profile setup completed successfully');
+      
       // Complete profile setup with the updated data from database
       onComplete(updatedProfile);
 
     } catch (error) {
       console.error('Profile setup error:', error);
-      alert('Failed to save profile. Please try again.');
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('avatars')) {
+          alert('Failed to upload profile photo. Please ensure you have a stable internet connection and try again.');
+        } else {
+          alert(`Failed to save profile: ${error.message}`);
+        }
+      } else {
+        alert('Failed to save profile. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
