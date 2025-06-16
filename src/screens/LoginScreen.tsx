@@ -171,11 +171,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       return;
     }
 
-    if (!isLogin && (!formData.firstName || !formData.lastName)) {
-      setError('Please enter your first and last name');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
@@ -194,11 +189,13 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         }
       } else {
         // New user signup (OTP already verified)
+        // Use email as both first and last name for simplicity
+        const emailName = formData.email.split('@')[0];
         const result = await signUpWithPassword(
           formData.email, 
           formData.password,
-          formData.firstName,
-          formData.lastName
+          emailName, // Use email prefix as first name
+          '' // Empty last name
         );
         
         if (result.success) {
@@ -286,38 +283,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name fields for signup - side by side */}
-              {!isLogin && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="First name"
-                      required={!isLogin}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Last name"
-                      required={!isLogin}
-                    />
-                  </div>
-                </div>
-              )}
-
               {/* Email with OTP verification */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
