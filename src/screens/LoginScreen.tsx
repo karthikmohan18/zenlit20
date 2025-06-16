@@ -331,6 +331,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [color-scheme:dark]"
                     required={!isLogin}
                     max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
+                    placeholder=""
                   />
                   <p className="text-xs text-gray-500 mt-1">You must be at least 13 years old</p>
                 </div>
