@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { generateId } from '../utils/generateId';
 import { supabase } from '../lib/supabase';
-import { uploadPostImage } from '../lib/storage';
+import { uploadPostImage, generatePlaceholderImage } from '../lib/storage';
 import { createPost } from '../lib/posts';
 
 export const CreatePostScreen: React.FC = () => {
@@ -105,22 +105,29 @@ export const CreatePostScreen: React.FC = () => {
     try {
       let mediaUrl = selectedMedia;
       
-      // If we have a selected media that's a data URL (captured photo), upload it
+      // If we have a selected media that's a data URL (captured photo), try to upload it
       if (selectedMedia && selectedMedia.startsWith('data:')) {
         console.log('Uploading image to Supabase...');
-        const uploadedUrl = await uploadPostImage(currentUser.id, selectedMedia);
         
-        if (uploadedUrl) {
-          mediaUrl = uploadedUrl;
-          console.log('Image uploaded successfully:', uploadedUrl);
-        } else {
-          // If upload fails, use a placeholder image
-          console.warn('Image upload failed, using placeholder');
-          mediaUrl = `https://picsum.photos/800/600?random=${generateId()}`;
+        try {
+          const uploadedUrl = await uploadPostImage(currentUser.id, selectedMedia);
+          
+          if (uploadedUrl) {
+            mediaUrl = uploadedUrl;
+            console.log('Image uploaded successfully:', uploadedUrl);
+          } else {
+            // If upload fails, use a placeholder image
+            console.warn('Image upload failed, using placeholder');
+            mediaUrl = generatePlaceholderImage();
+          }
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          // Use placeholder on upload failure
+          mediaUrl = generatePlaceholderImage();
         }
       } else if (!selectedMedia) {
         // If no media selected, use a placeholder
-        mediaUrl = `https://picsum.photos/800/600?random=${generateId()}`;
+        mediaUrl = generatePlaceholderImage();
       }
 
       // Create post using the posts service
@@ -154,7 +161,7 @@ export const CreatePostScreen: React.FC = () => {
       // Show user-friendly error message
       if (error instanceof Error) {
         if (error.message.includes('storage') || error.message.includes('bucket')) {
-          alert('Failed to upload image. Please check your internet connection and try again.');
+          alert('Image upload is currently unavailable. Your post was created with a placeholder image.');
         } else if (error.message.includes('posts') || error.message.includes('database')) {
           alert('Failed to save post. Please try again.');
         } else {

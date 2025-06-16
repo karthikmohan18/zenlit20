@@ -15,6 +15,30 @@ export function dataURLtoBlob(dataURL: string): Blob {
   return new Blob([u8arr], { type: mime });
 }
 
+// Check if bucket exists and create if needed
+async function ensureBucketExists(bucketName: string): Promise<boolean> {
+  try {
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error('Error listing buckets:', error);
+      return false;
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
+    
+    if (!bucketExists) {
+      console.warn(`Bucket '${bucketName}' does not exist. Please create it in your Supabase dashboard.`);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking bucket existence:', error);
+    return false;
+  }
+}
+
 // Upload image to Supabase Storage and return public URL
 export async function uploadImage(
   bucket: string,
@@ -22,6 +46,13 @@ export async function uploadImage(
   imageDataURL: string
 ): Promise<string | null> {
   try {
+    // Check if bucket exists first
+    const bucketExists = await ensureBucketExists(bucket);
+    if (!bucketExists) {
+      console.error(`Cannot upload to bucket '${bucket}' - bucket does not exist`);
+      return null;
+    }
+
     // Convert data URL to blob
     const blob = dataURLtoBlob(imageDataURL);
     
@@ -35,6 +66,14 @@ export async function uploadImage(
     
     if (uploadError) {
       console.error('Upload error:', uploadError);
+      
+      // Provide more specific error messages
+      if (uploadError.message.includes('Bucket not found')) {
+        console.error(`Bucket '${bucket}' not found. Please create the bucket in your Supabase dashboard.`);
+      } else if (uploadError.message.includes('not allowed')) {
+        console.error(`Upload not allowed. Please check your storage policies for bucket '${bucket}'.`);
+      }
+      
       return null;
     }
     
@@ -65,6 +104,13 @@ export async function uploadPostImage(
   imageDataURL: string
 ): Promise<string | null> {
   const timestamp = Date.now();
-  const filePath = `${userId}/post_${timestamp}.jpg`;
+  const randomId = Math.random().toString(36).substring(2, 15);
+  const filePath = `${userId}/post_${randomId}_${timestamp}.jpg`;
   return uploadImage('posts', filePath, imageDataURL);
+}
+
+// Fallback function to generate a placeholder image URL
+export function generatePlaceholderImage(): string {
+  const randomId = Math.random().toString(36).substring(2, 15);
+  return `https://picsum.photos/800/600?random=${randomId}`;
 }
