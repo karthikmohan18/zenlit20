@@ -15,21 +15,47 @@ export function dataURLtoBlob(dataURL: string): Blob {
   return new Blob([u8arr], { type: mime });
 }
 
-// Check if bucket exists
+// Check if bucket exists with improved error handling
 async function checkBucketExists(bucketName: string): Promise<boolean> {
   try {
+    // First try to list buckets
     const { data: buckets, error } = await supabase.storage.listBuckets();
     
     if (error) {
-      console.error('Error listing buckets:', error);
-      return false;
+      console.warn(`Error listing buckets: ${error.message}`);
+      // If we can't list buckets, assume they exist to avoid blocking functionality
+      return true;
     }
     
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-    return bucketExists || false;
+    
+    if (!bucketExists) {
+      console.warn(`Storage bucket '${bucketName}' not found in bucket list`);
+      // Try to test bucket access directly
+      try {
+        const { error: testError } = await supabase.storage
+          .from(bucketName)
+          .list('', { limit: 1 });
+        
+        // If no error, bucket exists and is accessible
+        if (!testError) {
+          console.log(`Bucket '${bucketName}' is accessible despite not being in list`);
+          return true;
+        }
+        
+        console.warn(`Bucket '${bucketName}' test failed: ${testError.message}`);
+        return false;
+      } catch (testErr) {
+        console.warn(`Bucket '${bucketName}' test error:`, testErr);
+        return false;
+      }
+    }
+    
+    return bucketExists;
   } catch (error) {
-    console.error('Error checking bucket existence:', error);
-    return false;
+    console.warn(`Error checking bucket '${bucketName}' existence:`, error);
+    // Default to true to avoid blocking functionality
+    return true;
   }
 }
 
@@ -43,7 +69,7 @@ export async function uploadImage(
     // Check if bucket exists first
     const bucketExists = await checkBucketExists(bucket);
     if (!bucketExists) {
-      console.warn(`Storage bucket '${bucket}' does not exist. Please create it in your Supabase dashboard.`);
+      console.warn(`Storage bucket '${bucket}' does not exist or is not accessible.`);
       return null;
     }
 
@@ -55,7 +81,7 @@ export async function uploadImage(
       .from(bucket)
       .upload(filePath, blob, {
         upsert: true, // Overwrite existing file
-        contentType: 'image/jpeg'
+        contentType: blob.type
       });
     
     if (uploadError) {
@@ -124,25 +150,28 @@ export function generatePlaceholderImage(): string {
   return `https://picsum.photos/800/600?random=${randomId}`;
 }
 
-// Check storage availability
+// Check storage availability with improved logic
 export async function checkStorageAvailability(): Promise<{
   avatarsAvailable: boolean;
   postsAvailable: boolean;
   message: string;
 }> {
   try {
-    const avatarsExists = await checkBucketExists('avatars');
-    const postsExists = await checkBucketExists('posts');
+    // Test both buckets
+    const [avatarsExists, postsExists] = await Promise.all([
+      checkBucketExists('avatars'),
+      checkBucketExists('posts')
+    ]);
     
     let message = '';
     if (!avatarsExists && !postsExists) {
-      message = 'Storage buckets are not configured. Image uploads are disabled.';
+      message = 'Storage buckets may not be configured. Using placeholder images.';
     } else if (!avatarsExists) {
-      message = 'Profile photo uploads are disabled. Post images may work.';
+      message = 'Profile photo uploads may be limited. Post images should work.';
     } else if (!postsExists) {
-      message = 'Post image uploads are disabled. Profile photos may work.';
+      message = 'Post image uploads may be limited. Profile photos should work.';
     } else {
-      message = 'Storage is fully available.';
+      message = 'Storage is available and configured.';
     }
     
     return {
@@ -151,11 +180,11 @@ export async function checkStorageAvailability(): Promise<{
       message
     };
   } catch (error) {
-    console.error('Error checking storage availability:', error);
+    console.warn('Error checking storage availability:', error);
     return {
-      avatarsAvailable: false,
-      postsAvailable: false,
-      message: 'Unable to check storage availability.'
+      avatarsAvailable: true, // Default to true to avoid blocking functionality
+      postsAvailable: true,
+      message: 'Storage status unknown, assuming available.'
     };
   }
 }
