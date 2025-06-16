@@ -36,7 +36,7 @@ const customFetch = async (url: RequestInfo | URL, options?: RequestInit) => {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
+  global: {
     fetch: customFetch
   }
 })

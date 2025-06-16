@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   images: {
     domains: [
       'i.pravatar.cc',
@@ -9,9 +8,6 @@ const nextConfig = {
       'randomuser.me',
       'media.istockphoto.com'
     ],
-  },
-  experimental: {
-    appDir: true,
   },
 }
 
