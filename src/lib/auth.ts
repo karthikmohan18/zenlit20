@@ -118,12 +118,61 @@ export const signUpWithPassword = async (
       return { success: false, error: error.message }
     }
 
+    // Ensure profile is created after successful signup
+    if (data.user) {
+      await ensureProfileExists(data.user, firstName, lastName)
+    }
+
     return { success: true, data }
   } catch (error) {
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to create account' 
     }
+  }
+}
+
+// Helper function to ensure profile exists
+export const ensureProfileExists = async (user: any, firstName?: string, lastName?: string) => {
+  try {
+    // Check if profile already exists
+    const { data: existingProfile, error: checkError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    // Only log errors that are not expected "no rows found" scenarios
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Profile check error:', checkError)
+      return
+    }
+
+    // If profile doesn't exist, create it
+    if (!existingProfile) {
+      const fullName = firstName && lastName 
+        ? `${firstName} ${lastName}`.trim()
+        : user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'New User'
+
+      const { error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          name: fullName,
+          email: user.email,
+          bio: 'New to Zenlit! 👋',
+          profile_completed: false,
+          created_at: new Date().toISOString()
+        })
+
+      if (createError) {
+        console.error('Profile creation error:', createError)
+      } else {
+        console.log('Profile created successfully for user:', user.id)
+      }
+    }
+  } catch (error) {
+    console.error('Error ensuring profile exists:', error)
   }
 }
 
@@ -152,6 +201,11 @@ export const getCurrentUser = async () => {
     
     if (error) {
       return { success: false, error: error.message }
+    }
+
+    // Ensure profile exists for the current user
+    if (user) {
+      await ensureProfileExists(user)
     }
 
     return { success: true, data: user }

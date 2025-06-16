@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PasswordResetScreen } from './PasswordResetScreen';
-import { sendOTP, verifyOTP, signInWithPassword, signUpWithPassword } from '../lib/auth';
+import { sendOTP, verifyOTP, signInWithPassword, signUpWithPassword, ensureProfileExists } from '../lib/auth';
+import { supabase } from '../lib/supabase';
 
 interface Props {
   onLogin: () => void;
@@ -183,6 +184,10 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         const result = await signInWithPassword(formData.email, formData.password);
         
         if (result.success) {
+          // Ensure profile exists after login
+          if (result.data?.user) {
+            await ensureProfileExists(result.data.user);
+          }
           onLogin();
         } else {
           setError(result.error || 'Login failed');
@@ -197,6 +202,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         );
         
         if (result.success) {
+          // Profile creation is handled in signUpWithPassword
           onLogin();
         } else {
           setError(result.error || 'Account creation failed');

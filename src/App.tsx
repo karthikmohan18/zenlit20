@@ -11,6 +11,7 @@ import { MessagesScreen } from './screens/MessagesScreen';
 import { UserGroupIcon, Squares2X2Icon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { User } from './types';
 import { supabase } from './lib/supabase';
+import { ensureProfileExists } from './lib/auth';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'profileSetup' | 'app'>('welcome');
@@ -37,6 +38,12 @@ export default function App() {
         return;
       }
 
+      // Ensure profile exists for this user
+      await ensureProfileExists(user);
+
+      // Wait a moment for profile creation to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Check if user has a profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -52,44 +59,47 @@ export default function App() {
         return;
       }
 
-      // If no profile exists yet, wait a moment and try again (database trigger might still be processing)
+      // If still no profile exists after ensuring it, try one more time
       if (!profile) {
-        setTimeout(async () => {
-          const { data: retryProfile, error: retryError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
+        console.log('Profile not found, retrying...');
+        await ensureProfileExists(user);
+        
+        // Wait a bit more and try again
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const { data: retryProfile, error: retryError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
 
-          // Only log errors that are not expected "no rows found" scenarios
-          if (retryError && retryError.code !== 'PGRST116') {
-            console.error('Profile retry fetch error:', retryError);
-            setCurrentScreen('profileSetup');
-            setIsLoading(false);
-            return;
-          }
-
-          if (retryProfile) {
-            setCurrentUser(retryProfile);
-            setIsLoggedIn(true);
-            
-            // Check if profile has essential fields filled out
-            const isProfileComplete = retryProfile.name && 
-                                    retryProfile.bio && 
-                                    retryProfile.date_of_birth && 
-                                    retryProfile.gender;
-            
-            if (isProfileComplete) {
-              setCurrentScreen('app');
-            } else {
-              setCurrentScreen('profileSetup');
-            }
-          } else {
-            // Still no profile, go to profile setup
-            setCurrentScreen('profileSetup');
-          }
+        if (retryError && retryError.code !== 'PGRST116') {
+          console.error('Profile retry fetch error:', retryError);
+          setCurrentScreen('profileSetup');
           setIsLoading(false);
-        }, 1000);
+          return;
+        }
+
+        if (retryProfile) {
+          setCurrentUser(retryProfile);
+          setIsLoggedIn(true);
+          
+          // Check if profile has essential fields filled out
+          const isProfileComplete = retryProfile.name && 
+                                  retryProfile.bio && 
+                                  retryProfile.date_of_birth && 
+                                  retryProfile.gender;
+          
+          if (isProfileComplete) {
+            setCurrentScreen('app');
+          } else {
+            setCurrentScreen('profileSetup');
+          }
+        } else {
+          // Still no profile, go to profile setup
+          setCurrentScreen('profileSetup');
+        }
+        setIsLoading(false);
         return;
       }
 
@@ -131,6 +141,12 @@ export default function App() {
         setCurrentScreen('welcome');
         return;
       }
+
+      // Ensure profile exists
+      await ensureProfileExists(user);
+
+      // Wait a moment for profile creation
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
