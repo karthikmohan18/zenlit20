@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { generateId } from '../utils/generateId';
 import { supabase } from '../lib/supabase';
-import { uploadPostImage, generatePlaceholderImage } from '../lib/storage';
+import { uploadPostImage, generatePlaceholderImage, checkStorageAvailability } from '../lib/storage';
 import { createPost } from '../lib/posts';
 
 export const CreatePostScreen: React.FC = () => {
@@ -15,14 +15,35 @@ export const CreatePostScreen: React.FC = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [storageStatus, setStorageStatus] = useState<{
+    available: boolean;
+    message: string;
+  }>({ available: true, message: '' });
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load current user data
+  // Load current user data and check storage
   React.useEffect(() => {
     loadCurrentUser();
+    checkStorage();
   }, []);
+
+  const checkStorage = async () => {
+    try {
+      const status = await checkStorageAvailability();
+      setStorageStatus({
+        available: status.postsAvailable,
+        message: status.message
+      });
+    } catch (error) {
+      console.error('Storage check error:', error);
+      setStorageStatus({
+        available: false,
+        message: 'Storage availability unknown'
+      });
+    }
+  };
 
   const loadCurrentUser = async () => {
     try {
@@ -104,25 +125,31 @@ export const CreatePostScreen: React.FC = () => {
     
     try {
       let mediaUrl = selectedMedia;
+      let uploadAttempted = false;
       
       // If we have a selected media that's a data URL (captured photo), try to upload it
       if (selectedMedia && selectedMedia.startsWith('data:')) {
-        console.log('Uploading image to Supabase...');
+        uploadAttempted = true;
         
-        try {
-          const uploadedUrl = await uploadPostImage(currentUser.id, selectedMedia);
+        if (storageStatus.available) {
+          console.log('Attempting to upload image to Supabase...');
           
-          if (uploadedUrl) {
-            mediaUrl = uploadedUrl;
-            console.log('Image uploaded successfully:', uploadedUrl);
-          } else {
-            // If upload fails, use a placeholder image
-            console.warn('Image upload failed, using placeholder');
+          try {
+            const uploadedUrl = await uploadPostImage(currentUser.id, selectedMedia);
+            
+            if (uploadedUrl) {
+              mediaUrl = uploadedUrl;
+              console.log('Image uploaded successfully:', uploadedUrl);
+            } else {
+              console.warn('Image upload failed, using placeholder');
+              mediaUrl = generatePlaceholderImage();
+            }
+          } catch (uploadError) {
+            console.error('Upload error:', uploadError);
             mediaUrl = generatePlaceholderImage();
           }
-        } catch (uploadError) {
-          console.error('Upload error:', uploadError);
-          // Use placeholder on upload failure
+        } else {
+          console.warn('Storage not available, using placeholder image');
           mediaUrl = generatePlaceholderImage();
         }
       } else if (!selectedMedia) {
@@ -450,6 +477,21 @@ export const CreatePostScreen: React.FC = () => {
       </div>
 
       <div className="p-4 space-y-6 pb-20">
+        {/* Storage Status Warning */}
+        {!storageStatus.available && (
+          <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-yellow-300 mb-1">Image Upload Unavailable</h3>
+                <p className="text-xs text-yellow-200">
+                  Storage buckets are not configured. Posts will use placeholder images.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* User Info */}
         <div className="flex items-center space-x-3">
           <img
@@ -518,6 +560,11 @@ export const CreatePostScreen: React.FC = () => {
                 </button>
               </div>
               <p className="text-gray-400 text-sm">Add photos or videos to your post</p>
+              {!storageStatus.available && (
+                <p className="text-yellow-400 text-xs mt-2">
+                  Note: Images will use placeholders until storage is configured
+                </p>
+              )}
             </div>
           </div>
         )}

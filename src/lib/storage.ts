@@ -15,8 +15,8 @@ export function dataURLtoBlob(dataURL: string): Blob {
   return new Blob([u8arr], { type: mime });
 }
 
-// Check if bucket exists and create if needed
-async function ensureBucketExists(bucketName: string): Promise<boolean> {
+// Check if bucket exists
+async function checkBucketExists(bucketName: string): Promise<boolean> {
   try {
     const { data: buckets, error } = await supabase.storage.listBuckets();
     
@@ -26,13 +26,7 @@ async function ensureBucketExists(bucketName: string): Promise<boolean> {
     }
     
     const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-    
-    if (!bucketExists) {
-      console.warn(`Bucket '${bucketName}' does not exist. Please create it in your Supabase dashboard.`);
-      return false;
-    }
-    
-    return true;
+    return bucketExists || false;
   } catch (error) {
     console.error('Error checking bucket existence:', error);
     return false;
@@ -47,9 +41,9 @@ export async function uploadImage(
 ): Promise<string | null> {
   try {
     // Check if bucket exists first
-    const bucketExists = await ensureBucketExists(bucket);
+    const bucketExists = await checkBucketExists(bucket);
     if (!bucketExists) {
-      console.error(`Cannot upload to bucket '${bucket}' - bucket does not exist`);
+      console.warn(`Storage bucket '${bucket}' does not exist. Please create it in your Supabase dashboard.`);
       return null;
     }
 
@@ -65,15 +59,7 @@ export async function uploadImage(
       });
     
     if (uploadError) {
-      console.error('Upload error:', uploadError);
-      
-      // Provide more specific error messages
-      if (uploadError.message.includes('Bucket not found')) {
-        console.error(`Bucket '${bucket}' not found. Please create the bucket in your Supabase dashboard.`);
-      } else if (uploadError.message.includes('not allowed')) {
-        console.error(`Upload not allowed. Please check your storage policies for bucket '${bucket}'.`);
-      }
-      
+      console.error(`Upload error to bucket '${bucket}':`, uploadError);
       return null;
     }
     
@@ -89,28 +75,87 @@ export async function uploadImage(
   }
 }
 
-// Upload profile image
+// Upload profile image with fallback
 export async function uploadProfileImage(
   userId: string,
   imageDataURL: string
 ): Promise<string | null> {
-  const filePath = `${userId}/profile.jpg`;
-  return uploadImage('avatars', filePath, imageDataURL);
+  try {
+    const filePath = `${userId}/profile.jpg`;
+    const result = await uploadImage('avatars', filePath, imageDataURL);
+    
+    if (!result) {
+      console.warn('Profile image upload failed, using fallback');
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Profile image upload error:', error);
+    return null;
+  }
 }
 
-// Upload post image
+// Upload post image with fallback
 export async function uploadPostImage(
   userId: string,
   imageDataURL: string
 ): Promise<string | null> {
-  const timestamp = Date.now();
-  const randomId = Math.random().toString(36).substring(2, 15);
-  const filePath = `${userId}/post_${randomId}_${timestamp}.jpg`;
-  return uploadImage('posts', filePath, imageDataURL);
+  try {
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const filePath = `${userId}/post_${randomId}_${timestamp}.jpg`;
+    
+    const result = await uploadImage('posts', filePath, imageDataURL);
+    
+    if (!result) {
+      console.warn('Post image upload failed, will use placeholder');
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Post image upload error:', error);
+    return null;
+  }
 }
 
 // Fallback function to generate a placeholder image URL
 export function generatePlaceholderImage(): string {
   const randomId = Math.random().toString(36).substring(2, 15);
   return `https://picsum.photos/800/600?random=${randomId}`;
+}
+
+// Check storage availability
+export async function checkStorageAvailability(): Promise<{
+  avatarsAvailable: boolean;
+  postsAvailable: boolean;
+  message: string;
+}> {
+  try {
+    const avatarsExists = await checkBucketExists('avatars');
+    const postsExists = await checkBucketExists('posts');
+    
+    let message = '';
+    if (!avatarsExists && !postsExists) {
+      message = 'Storage buckets are not configured. Image uploads are disabled.';
+    } else if (!avatarsExists) {
+      message = 'Profile photo uploads are disabled. Post images may work.';
+    } else if (!postsExists) {
+      message = 'Post image uploads are disabled. Profile photos may work.';
+    } else {
+      message = 'Storage is fully available.';
+    }
+    
+    return {
+      avatarsAvailable: avatarsExists,
+      postsAvailable: postsExists,
+      message
+    };
+  } catch (error) {
+    console.error('Error checking storage availability:', error);
+    return {
+      avatarsAvailable: false,
+      postsAvailable: false,
+      message: 'Unable to check storage availability.'
+    };
+  }
 }
