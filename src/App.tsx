@@ -22,11 +22,19 @@ export default function App() {
   const [selectedChatUser, setSelectedChatUser] = useState<User | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client side before doing anything
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Check authentication status on app load
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
+    if (isClient) {
+      checkAuthStatus();
+    }
+  }, [isClient]);
 
   const checkAuthStatus = async () => {
     try {
@@ -233,6 +241,11 @@ export default function App() {
   const handleNavigateToCreate = () => {
     setActiveTab('create');
   };
+
+  // Don't render anything until we're on the client
+  if (!isClient) {
+    return null;
+  }
 
   // Show loading screen while checking auth
   if (isLoading) {
