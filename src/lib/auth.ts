@@ -84,14 +84,6 @@ export const signUpWithPassword = async (
   lastName: string
 ): Promise<AuthResponse> => {
   try {
-    // First check if user already exists
-    const { data: existingUser } = await supabase.auth.signInWithPassword({
-      email,
-      password: 'dummy' // This will fail but tell us if user exists
-    })
-
-    // If we get here without error, user might already exist
-    // Let's try to sign up anyway and handle the error
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

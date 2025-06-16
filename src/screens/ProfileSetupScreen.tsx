@@ -112,7 +112,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       }
 
       // Update user profile in database
-      const { error: updateError } = await supabase
+      const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({
           name: profileData.displayName,
@@ -125,25 +125,16 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           profile_completed: true,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select()
+        .single();
 
       if (updateError) {
         throw updateError;
       }
 
-      // Complete profile setup with the updated data
-      onComplete({
-        id: user.id,
-        name: profileData.displayName,
-        bio: profileData.bio,
-        date_of_birth: profileData.dateOfBirth,
-        gender: profileData.gender,
-        location: profileData.location,
-        interests: profileData.selectedInterests,
-        profile_photo_url: profileData.profilePhoto,
-        profile_completed: true,
-        email: user.email
-      });
+      // Complete profile setup with the updated data from database
+      onComplete(updatedProfile);
 
     } catch (error) {
       console.error('Profile setup error:', error);
