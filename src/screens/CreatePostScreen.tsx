@@ -14,6 +14,7 @@ export const CreatePostScreen: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,18 +26,35 @@ export const CreatePostScreen: React.FC = () => {
 
   const loadCurrentUser = async () => {
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn('Supabase not available, using offline mode');
+        // Set a default user for offline mode
+        setCurrentUser({
+          id: 'offline-user',
+          name: 'Offline User',
+          profile_photo_url: null
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const { data: { user }, error } = await supabase.auth.getUser();
       
-      if (error || !user) return;
+      if (error || !user) {
+        setIsLoading(false);
+        return;
+      }
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle instead of single
+        .maybeSingle();
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
+        setIsLoading(false);
         return;
       }
 
@@ -56,6 +74,7 @@ export const CreatePostScreen: React.FC = () => {
 
         if (createError) {
           console.error('Profile creation error:', createError);
+          setIsLoading(false);
           return;
         }
 
@@ -65,6 +84,8 @@ export const CreatePostScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Load user error:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -240,12 +261,27 @@ export const CreatePostScreen: React.FC = () => {
   };
 
   // Show loading if user not loaded yet
-  if (!currentUser) {
+  if (isLoading) {
     return (
       <div className="h-full bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if no user available
+  if (!currentUser) {
+    return (
+      <div className="h-full bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <XMarkIcon className="w-8 h-8 text-white" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Unable to Load Profile</h2>
+          <p className="text-gray-400">Please try refreshing the page or logging in again.</p>
         </div>
       </div>
     );
