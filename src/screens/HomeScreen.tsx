@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PostsFeed } from '../components/post/PostsFeed';
 import { UserProfile } from '../components/profile/UserProfile';
-import { getCurrentUserPosts } from '../data/mockData';
-import { generatePosts } from '../utils/mockDataGenerator';
-import { User } from '../types';
+import { User, Post } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 
@@ -13,81 +11,102 @@ interface Props {
 
 export const HomeScreen: React.FC<Props> = ({ userGender }) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    loadUsers();
-  }, [userGender]);
+    loadPosts();
+  }, []);
 
-  const loadUsers = async () => {
+  const loadPosts = async () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       
       if (!currentUser) return;
 
-      // Get all users who have completed their profiles (for posts)
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', currentUser.id) // Exclude current user
-        .not('name', 'is', null)
-        .not('bio', 'is', null)
-        .limit(10);
+      // Get all posts with user profile information
+      const { data: postsData, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            name,
+            profile_photo_url
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) {
-        console.error('Error loading users:', error);
+        console.error('Error loading posts:', error);
         return;
       }
 
-      setUsers(profiles || []);
+      // Transform database posts to Post type
+      const transformedPosts: Post[] = (postsData || []).map(post => ({
+        id: post.id,
+        userId: post.user_id,
+        userName: post.profiles?.name || 'Unknown User',
+        userDpUrl: post.profiles?.profile_photo_url || `https://i.pravatar.cc/300?img=${post.user_id}`,
+        title: post.title,
+        mediaUrl: post.media_url,
+        caption: post.caption,
+        timestamp: post.created_at
+      }));
+
+      setPosts(transformedPosts);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('Error loading posts:', error);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  // Combine current user's posts with other users' posts
-  const currentUserPosts = getCurrentUserPosts();
-  const otherUsersPosts = users.flatMap(user => generatePosts(user));
-  
-  // Merge and sort all posts by timestamp (latest first)
-  const allPosts = [...currentUserPosts, ...otherUsersPosts].sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
 
-  const handleUserClick = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
+  const handleUserClick = async (userId: string) => {
+    try {
+      // Get user profile
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error || !profile) {
+        console.error('Error loading user profile:', error);
+        return;
+      }
+
       // Transform database profile to User type
       const transformedUser: User = {
-        id: user.id,
-        name: user.name,
-        dpUrl: user.profile_photo_url || `https://i.pravatar.cc/300?img=${user.id}`,
-        bio: user.bio,
-        gender: user.gender,
-        age: user.date_of_birth ? 
-          new Date().getFullYear() - new Date(user.date_of_birth).getFullYear() : 25,
+        id: profile.id,
+        name: profile.name,
+        dpUrl: profile.profile_photo_url || `https://i.pravatar.cc/300?img=${profile.id}`,
+        bio: profile.bio,
+        gender: profile.gender,
+        age: profile.date_of_birth ? 
+          new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear() : 25,
         distance: Math.floor(Math.random() * 50) + 1,
-        interests: user.interests || [],
+        interests: profile.interests || [],
         links: {
-          Twitter: user.twitter_url || '#',
-          Instagram: user.instagram_url || '#',
-          LinkedIn: user.linked_in_url || '#',
+          Twitter: profile.twitter_url || '#',
+          Instagram: profile.instagram_url || '#',
+          LinkedIn: profile.linked_in_url || '#',
         },
-        instagramUrl: user.instagram_url,
-        instagramVerified: user.instagram_verified,
-        facebookUrl: user.facebook_url,
-        facebookVerified: user.facebook_verified,
-        linkedInUrl: user.linked_in_url,
-        linkedInVerified: user.linked_in_verified,
-        twitterUrl: user.twitter_url,
-        twitterVerified: user.twitter_verified,
-        googleUrl: user.google_url,
-        googleVerified: user.google_verified,
+        instagramUrl: profile.instagram_url,
+        instagramVerified: profile.instagram_verified,
+        facebookUrl: profile.facebook_url,
+        facebookVerified: profile.facebook_verified,
+        linkedInUrl: profile.linked_in_url,
+        linkedInVerified: profile.linked_in_verified,
+        twitterUrl: profile.twitter_url,
+        twitterVerified: profile.twitter_verified,
+        googleUrl: profile.google_url,
+        googleVerified: profile.google_verified,
       };
       setSelectedUser(transformedUser);
+    } catch (error) {
+      console.error('Error loading user:', error);
     }
   };
 
@@ -130,8 +149,8 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
 
       {/* Posts Feed */}
       <div className="px-4 py-4 space-y-6 pb-20">
-        {allPosts.length > 0 ? (
-          <PostsFeed posts={allPosts} onUserClick={handleUserClick} />
+        {posts.length > 0 ? (
+          <PostsFeed posts={posts} onUserClick={handleUserClick} />
         ) : (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">

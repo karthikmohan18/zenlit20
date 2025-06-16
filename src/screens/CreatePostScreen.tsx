@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { addPostToCurrentUser } from '../data/mockData';
 import { generateId } from '../utils/generateId';
 import { Post } from '../types';
 import { supabase } from '../lib/supabase';
@@ -89,6 +88,41 @@ export const CreatePostScreen: React.FC = () => {
     }
   };
 
+  const uploadImageToSupabase = async (imageDataUrl: string): Promise<string | null> => {
+    try {
+      // Convert data URL to blob
+      const response = await fetch(imageDataUrl);
+      const blob = await response.blob();
+      
+      // Generate unique filename
+      const fileName = `post_${currentUser.id}_${Date.now()}.jpg`;
+      const filePath = `posts/${fileName}`;
+      
+      // Upload to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('posts')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        return null;
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('posts')
+        .getPublicUrl(filePath);
+      
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+  };
+
   const handlePost = async () => {
     if (!selectedMedia && !caption.trim()) {
       alert('Please add some content to your post');
@@ -102,33 +136,73 @@ export const CreatePostScreen: React.FC = () => {
     
     setIsPosting(true);
     
-    // Simulate posting delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Create new post
-    const newPost: Post = {
-      id: generateId(),
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userDpUrl: currentUser.profile_photo_url || `https://i.pravatar.cc/300?img=${currentUser.id}`,
-      title: `Post by ${currentUser.name}`,
-      mediaUrl: selectedMedia || `https://picsum.photos/800/600?random=${generateId()}`,
-      caption: caption.trim() || 'New post from Zenlit!',
-      timestamp: new Date().toISOString()
-    };
-    
-    // Add to current user's posts (latest first)
-    addPostToCurrentUser(newPost);
-    
-    setIsPosting(false);
-    setShowSuccess(true);
-    
-    // Reset form after success animation
-    setTimeout(() => {
-      setCaption('');
-      setSelectedMedia(null);
-      setShowSuccess(false);
-    }, 2000);
+    try {
+      let mediaUrl = selectedMedia;
+      
+      // If we have a selected media that's a data URL (captured photo), upload it
+      if (selectedMedia && selectedMedia.startsWith('data:')) {
+        console.log('Uploading image to Supabase...');
+        const uploadedUrl = await uploadImageToSupabase(selectedMedia);
+        
+        if (uploadedUrl) {
+          mediaUrl = uploadedUrl;
+          console.log('Image uploaded successfully:', uploadedUrl);
+        } else {
+          // If upload fails, use a placeholder image
+          console.warn('Image upload failed, using placeholder');
+          mediaUrl = `https://picsum.photos/800/600?random=${generateId()}`;
+        }
+      } else if (!selectedMedia) {
+        // If no media selected, use a placeholder
+        mediaUrl = `https://picsum.photos/800/600?random=${generateId()}`;
+      }
+
+      // Save post to Supabase database
+      const { data: newPost, error: postError } = await supabase
+        .from('posts')
+        .insert({
+          user_id: currentUser.id,
+          title: `Post by ${currentUser.name}`,
+          caption: caption.trim() || 'New post from Zenlit!',
+          media_url: mediaUrl,
+          media_type: 'image'
+        })
+        .select()
+        .single();
+
+      if (postError) {
+        throw postError;
+      }
+
+      console.log('Post saved to database:', newPost);
+      
+      setIsPosting(false);
+      setShowSuccess(true);
+      
+      // Reset form after success animation
+      setTimeout(() => {
+        setCaption('');
+        setSelectedMedia(null);
+        setShowSuccess(false);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Post creation error:', error);
+      setIsPosting(false);
+      
+      // Show user-friendly error message
+      if (error instanceof Error) {
+        if (error.message.includes('storage')) {
+          alert('Failed to upload image. Please check your internet connection and try again.');
+        } else if (error.message.includes('posts')) {
+          alert('Failed to save post. Please try again.');
+        } else {
+          alert(`Failed to create post: ${error.message}`);
+        }
+      } else {
+        alert('Failed to create post. Please try again.');
+      }
+    }
   };
 
   const startCamera = async () => {
@@ -296,7 +370,7 @@ export const CreatePostScreen: React.FC = () => {
             <CheckIcon className="w-10 h-10 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Post Shared!</h2>
-          <p className="text-gray-400">Your post has been added to your profile</p>
+          <p className="text-gray-400">Your post has been saved to the database</p>
         </div>
       </div>
     );
