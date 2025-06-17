@@ -129,6 +129,12 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           isVerifying: false,
           error: null
         }));
+        
+        // If this is just email verification (not signup), proceed to login
+        if (isLogin) {
+          console.log('Email verified for existing user, proceeding to login');
+          onLogin();
+        }
       } else {
         setEmailVerification(prev => ({ 
           ...prev, 
@@ -176,36 +182,46 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     try {
       if (isLogin) {
         // Existing user login with password
+        console.log('Attempting login for:', formData.email);
         const result = await signInWithPassword(formData.email, formData.password);
         
         if (result.success) {
-          // Ensure profile exists after login
-          if (result.data?.user) {
-            await ensureProfileExists(result.data.user);
-          }
+          console.log('Login successful for user:', result.data?.user?.id);
           onLogin();
         } else {
+          console.error('Login failed:', result.error);
           setError(result.error || 'Login failed');
         }
       } else {
         // New user signup (OTP already verified)
-        // Use email as both first and last name for simplicity
-        const emailName = formData.email.split('@')[0];
+        console.log('Attempting signup for:', formData.email);
+        
+        // Use email prefix as name if no first/last name provided
+        const emailPrefix = formData.email.split('@')[0];
+        const firstName = formData.firstName || emailPrefix;
+        const lastName = formData.lastName || '';
+        
         const result = await signUpWithPassword(
           formData.email, 
           formData.password,
-          emailName, // Use email prefix as first name
-          '' // Empty last name
+          firstName,
+          lastName
         );
         
         if (result.success) {
-          // Profile creation is handled in signUpWithPassword
+          console.log('Signup successful for user:', result.data?.user?.id);
+          
+          // Wait a moment for profile creation to complete
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
           onLogin();
         } else {
+          console.error('Signup failed:', result.error);
           setError(result.error || 'Account creation failed');
         }
       }
     } catch (error) {
+      console.error('Auth error:', error);
       setError('Network error. Please try again.');
     } finally {
       setIsLoading(false);
@@ -283,7 +299,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email with OTP verification */}
+              {/* Email with OTP verification for signup only */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Email Address
@@ -381,6 +397,36 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     <span className="text-green-400 text-sm font-medium">
                       Email verified successfully!
                     </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Optional Name Fields for Signup */}
+              {!isLogin && emailVerification.otpVerified && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      First Name (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="First name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Last Name (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Last name"
+                    />
                   </div>
                 </div>
               )}

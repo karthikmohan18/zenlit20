@@ -67,7 +67,13 @@ export const verifyOTP = async (email: string, token: string): Promise<AuthRespo
 
     // Ensure profile exists after successful OTP verification
     if (data.user) {
-      await ensureProfileExists(data.user)
+      try {
+        await ensureProfileExists(data.user)
+        console.log('Profile ensured after OTP verification for user:', data.user.id)
+      } catch (profileError) {
+        console.warn('Profile creation warning after OTP:', profileError)
+        // Don't fail the OTP verification if profile creation has issues
+      }
     }
 
     return { success: true, data }
@@ -103,7 +109,13 @@ export const signInWithPassword = async (email: string, password: string): Promi
 
     // Ensure profile exists after successful login
     if (data.user) {
-      await ensureProfileExists(data.user)
+      try {
+        await ensureProfileExists(data.user)
+        console.log('Profile ensured after login for user:', data.user.id)
+      } catch (profileError) {
+        console.warn('Profile creation warning after login:', profileError)
+        // Don't fail the login if profile creation has issues
+      }
     }
 
     return { success: true, data }
@@ -156,7 +168,13 @@ export const signUpWithPassword = async (
 
     // Ensure profile is created after successful signup
     if (data.user) {
-      await ensureProfileExists(data.user, firstName, lastName)
+      try {
+        await ensureProfileExists(data.user, firstName, lastName)
+        console.log('Profile ensured after signup for user:', data.user.id)
+      } catch (profileError) {
+        console.warn('Profile creation warning after signup:', profileError)
+        // Don't fail the signup if profile creation has issues
+      }
     }
 
     return { success: true, data }
@@ -168,7 +186,7 @@ export const signUpWithPassword = async (
   }
 }
 
-// Helper function to ensure profile exists with better error handling
+// Helper function to ensure profile exists with better error handling and retry logic
 export const ensureProfileExists = async (user: any, firstName?: string, lastName?: string) => {
   if (!isSupabaseAvailable()) {
     console.warn('Supabase not available, skipping profile creation')
@@ -176,48 +194,88 @@ export const ensureProfileExists = async (user: any, firstName?: string, lastNam
   }
 
   try {
+    console.log('Ensuring profile exists for user:', user.id)
+    
     // Check if profile already exists
     const { data: existingProfile, error: checkError } = await supabase!
       .from('profiles')
-      .select('id')
+      .select('id, name, bio, profile_completed')
       .eq('id', user.id)
       .maybeSingle()
 
     // Only log errors that are not expected "no rows found" scenarios
     if (checkError && checkError.code !== 'PGRST116') {
       console.error('Profile check error:', checkError)
-      return
+      throw new Error(`Failed to check existing profile: ${checkError.message}`)
     }
 
     // If profile doesn't exist, create it
     if (!existingProfile) {
+      console.log('Creating new profile for user:', user.id)
+      
       const fullName = firstName && lastName 
         ? `${firstName} ${lastName}`.trim()
         : user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'New User'
 
-      const { error: createError } = await supabase!
+      const profileData = {
+        id: user.id,
+        name: fullName,
+        email: user.email,
+        bio: 'New to Zenlit! 👋',
+        profile_completed: false,
+        created_at: new Date().toISOString()
+      }
+
+      const { data: newProfile, error: createError } = await supabase!
         .from('profiles')
-        .insert({
-          id: user.id,
-          name: fullName,
-          email: user.email,
-          bio: 'New to Zenlit! 👋',
-          profile_completed: false,
-          created_at: new Date().toISOString()
-        })
+        .insert(profileData)
+        .select()
+        .maybeSingle()
 
       if (createError) {
         console.error('Profile creation error:', createError)
+        
+        // If it's a unique constraint violation, the profile might have been created by the trigger
+        if (createError.code === '23505') {
+          console.log('Profile already exists (created by trigger), continuing...')
+          return
+        }
+        
         throw new Error(`Failed to create profile: ${createError.message}`)
       } else {
-        console.log('Profile created successfully for user:', user.id)
+        console.log('Profile created successfully for user:', user.id, newProfile)
       }
     } else {
-      console.log('Profile already exists for user:', user.id)
+      console.log('Profile already exists for user:', user.id, existingProfile)
+      
+      // If profile exists but is incomplete, update it with better defaults
+      if (!existingProfile.name || !existingProfile.bio) {
+        console.log('Updating incomplete profile for user:', user.id)
+        
+        const fullName = firstName && lastName 
+          ? `${firstName} ${lastName}`.trim()
+          : user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || existingProfile.name || 'New User'
+
+        const { error: updateError } = await supabase!
+          .from('profiles')
+          .update({
+            name: fullName,
+            bio: existingProfile.bio || 'New to Zenlit! 👋',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+
+        if (updateError) {
+          console.warn('Profile update warning:', updateError)
+        } else {
+          console.log('Profile updated successfully for user:', user.id)
+        }
+      }
     }
   } catch (error) {
     console.error('Error ensuring profile exists:', error)
-    throw error
+    // Don't throw the error to avoid breaking the auth flow
+    // The profile setup screen will handle incomplete profiles
   }
 }
 
@@ -258,7 +316,11 @@ export const getCurrentUser = async () => {
 
     // Ensure profile exists for the current user
     if (user) {
-      await ensureProfileExists(user)
+      try {
+        await ensureProfileExists(user)
+      } catch (profileError) {
+        console.warn('Profile creation warning for current user:', profileError)
+      }
     }
 
     return { success: true, data: user }
