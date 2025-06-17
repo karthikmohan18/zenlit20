@@ -89,15 +89,21 @@ export const signInWithPassword = async (email: string, password: string): Promi
   try {
     console.log('Attempting to sign in user:', email)
     
+    // First, clear any existing session to avoid conflicts
+    await supabase!.auth.signOut()
+    
+    // Wait a moment for the sign out to complete
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
     const { data, error } = await supabase!.auth.signInWithPassword({
-      email,
-      password
+      email: email.trim().toLowerCase(),
+      password: password
     })
 
     if (error) {
       console.error('Sign in error:', error.message)
       
-      // Handle specific error cases
+      // Handle specific error cases with better messages
       if (error.message.includes('Invalid login credentials')) {
         return { 
           success: false, 
@@ -112,10 +118,28 @@ export const signInWithPassword = async (email: string, password: string): Promi
         }
       }
       
+      if (error.message.includes('Too many requests')) {
+        return { 
+          success: false, 
+          error: 'Too many login attempts. Please wait a moment and try again.' 
+        }
+      }
+      
       return { success: false, error: error.message }
     }
 
-    console.log('Sign in successful for user:', data.user?.id)
+    // Verify we have both user and session
+    if (!data.user) {
+      return { success: false, error: 'Authentication failed - no user data received' }
+    }
+
+    if (!data.session) {
+      return { success: false, error: 'Authentication failed - no session created' }
+    }
+
+    console.log('Sign in successful for user:', data.user.id)
+    console.log('Session created:', !!data.session)
+    
     return { success: true, data }
   } catch (error) {
     console.error('Sign in catch error:', error)
@@ -139,9 +163,13 @@ export const signUpWithPassword = async (
   try {
     console.log('Attempting to sign up user:', email)
     
+    // Clear any existing session first
+    await supabase!.auth.signOut()
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
     const { data, error } = await supabase!.auth.signUp({
-      email,
-      password,
+      email: email.trim().toLowerCase(),
+      password: password,
       options: {
         data: {
           first_name: firstName,
@@ -202,8 +230,12 @@ export const signInWithOTP = async (email: string): Promise<AuthResponse> => {
   try {
     console.log('Attempting OTP sign-in for:', email)
     
+    // Clear any existing session first
+    await supabase!.auth.signOut()
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
     const { error } = await supabase!.auth.signInWithOtp({
-      email: email,
+      email: email.trim().toLowerCase(),
       options: {
         shouldCreateUser: false, // Don't create new user, only sign in existing
         emailRedirectTo: undefined
@@ -301,6 +333,7 @@ export const checkSession = async (): Promise<AuthResponse> => {
     const { data: { session }, error } = await supabase!.auth.getSession()
     
     if (error) {
+      console.error('Session check error:', error.message)
       return { success: false, error: error.message }
     }
 
@@ -308,8 +341,14 @@ export const checkSession = async (): Promise<AuthResponse> => {
       return { success: false, error: 'No active session' }
     }
 
+    // Verify the session is not expired
+    if (session.expires_at && session.expires_at * 1000 < Date.now()) {
+      return { success: false, error: 'Session expired' }
+    }
+
     return { success: true, data: session }
   } catch (error) {
+    console.error('Session check catch error:', error)
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to check session' 
