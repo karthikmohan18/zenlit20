@@ -60,14 +60,15 @@ export const verifyOTP = async (email: string, token: string): Promise<AuthRespo
     })
 
     if (error) {
+      // Handle specific OTP errors more gracefully
+      if (error.message.includes('Token has expired') || error.message.includes('otp_expired')) {
+        return { success: false, error: 'Verification code has expired. Please request a new one.' }
+      }
+      if (error.message.includes('invalid_credentials') || error.message.includes('Invalid')) {
+        return { success: false, error: 'Invalid verification code. Please check and try again.' }
+      }
       console.error('OTP verification error:', error.message)
       return { success: false, error: error.message }
-    }
-
-    // Check if the response contains a suppressed error (from our custom fetch)
-    if (data && typeof data === 'object' && 'code' in data && 'message' in data) {
-      const errorData = data as { code: string; message: string }
-      return { success: false, error: errorData.message }
     }
 
     console.log('OTP verified successfully')
@@ -206,8 +207,14 @@ export const signUpWithPassword = async (
     if (data.user && !data.session) {
       return { 
         success: false, 
-        error: 'Please check your email and click the confirmation link to complete registration.' 
+        error: 'Account created successfully! Please check your email and click the confirmation link to complete registration.' 
       }
+    }
+    
+    // If we have both user and session, signup was successful and user is logged in
+    if (data.user && data.session) {
+      console.log('User signed up and logged in successfully')
+      return { success: true, data }
     }
     
     // Profile is automatically created by the database trigger
