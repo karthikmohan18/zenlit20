@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PasswordResetScreen } from './PasswordResetScreen';
-import { sendOTP, verifyOTP, signInWithPassword, signUpWithPassword, ensureProfileExists } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { sendOTP, verifyOTP, signInWithPassword, signUpWithPassword } from '../lib/auth';
 
 interface Props {
   onLogin: () => void;
@@ -20,7 +19,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    dateOfBirth: '',
     otp: ''
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -82,11 +80,9 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     setError(null);
     
     try {
-      console.log('Sending OTP to:', formData.email);
       const result = await sendOTP(formData.email);
       
       if (result.success) {
-        console.log('OTP sent successfully');
         setEmailVerification(prev => ({ 
           ...prev, 
           otpSent: true, 
@@ -95,7 +91,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           error: null
         }));
       } else {
-        console.error('OTP send failed:', result.error);
         setEmailVerification(prev => ({ 
           ...prev, 
           isSendingOtp: false,
@@ -103,7 +98,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         }));
       }
     } catch (error) {
-      console.error('OTP send error:', error);
       setEmailVerification(prev => ({ 
         ...prev, 
         isSendingOtp: false,
@@ -124,11 +118,9 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     setEmailVerification(prev => ({ ...prev, isVerifying: true, error: null }));
     
     try {
-      console.log('Verifying OTP for:', formData.email);
       const result = await verifyOTP(formData.email, formData.otp);
       
       if (result.success) {
-        console.log('OTP verified successfully');
         setEmailVerification(prev => ({ 
           ...prev, 
           otpVerified: true, 
@@ -144,7 +136,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           onLogin();
         }
       } else {
-        console.error('OTP verification failed:', result.error);
         setEmailVerification(prev => ({ 
           ...prev, 
           isVerifying: false,
@@ -152,7 +143,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         }));
       }
     } catch (error) {
-      console.error('OTP verification error:', error);
       setEmailVerification(prev => ({ 
         ...prev, 
         isVerifying: false,
@@ -198,7 +188,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         if (result.success) {
           console.log('Login successful for user:', result.data?.user?.id);
           // Wait a moment for profile operations to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 500));
           onLogin();
         } else {
           console.error('Login failed:', result.error);
@@ -224,7 +214,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           console.log('Signup successful for user:', result.data?.user?.id);
           
           // Wait a moment for profile creation to complete
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           onLogin();
         } else {
@@ -248,7 +238,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       confirmPassword: '',
       firstName: '',
       lastName: '',
-      dateOfBirth: '',
       otp: ''
     });
     setEmailVerification({

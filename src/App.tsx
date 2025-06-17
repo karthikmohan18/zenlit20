@@ -11,7 +11,6 @@ import { MessagesScreen } from './screens/MessagesScreen';
 import { UserGroupIcon, Squares2X2Icon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { User } from './types';
 import { supabase } from './lib/supabase';
-import { ensureProfileExists } from './lib/auth';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'profileSetup' | 'app'>('welcome');
@@ -63,19 +62,10 @@ export default function App() {
 
       console.log('User found:', user.id);
 
-      // Ensure profile exists for this user
-      try {
-        await ensureProfileExists(user);
-        console.log('Profile ensured for user:', user.id);
-      } catch (profileError) {
-        console.error('Profile creation failed:', profileError);
-        // Continue anyway, we'll handle this in profile setup
-      }
+      // Wait a moment for any database operations to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Wait a moment for profile operations to complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check if user has a profile
+      // Check if user has a profile (should exist due to trigger)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -151,18 +141,8 @@ export default function App() {
 
       console.log('User after login:', user.id);
 
-      // Ensure profile exists
-      try {
-        await ensureProfileExists(user);
-        console.log('Profile ensured after login for user:', user.id);
-      } catch (profileError) {
-        console.error('Profile creation failed after login:', profileError);
-        setCurrentScreen('profileSetup');
-        return;
-      }
-
       // Wait a moment for profile creation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
