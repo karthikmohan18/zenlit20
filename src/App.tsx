@@ -48,7 +48,7 @@ export default function App() {
 
       console.log('Checking authentication status...');
 
-      // First check if we have a valid session
+      // Check if we have a valid session
       const sessionResult = await checkSession();
       
       if (!sessionResult.success) {
@@ -76,9 +76,6 @@ export default function App() {
       }
 
       console.log('User found:', user.id);
-
-      // Wait a moment for any database operations to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Check if user has a profile (should exist due to trigger)
       const { data: profile, error: profileError } = await supabase
@@ -156,8 +153,8 @@ export default function App() {
 
       console.log('User after login:', user.id);
 
-      // Wait a moment for profile creation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait a moment for profile creation (handled by database trigger)
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
