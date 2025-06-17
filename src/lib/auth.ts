@@ -156,7 +156,7 @@ export const setUserPassword = async (password: string): Promise<AuthResponse> =
 // STEP 4: Complete profile setup
 export const completeProfileSetup = async (profileData: {
   fullName: string
-  username?: string
+  username: string // Now required
   bio?: string
   dateOfBirth?: string
   gender?: string
@@ -178,13 +178,22 @@ export const completeProfileSetup = async (profileData: {
       return { success: false, error: 'User not authenticated' }
     }
 
+    // Validate required fields
+    if (!profileData.fullName.trim()) {
+      return { success: false, error: 'Display name is required' }
+    }
+
+    if (!profileData.username.trim()) {
+      return { success: false, error: 'Username is required' }
+    }
+
     // Create/update profile
     const { data: profile, error: profileError } = await supabase!
       .from('profiles')
       .upsert({
         id: user.id,
-        name: profileData.fullName,
-        username: profileData.username,
+        name: profileData.fullName.trim(),
+        username: profileData.username.trim().toLowerCase(),
         bio: profileData.bio || 'New to Zenlit! 👋',
         date_of_birth: profileData.dateOfBirth,
         gender: profileData.gender,
@@ -199,6 +208,12 @@ export const completeProfileSetup = async (profileData: {
 
     if (profileError) {
       console.error('Profile setup error:', profileError)
+      
+      // Handle specific database errors
+      if (profileError.code === '23505') {
+        return { success: false, error: 'Username is already taken. Please choose a different one.' }
+      }
+      
       return { success: false, error: 'Failed to save profile. Please try again.' }
     }
 

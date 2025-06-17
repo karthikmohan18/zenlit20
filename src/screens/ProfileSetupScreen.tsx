@@ -5,6 +5,8 @@ import { CameraIcon, CheckIcon, ChevronLeftIcon } from '@heroicons/react/24/outl
 import { supabase } from '../../lib/supabase';
 import { uploadProfileImage } from '../../lib/utils';
 import { completeProfileSetup } from '../lib/auth';
+import { reserveUsername } from '../lib/username';
+import { UsernameInput } from '../components/common/UsernameInput';
 
 interface Props {
   onComplete: (profileData: any) => void;
@@ -20,6 +22,7 @@ const interests = [
 export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
   const [step, setStep] = useState<'basic' | 'photo' | 'interests' | 'bio'>('basic');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUsernameValid, setIsUsernameValid] = useState(false);
   const [profileData, setProfileData] = useState({
     displayName: '',
     username: '',
@@ -37,6 +40,13 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleUsernameValidation = (isValid: boolean, username: string) => {
+    setIsUsernameValid(isValid);
+    if (username !== profileData.username) {
+      handleInputChange('username', username);
+    }
   };
 
   const handleInterestToggle = (interest: string) => {
@@ -68,6 +78,8 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
 
   const canProceedFromBasic = () => {
     return profileData.displayName.trim() && 
+           profileData.username.trim() &&
+           isUsernameValid &&
            profileData.dateOfBirth && 
            profileData.gender;
   };
@@ -104,6 +116,11 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       return;
     }
 
+    if (!profileData.username.trim() || !isUsernameValid) {
+      alert('Please choose a valid username');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -112,6 +129,14 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       
       if (userError || !user) {
         throw new Error('User not found');
+      }
+
+      // First, reserve the username
+      console.log('Reserving username:', profileData.username);
+      const usernameResult = await reserveUsername(profileData.username, user.id);
+      
+      if (!usernameResult.success) {
+        throw new Error(usernameResult.error || 'Failed to reserve username');
       }
 
       let profilePhotoUrl = null;
@@ -132,7 +157,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       // Complete profile setup using the auth service
       const result = await completeProfileSetup({
         fullName: profileData.displayName,
-        username: profileData.username || undefined,
+        username: profileData.username,
         bio: profileData.bio,
         dateOfBirth: profileData.dateOfBirth,
         gender: profileData.gender,
@@ -155,7 +180,9 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       
       // Provide more specific error messages
       if (error instanceof Error) {
-        if (error.message.includes('avatars')) {
+        if (error.message.includes('username')) {
+          alert(`Username error: ${error.message}`);
+        } else if (error.message.includes('avatars')) {
           alert('Failed to upload profile photo. Please ensure you have a stable internet connection and try again.');
         } else {
           alert(`Failed to save profile: ${error.message}`);
@@ -195,19 +222,15 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
 
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          Username (Optional)
+          Username *
         </label>
-        <input
-          type="text"
+        <UsernameInput
           value={profileData.username}
-          onChange={(e) => handleInputChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))}
-          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          onChange={(value) => handleInputChange('username', value)}
+          onValidationChange={handleUsernameValidation}
           placeholder="username123"
-          maxLength={30}
+          required
         />
-        <p className="text-xs text-gray-500 mt-1">
-          Letters, numbers, dots and underscores only
-        </p>
       </div>
 
       <div>
