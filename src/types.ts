@@ -3,6 +3,7 @@ import type React from 'react';
 export interface User {
   id: string;
   name: string;
+  username?: string; // Added username field
   dpUrl: string;
   bio: string;
   gender: 'male' | 'female';
@@ -14,6 +15,9 @@ export interface User {
     Instagram: string;
     LinkedIn: string;
   };
+  // Location fields
+  latitude?: number;
+  longitude?: number;
   // Social media verification fields
   instagramUrl?: string;
   instagramVerified?: boolean;
@@ -74,4 +78,18 @@ export interface OAuthState {
   isConnecting: boolean;
   error: string | null;
   provider: string | null;
+}
+
+export interface LocationPermissionStatus {
+  granted: boolean;
+  denied: boolean;
+  pending: boolean;
+  error?: string;
+}
+
+export interface UserLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp: number;
 }

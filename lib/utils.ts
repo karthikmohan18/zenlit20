@@ -12,6 +12,7 @@ export function transformProfileToUser(profile: any): User {
   return {
     id: profile.id,
     name: profile.name,
+    username: profile.username, // Include username
     dpUrl: profile.profile_photo_url || `https://i.pravatar.cc/300?img=${profile.id}`,
     bio: profile.bio,
     gender: profile.gender,
@@ -24,6 +25,8 @@ export function transformProfileToUser(profile: any): User {
       Instagram: profile.instagram_url || '#',
       LinkedIn: profile.linked_in_url || '#',
     },
+    latitude: profile.latitude,
+    longitude: profile.longitude,
     instagramUrl: profile.instagram_url,
     instagramVerified: profile.instagram_verified,
     facebookUrl: profile.facebook_url,

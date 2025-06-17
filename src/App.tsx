@@ -270,11 +270,11 @@ export default function App() {
 
   // Show main app after login and profile setup
   return (
-    <div className="h-screen bg-black text-white overflow-hidden flex flex-col">
+    <div className="h-screen bg-black text-white overflow-hidden flex flex-col mobile-container">
       {/* Mobile App Container */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Main Content Area */}
-        <main className="flex-1 overflow-hidden relative">
+        <main className="flex-1 overflow-hidden relative content-with-nav">
           <div className="h-full">
             {activeTab === 'radar' && (
               <div className="h-full overflow-y-auto mobile-scroll">
@@ -319,12 +319,12 @@ export default function App() {
           </div>
         </main>
 
-        {/* Bottom Navigation */}
-        <nav className="bg-gray-900 border-t border-gray-800 safe-area-inset-bottom flex-shrink-0">
+        {/* Bottom Navigation - Fixed for mobile */}
+        <nav className="bg-gray-900 border-t border-gray-800 flex-shrink-0 bottom-nav">
           <div className="flex justify-around items-center py-2 px-4 h-16">
             <button
               onClick={() => setActiveTab('radar')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'radar' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
@@ -334,7 +334,7 @@ export default function App() {
             
             <button
               onClick={() => setActiveTab('feed')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'feed' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
@@ -344,7 +344,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('create')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'create' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
@@ -354,7 +354,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('messages')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'messages' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
@@ -364,7 +364,7 @@ export default function App() {
             
             <button
               onClick={() => setActiveTab('profile')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'profile' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
