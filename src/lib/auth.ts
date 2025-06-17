@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase, ensureSession } from './supabase'
 
 export interface AuthResponse {
   success: boolean
@@ -97,6 +97,11 @@ export const verifySignupOTP = async (email: string, token: string): Promise<Aut
       return { success: false, error: 'Verification failed. Please try again.' }
     }
 
+    // Ensure session is properly stored
+    if (data.session) {
+      await supabase!.auth.setSession(data.session)
+    }
+
     console.log('OTP verified successfully, user created:', data.user.id)
     return { success: true, data }
   } catch (error) {
@@ -117,10 +122,9 @@ export const setUserPassword = async (password: string): Promise<AuthResponse> =
   try {
     console.log('Setting password for authenticated user')
     
-    // Check if user is authenticated
-    const { data: { user }, error: userError } = await supabase!.auth.getUser()
-    
-    if (userError || !user) {
+    // Ensure we have a valid session first
+    const sessionResult = await ensureSession()
+    if (!sessionResult.success) {
       return { success: false, error: 'Please verify your email first' }
     }
 
@@ -142,7 +146,15 @@ export const setUserPassword = async (password: string): Promise<AuthResponse> =
       return { success: false, error: error.message }
     }
 
-    console.log('Password set successfully for user:', user.id)
+    // Ensure session is maintained after password update
+    if (data.user) {
+      const { data: sessionData } = await supabase!.auth.getSession()
+      if (sessionData.session) {
+        await supabase!.auth.setSession(sessionData.session)
+      }
+    }
+
+    console.log('Password set successfully for user:', data.user?.id)
     return { success: true, data }
   } catch (error) {
     console.error('Password set catch error:', error)
@@ -171,12 +183,13 @@ export const completeProfileSetup = async (profileData: {
   try {
     console.log('Completing profile setup')
     
-    // Check if user is authenticated
-    const { data: { user }, error: userError } = await supabase!.auth.getUser()
-    
-    if (userError || !user) {
+    // Ensure we have a valid session
+    const sessionResult = await ensureSession()
+    if (!sessionResult.success) {
       return { success: false, error: 'User not authenticated' }
     }
+
+    const user = sessionResult.session.user
 
     // Validate required fields
     if (!profileData.fullName.trim()) {
@@ -273,6 +286,9 @@ export const signInWithPassword = async (email: string, password: string): Promi
       return { success: false, error: 'Login failed. Please try again.' }
     }
 
+    // Ensure session is properly stored
+    await supabase!.auth.setSession(data.session)
+
     console.log('Password login successful for user:', data.user.id)
     return { success: true, data }
   } catch (error) {
@@ -341,30 +357,15 @@ export const signOut = async (): Promise<AuthResponse> => {
   }
 }
 
-// UTILITY: Check current session
+// UTILITY: Check current session (enhanced)
 export const checkSession = async (): Promise<AuthResponse> => {
   if (!isSupabaseAvailable()) {
     return { success: false, error: 'Service temporarily unavailable' }
   }
 
   try {
-    const { data: { session }, error } = await supabase!.auth.getSession()
-    
-    if (error) {
-      console.error('Session check error:', error.message)
-      return { success: false, error: error.message }
-    }
-
-    if (!session) {
-      return { success: false, error: 'No active session' }
-    }
-
-    if (session.expires_at && session.expires_at * 1000 < Date.now()) {
-      return { success: false, error: 'Session expired' }
-    }
-
-    console.log('Valid session found for user:', session.user.id)
-    return { success: true, data: session }
+    const sessionResult = await ensureSession()
+    return sessionResult
   } catch (error) {
     console.error('Session check catch error:', error)
     return { 
@@ -395,5 +396,24 @@ export const getCurrentUser = async (): Promise<AuthResponse> => {
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to get user' 
     }
+  }
+}
+
+// UTILITY: Handle refresh token errors
+export const handleRefreshTokenError = async (): Promise<void> => {
+  try {
+    console.log('Handling refresh token error - signing out user')
+    await supabase!.auth.signOut()
+    
+    // Clear any cached data
+    localStorage.removeItem('supabase.auth.token')
+    sessionStorage.clear()
+    
+    // Reload the page to reset app state
+    window.location.reload()
+  } catch (error) {
+    console.error('Error handling refresh token error:', error)
+    // Force reload anyway
+    window.location.reload()
   }
 }
