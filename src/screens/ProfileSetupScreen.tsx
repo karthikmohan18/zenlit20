@@ -5,7 +5,7 @@ import { CameraIcon, CheckIcon, ChevronLeftIcon } from '@heroicons/react/24/outl
 import { supabase } from '../../lib/supabase';
 import { uploadProfileImage } from '../../lib/utils';
 import { completeProfileSetup } from '../lib/auth';
-import { reserveUsername } from '../lib/username';
+import { reserveUsername, checkUsernameAvailability } from '../lib/username';
 import { UsernameInput } from '../components/common/UsernameInput';
 
 interface Props {
@@ -116,8 +116,28 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       return;
     }
 
-    if (!profileData.username.trim() || !isUsernameValid) {
-      alert('Please choose a valid username');
+    // CRITICAL: Double-check username availability immediately before proceeding
+    if (!profileData.username.trim()) {
+      alert('Please choose a username');
+      return;
+    }
+
+    console.log('Final username validation before profile completion...');
+    
+    // Perform immediate username check (bypass debounce)
+    try {
+      const usernameCheck = await checkUsernameAvailability(profileData.username);
+      
+      if (!usernameCheck.available) {
+        alert(`Username error: ${usernameCheck.error || 'Username is not available'}`);
+        setStep('basic'); // Go back to basic info step
+        return;
+      }
+      
+      console.log('Username is available, proceeding with profile setup');
+    } catch (error) {
+      console.error('Username validation error:', error);
+      alert('Unable to verify username availability. Please try again.');
       return;
     }
 
@@ -182,6 +202,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       if (error instanceof Error) {
         if (error.message.includes('username')) {
           alert(`Username error: ${error.message}`);
+          setStep('basic'); // Go back to username step
         } else if (error.message.includes('avatars')) {
           alert('Failed to upload profile photo. Please ensure you have a stable internet connection and try again.');
         } else {
