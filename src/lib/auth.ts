@@ -91,12 +91,15 @@ export const signInWithPassword = async (email: string, password: string): Promi
   }
 
   try {
+    console.log('Attempting to sign in user:', email)
+    
     const { data, error } = await supabase!.auth.signInWithPassword({
       email,
       password
     })
 
     if (error) {
+      console.error('Sign in error:', error.message)
       // If invalid credentials, suggest using OTP instead
       if (error.message.includes('Invalid login credentials')) {
         return { 
@@ -106,6 +109,8 @@ export const signInWithPassword = async (email: string, password: string): Promi
       }
       return { success: false, error: error.message }
     }
+
+    console.log('Sign in successful for user:', data.user?.id)
 
     // Ensure profile exists after successful login
     if (data.user) {
@@ -120,6 +125,7 @@ export const signInWithPassword = async (email: string, password: string): Promi
 
     return { success: true, data }
   } catch (error) {
+    console.error('Sign in catch error:', error)
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to sign in' 
@@ -138,6 +144,8 @@ export const signUpWithPassword = async (
   }
 
   try {
+    console.log('Attempting to sign up user:', email)
+    
     const { data, error } = await supabase!.auth.signUp({
       email,
       password,
@@ -151,8 +159,10 @@ export const signUpWithPassword = async (
     })
 
     if (error) {
+      console.error('Sign up error:', error.message)
       // If user already exists, try to sign them in instead
       if (error.message.includes('User already registered')) {
+        console.log('User already exists, attempting sign in...')
         const signInResult = await signInWithPassword(email, password)
         if (signInResult.success) {
           return { success: true, data: signInResult.data }
@@ -165,6 +175,8 @@ export const signUpWithPassword = async (
       }
       return { success: false, error: error.message }
     }
+
+    console.log('Sign up successful for user:', data.user?.id)
 
     // Ensure profile is created after successful signup
     if (data.user) {
@@ -179,6 +191,7 @@ export const signUpWithPassword = async (
 
     return { success: true, data }
   } catch (error) {
+    console.error('Sign up catch error:', error)
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to create account' 
@@ -229,6 +242,8 @@ export const ensureProfileExists = async (user: any, firstName?: string, lastNam
         created_at: new Date().toISOString()
       }
 
+      console.log('Inserting profile data:', profileData)
+
       const { data: newProfile, error: createError } = await supabase!
         .from('profiles')
         .insert(profileData)
@@ -241,6 +256,12 @@ export const ensureProfileExists = async (user: any, firstName?: string, lastNam
         // If it's a unique constraint violation, the profile might have been created by the trigger
         if (createError.code === '23505') {
           console.log('Profile already exists (created by trigger), continuing...')
+          return
+        }
+        
+        // If it's an RLS error, log it but don't throw to avoid breaking auth flow
+        if (createError.code === '42501') {
+          console.warn('RLS policy prevented profile creation, but user can still proceed to profile setup')
           return
         }
         
