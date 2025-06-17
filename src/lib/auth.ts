@@ -196,6 +196,9 @@ export const ensureProfileExists = async (user: any, firstName?: string, lastNam
   try {
     console.log('Ensuring profile exists for user:', user.id)
     
+    // Add delay to allow Supabase client session to fully establish
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     // Check if profile already exists
     const { data: existingProfile, error: checkError } = await supabase!
       .from('profiles')
