@@ -15,41 +15,122 @@ const isSupabaseAvailable = () => {
   return true
 }
 
-// SIGNUP FLOW: Create account with email and password
-export const signUpWithPassword = async (
-  email: string, 
-  password: string, 
-  firstName?: string, 
-  lastName?: string
-): Promise<AuthResponse> => {
+// STEP 1: Send OTP for email verification during signup
+export const sendSignupOTP = async (email: string): Promise<AuthResponse> => {
   if (!isSupabaseAvailable()) {
     return { success: false, error: 'Service temporarily unavailable' }
   }
 
   try {
-    console.log('Creating account with email/password for:', email)
+    console.log('Sending signup OTP to:', email)
     
-    const { data, error } = await supabase!.auth.signUp({
+    const { data, error } = await supabase!.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
-      password: password,
       options: {
+        shouldCreateUser: true, // Creates user if they don't exist
         data: {
-          first_name: firstName || '',
-          last_name: lastName || '',
-          full_name: firstName && lastName ? `${firstName} ${lastName}`.trim() : firstName || lastName || ''
+          signup_flow: true // Mark this as part of signup flow
         }
       }
     })
 
     if (error) {
-      console.error('Signup error:', error.message)
+      console.error('OTP send error:', error.message)
       
-      if (error.message.includes('User already registered')) {
+      if (error.message.includes('rate limit')) {
         return { 
           success: false, 
-          error: 'An account with this email already exists. Please sign in instead.' 
+          error: 'Too many requests. Please wait before requesting another code.' 
         }
       }
+      
+      return { success: false, error: error.message }
+    }
+
+    console.log('Signup OTP sent successfully')
+    return { success: true, data }
+  } catch (error) {
+    console.error('OTP send catch error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to send verification code' 
+    }
+  }
+}
+
+// STEP 2: Verify OTP and get authenticated session
+export const verifySignupOTP = async (email: string, token: string): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
+  try {
+    console.log('Verifying signup OTP for:', email)
+    
+    const { data, error } = await supabase!.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token,
+      type: 'email'
+    })
+
+    if (error) {
+      console.error('OTP verify error:', error.message)
+      
+      if (error.message.includes('expired')) {
+        return { 
+          success: false, 
+          error: 'Verification code has expired. Please request a new one.' 
+        }
+      }
+      
+      if (error.message.includes('invalid')) {
+        return { 
+          success: false, 
+          error: 'Invalid verification code. Please check and try again.' 
+        }
+      }
+      
+      return { success: false, error: error.message }
+    }
+
+    if (!data.user || !data.session) {
+      return { success: false, error: 'Verification failed. Please try again.' }
+    }
+
+    console.log('OTP verified successfully, user created:', data.user.id)
+    return { success: true, data }
+  } catch (error) {
+    console.error('OTP verify catch error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to verify code' 
+    }
+  }
+}
+
+// STEP 3: Set password for the authenticated user
+export const setUserPassword = async (password: string): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
+  try {
+    console.log('Setting password for authenticated user')
+    
+    // Check if user is authenticated
+    const { data: { user }, error: userError } = await supabase!.auth.getUser()
+    
+    if (userError || !user) {
+      return { success: false, error: 'Please verify your email first' }
+    }
+
+    // Update user password
+    const { data, error } = await supabase!.auth.updateUser({
+      password: password
+    })
+
+    if (error) {
+      console.error('Password set error:', error.message)
       
       if (error.message.includes('Password should be at least')) {
         return { 
@@ -58,44 +139,81 @@ export const signUpWithPassword = async (
         }
       }
       
-      if (error.message.includes('invalid email')) {
-        return { success: false, error: 'Please enter a valid email address.' }
-      }
-      
       return { success: false, error: error.message }
     }
 
-    if (!data.user) {
-      return { success: false, error: 'Account creation failed. Please try again.' }
-    }
-
-    console.log('Account created successfully for user:', data.user.id)
-    
-    // Check if email confirmation is required
-    if (!data.session && data.user && !data.user.email_confirmed_at) {
-      return { 
-        success: false, 
-        error: 'Please check your email and click the confirmation link to complete registration.' 
-      }
-    }
-
-    // If we have a session, the user is immediately logged in
-    if (data.session) {
-      console.log('User signed up and logged in immediately')
-      return { success: true, data }
-    }
-
+    console.log('Password set successfully for user:', user.id)
     return { success: true, data }
   } catch (error) {
-    console.error('Signup catch error:', error)
+    console.error('Password set catch error:', error)
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Failed to create account' 
+      error: error instanceof Error ? error.message : 'Failed to set password' 
     }
   }
 }
 
-// LOGIN FLOW: Password-based login for existing users
+// STEP 4: Complete profile setup
+export const completeProfileSetup = async (profileData: {
+  fullName: string
+  username?: string
+  bio?: string
+  dateOfBirth?: string
+  gender?: string
+  location?: string
+  interests?: string[]
+  profilePhotoUrl?: string
+}): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
+  try {
+    console.log('Completing profile setup')
+    
+    // Check if user is authenticated
+    const { data: { user }, error: userError } = await supabase!.auth.getUser()
+    
+    if (userError || !user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    // Create/update profile
+    const { data: profile, error: profileError } = await supabase!
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        name: profileData.fullName,
+        username: profileData.username,
+        bio: profileData.bio || 'New to Zenlit! 👋',
+        date_of_birth: profileData.dateOfBirth,
+        gender: profileData.gender,
+        location: profileData.location,
+        interests: profileData.interests || [],
+        profile_photo_url: profileData.profilePhotoUrl,
+        profile_completed: true,
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (profileError) {
+      console.error('Profile setup error:', profileError)
+      return { success: false, error: 'Failed to save profile. Please try again.' }
+    }
+
+    console.log('Profile setup completed successfully')
+    return { success: true, data: profile }
+  } catch (error) {
+    console.error('Profile setup catch error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to complete profile setup' 
+    }
+  }
+}
+
+// LOGIN: Password-based login for existing users
 export const signInWithPassword = async (email: string, password: string): Promise<AuthResponse> => {
   if (!isSupabaseAvailable()) {
     return { success: false, error: 'Service temporarily unavailable' }

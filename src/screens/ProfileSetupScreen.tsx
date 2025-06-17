@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { CameraIcon, CheckIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../../lib/supabase';
 import { uploadProfileImage } from '../../lib/utils';
+import { completeProfileSetup } from '../lib/auth';
 
 interface Props {
   onComplete: (profileData: any) => void;
@@ -21,6 +22,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState({
     displayName: '',
+    username: '',
     dateOfBirth: '',
     gender: '' as 'male' | 'female' | '',
     profilePhoto: null as string | null,
@@ -127,37 +129,26 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         }
       }
 
-      // Use upsert to create or update user profile in database
-      const { data: updatedProfile, error: upsertError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id, // Include the user ID for upsert
-          name: profileData.displayName,
-          bio: profileData.bio,
-          date_of_birth: profileData.dateOfBirth,
-          gender: profileData.gender,
-          location: profileData.location,
-          interests: profileData.selectedInterests,
-          profile_photo_url: profilePhotoUrl, // Use uploaded URL or null
-          profile_completed: true,
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .maybeSingle();
+      // Complete profile setup using the auth service
+      const result = await completeProfileSetup({
+        fullName: profileData.displayName,
+        username: profileData.username || undefined,
+        bio: profileData.bio,
+        dateOfBirth: profileData.dateOfBirth,
+        gender: profileData.gender,
+        location: profileData.location || undefined,
+        interests: profileData.selectedInterests,
+        profilePhotoUrl: profilePhotoUrl || undefined
+      });
 
-      if (upsertError) {
-        throw upsertError;
-      }
-
-      // Handle case where profile was not returned
-      if (!updatedProfile) {
-        throw new Error('Failed to create or update profile. Please try again.');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to complete profile setup');
       }
 
       console.log('Profile setup completed successfully');
       
       // Complete profile setup with the updated data from database
-      onComplete(updatedProfile);
+      onComplete(result.data);
 
     } catch (error) {
       console.error('Profile setup error:', error);
@@ -200,6 +191,23 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           placeholder="How should people know you?"
           maxLength={50}
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Username (Optional)
+        </label>
+        <input
+          type="text"
+          value={profileData.username}
+          onChange={(e) => handleInputChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))}
+          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="username123"
+          maxLength={30}
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Letters, numbers, dots and underscores only
+        </p>
       </div>
 
       <div>
@@ -394,6 +402,9 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           )}
           <div className="flex-1">
             <h4 className="font-semibold text-white">{profileData.displayName || 'Your Name'}</h4>
+            {profileData.username && (
+              <p className="text-gray-400 text-sm">@{profileData.username}</p>
+            )}
             <p className="text-gray-300 text-sm mt-1">
               {profileData.bio || 'Your bio will appear here...'}
             </p>
