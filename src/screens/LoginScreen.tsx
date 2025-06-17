@@ -94,14 +94,17 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           countdown: 60,
           error: null
         }));
+        
+        console.log('OTP sent successfully, user will be signed in when they verify it');
       } else {
         setEmailVerification(prev => ({ 
           ...prev, 
           isSendingOtp: false,
-          error: result.error || 'Failed to send OTP'
+          error: result.error || 'Failed to send verification code'
         }));
       }
     } catch (error) {
+      console.error('OTP send error:', error);
       setEmailVerification(prev => ({ 
         ...prev, 
         isSendingOtp: false,
@@ -114,7 +117,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     if (!formData.otp || formData.otp.length !== 6) {
       setEmailVerification(prev => ({ 
         ...prev, 
-        error: 'Please enter a valid 6-digit OTP' 
+        error: 'Please enter a valid 6-digit verification code' 
       }));
       return;
     }
@@ -125,6 +128,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       const result = await verifyOTP(formData.email, formData.otp);
       
       if (result.success) {
+        console.log('OTP verified successfully');
         setEmailVerification(prev => ({ 
           ...prev, 
           otpVerified: true, 
@@ -132,9 +136,10 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           error: null
         }));
         
-        // If this is OTP login (existing user), complete the login
+        // If this is OTP login (existing user), complete the login immediately
         if (useOTPLogin) {
-          console.log('OTP login successful');
+          console.log('OTP login successful, user is now signed in');
+          // Wait a moment for the session to be established
           await new Promise(resolve => setTimeout(resolve, 1000));
           onLogin();
         }
@@ -142,10 +147,11 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         setEmailVerification(prev => ({ 
           ...prev, 
           isVerifying: false,
-          error: result.error || 'Invalid OTP. Please try again.'
+          error: result.error || 'Invalid verification code. Please try again.'
         }));
       }
     } catch (error) {
+      console.error('OTP verification error:', error);
       setEmailVerification(prev => ({ 
         ...prev, 
         isVerifying: false,
@@ -167,7 +173,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     // For OTP login, we don't need password
     if (useOTPLogin) {
       if (!emailVerification.otpVerified) {
-        setError('Please verify your email with OTP first');
+        setError('Please verify your email with the verification code first');
         return;
       }
       // OTP login is handled in handleVerifyOtp
@@ -379,7 +385,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                       ) : emailVerification.otpSent ? (
                         'Resend Code'
                       ) : (
-                        useOTPLogin ? 'Send Code' : 'Get OTP'
+                        useOTPLogin ? 'Send Code' : 'Get Code'
                       )}
                     </button>
                   )}
