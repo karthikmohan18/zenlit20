@@ -44,7 +44,7 @@ export const requestUserLocation = async (): Promise<{
         {
           enableHighAccuracy: true,
           timeout: 15000, // 15 seconds timeout
-          maximumAge: 300000 // 5 minutes cache
+          maximumAge: 60000 // 1 minute cache for dynamic updates
         }
       );
     });
@@ -87,6 +87,83 @@ export const requestUserLocation = async (): Promise<{
       success: false,
       error: errorMessage
     };
+  }
+};
+
+// Watch user's location for changes (dynamic tracking)
+export const watchUserLocation = (
+  onLocationUpdate: (location: UserLocation) => void,
+  onError: (error: string) => void
+): number | null => {
+  try {
+    if (!isGeolocationSupported()) {
+      onError('Geolocation is not supported by this browser');
+      return null;
+    }
+
+    if (!isSecureContext()) {
+      onError('Location access requires a secure connection (HTTPS)');
+      return null;
+    }
+
+    console.log('Starting location watch...');
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const location: UserLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: Date.now()
+        };
+
+        console.log('Location updated:', location);
+        onLocationUpdate(location);
+      },
+      (error) => {
+        console.error('Location watch error:', error);
+        
+        let errorMessage = 'Failed to track location. ';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Location access was denied.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out.';
+            break;
+          default:
+            errorMessage += error.message || 'Unknown error occurred.';
+            break;
+        }
+        
+        onError(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 30000, // 30 seconds timeout for watch
+        maximumAge: 30000 // 30 seconds cache for dynamic updates
+      }
+    );
+
+    return watchId;
+
+  } catch (error: any) {
+    console.error('Error starting location watch:', error);
+    onError('Failed to start location tracking');
+    return null;
+  }
+};
+
+// Stop watching user's location
+export const stopWatchingLocation = (watchId: number): void => {
+  try {
+    navigator.geolocation.clearWatch(watchId);
+    console.log('Location watch stopped');
+  } catch (error) {
+    console.error('Error stopping location watch:', error);
   }
 };
 
@@ -155,6 +232,22 @@ export const calculateDistance = (
 // Helper function to convert degrees to radians
 const toRadians = (degrees: number): number => {
   return degrees * (Math.PI / 180);
+};
+
+// Check if location has changed significantly (more than 100 meters)
+export const hasLocationChangedSignificantly = (
+  oldLocation: UserLocation,
+  newLocation: UserLocation,
+  thresholdKm: number = 0.1 // 100 meters
+): boolean => {
+  const distance = calculateDistance(
+    oldLocation.latitude,
+    oldLocation.longitude,
+    newLocation.latitude,
+    newLocation.longitude
+  );
+  
+  return distance >= thresholdKm;
 };
 
 // Get nearby users from database
@@ -317,4 +410,19 @@ export const requestLocationAndSave = async (
       error: 'Failed to get and save location'
     };
   }
+};
+
+// Debounced location update function
+export const createDebouncedLocationUpdate = (
+  callback: (location: UserLocation) => void,
+  delay: number = 2000 // 2 seconds
+) => {
+  let timeoutId: NodeJS.Timeout;
+  
+  return (location: UserLocation) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      callback(location);
+    }, delay);
+  };
 };
