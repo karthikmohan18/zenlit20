@@ -117,7 +117,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       // Handle profile photo upload if a new photo was selected
       if (profileData.profilePhoto && profileData.profilePhoto.startsWith('data:')) {
         console.log('Uploading profile photo...');
-        profilePhotoUrl = await uploadProfileImage(supabase, user.id, profileData.profilePhoto);
+        profilePhotoUrl = await uploadProfileImage(user.id, profileData.profilePhoto);
         
         if (!profilePhotoUrl) {
           // Photo upload failed, but continue with profile creation
@@ -127,10 +127,11 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         }
       }
 
-      // Update user profile in database
-      const { data: updatedProfile, error: updateError } = await supabase
+      // Use upsert to create or update user profile in database
+      const { data: updatedProfile, error: upsertError } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: user.id, // Include the user ID for upsert
           name: profileData.displayName,
           bio: profileData.bio,
           date_of_birth: profileData.dateOfBirth,
@@ -141,17 +142,16 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           profile_completed: true,
           updated_at: new Date().toISOString()
         })
-        .eq('id', user.id)
         .select()
         .maybeSingle();
 
-      if (updateError) {
-        throw updateError;
+      if (upsertError) {
+        throw upsertError;
       }
 
-      // Handle case where profile was not found for update
+      // Handle case where profile was not returned
       if (!updatedProfile) {
-        throw new Error('Profile not found for update. Please try logging out and back in.');
+        throw new Error('Failed to create or update profile. Please try again.');
       }
 
       console.log('Profile setup completed successfully');
