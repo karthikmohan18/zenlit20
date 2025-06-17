@@ -15,28 +15,47 @@ const isSupabaseAvailable = () => {
   return true
 }
 
-// SIGNUP FLOW: Send OTP for new user registration
-export const sendSignupOTP = async (email: string): Promise<AuthResponse> => {
+// SIGNUP FLOW: Create account with email and password
+export const signUpWithPassword = async (
+  email: string, 
+  password: string, 
+  firstName?: string, 
+  lastName?: string
+): Promise<AuthResponse> => {
   if (!isSupabaseAvailable()) {
     return { success: false, error: 'Service temporarily unavailable' }
   }
 
   try {
-    console.log('Sending signup OTP to:', email)
+    console.log('Creating account with email/password for:', email)
     
-    const { data, error } = await supabase!.auth.signInWithOtp({
+    const { data, error } = await supabase!.auth.signUp({
       email: email.trim().toLowerCase(),
+      password: password,
       options: {
-        shouldCreateUser: true, // Always create user for signup
-        emailRedirectTo: undefined
+        data: {
+          first_name: firstName || '',
+          last_name: lastName || '',
+          full_name: firstName && lastName ? `${firstName} ${lastName}`.trim() : firstName || lastName || ''
+        }
       }
     })
 
     if (error) {
-      console.error('Signup OTP error:', error.message)
+      console.error('Signup error:', error.message)
       
-      if (error.message.includes('rate limit')) {
-        return { success: false, error: 'Too many requests. Please wait before requesting another code.' }
+      if (error.message.includes('User already registered')) {
+        return { 
+          success: false, 
+          error: 'An account with this email already exists. Please sign in instead.' 
+        }
+      }
+      
+      if (error.message.includes('Password should be at least')) {
+        return { 
+          success: false, 
+          error: 'Password must be at least 6 characters long.' 
+        }
       }
       
       if (error.message.includes('invalid email')) {
@@ -46,57 +65,32 @@ export const sendSignupOTP = async (email: string): Promise<AuthResponse> => {
       return { success: false, error: error.message }
     }
 
-    console.log('Signup OTP sent successfully')
-    return { success: true, data }
-  } catch (error) {
-    console.error('Signup OTP catch error:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to send verification code' 
+    if (!data.user) {
+      return { success: false, error: 'Account creation failed. Please try again.' }
     }
-  }
-}
 
-// SIGNUP FLOW: Verify OTP and complete registration
-export const verifySignupOTP = async (email: string, token: string): Promise<AuthResponse> => {
-  if (!isSupabaseAvailable()) {
-    return { success: false, error: 'Service temporarily unavailable' }
-  }
-
-  try {
-    console.log('Verifying signup OTP for:', email)
+    console.log('Account created successfully for user:', data.user.id)
     
-    const { data, error } = await supabase!.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: token.trim(),
-      type: 'email'
-    })
-
-    if (error) {
-      console.error('Signup OTP verification error:', error.message)
-      
-      if (error.message.includes('Token has expired') || error.message.includes('otp_expired')) {
-        return { success: false, error: 'Verification code has expired. Please request a new one.' }
+    // Check if email confirmation is required
+    if (!data.session && data.user && !data.user.email_confirmed_at) {
+      return { 
+        success: false, 
+        error: 'Please check your email and click the confirmation link to complete registration.' 
       }
-      
-      if (error.message.includes('invalid_credentials') || error.message.includes('Invalid')) {
-        return { success: false, error: 'Invalid verification code. Please check and try again.' }
-      }
-      
-      return { success: false, error: error.message }
     }
 
-    if (!data.user || !data.session) {
-      return { success: false, error: 'Registration failed. Please try again.' }
+    // If we have a session, the user is immediately logged in
+    if (data.session) {
+      console.log('User signed up and logged in immediately')
+      return { success: true, data }
     }
 
-    console.log('Signup OTP verified successfully, user registered and logged in')
     return { success: true, data }
   } catch (error) {
-    console.error('Signup OTP verification catch error:', error)
+    console.error('Signup catch error:', error)
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Failed to verify code' 
+      error: error instanceof Error ? error.message : 'Failed to create account' 
     }
   }
 }
@@ -128,7 +122,7 @@ export const signInWithPassword = async (email: string, password: string): Promi
       if (error.message.includes('Email not confirmed')) {
         return { 
           success: false, 
-          error: 'Please verify your email address first.' 
+          error: 'Please verify your email address first by clicking the link in your email.' 
         }
       }
       
