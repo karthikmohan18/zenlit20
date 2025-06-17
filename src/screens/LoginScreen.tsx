@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PasswordResetScreen } from './PasswordResetScreen';
-import { sendOTP, verifyOTP, signInWithPassword, signUpWithPassword } from '../lib/auth';
+import { sendOTP, verifyOTP, signInWithPassword, signUpWithPassword, signInWithOTP } from '../lib/auth';
 
 interface Props {
   onLogin: () => void;
@@ -13,6 +13,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
   const [currentView, setCurrentView] = useState<'login' | 'passwordReset'>('login');
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [useOTPLogin, setUseOTPLogin] = useState(false); // New state for OTP login
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -80,7 +81,10 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     setError(null);
     
     try {
-      const result = await sendOTP(formData.email);
+      // Use different OTP methods based on context
+      const result = useOTPLogin 
+        ? await signInWithOTP(formData.email) // For existing users who forgot password
+        : await sendOTP(formData.email); // For new user signup
       
       if (result.success) {
         setEmailVerification(prev => ({ 
@@ -128,10 +132,9 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           error: null
         }));
         
-        // If this is for login (existing user), proceed directly to login
-        if (isLogin) {
-          console.log('Email verified for existing user, proceeding to login');
-          // Wait a moment for the session to be established
+        // If this is OTP login (existing user), complete the login
+        if (useOTPLogin) {
+          console.log('OTP login successful');
           await new Promise(resolve => setTimeout(resolve, 1000));
           onLogin();
         }
@@ -156,8 +159,24 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     setError(null);
 
     // Validation
-    if (!formData.email || !formData.password) {
-      setError('Please fill in all required fields');
+    if (!formData.email) {
+      setError('Please enter your email address');
+      return;
+    }
+
+    // For OTP login, we don't need password
+    if (useOTPLogin) {
+      if (!emailVerification.otpVerified) {
+        setError('Please verify your email with OTP first');
+        return;
+      }
+      // OTP login is handled in handleVerifyOtp
+      return;
+    }
+
+    // For password-based auth
+    if (!formData.password) {
+      setError('Please enter your password');
       return;
     }
 
@@ -232,6 +251,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
 
   const toggleMode = () => {
     setIsLogin(!isLogin);
+    setUseOTPLogin(false); // Reset OTP login when switching modes
     setFormData({
       email: '',
       password: '',
@@ -259,12 +279,33 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     setCurrentView('login');
   };
 
+  const handleUseOTPLogin = () => {
+    setUseOTPLogin(true);
+    setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+    setError(null);
+  };
+
+  const handleBackToPasswordLogin = () => {
+    setUseOTPLogin(false);
+    setEmailVerification({
+      otpSent: false,
+      otpVerified: false,
+      isVerifying: false,
+      isSendingOtp: false,
+      countdown: 0,
+      error: null
+    });
+    setFormData(prev => ({ ...prev, otp: '' }));
+    setError(null);
+  };
+
   // Show password reset screen
   if (currentView === 'passwordReset') {
     return <PasswordResetScreen onBack={handleBackFromPasswordReset} />;
   }
 
   const canProceedToPassword = isLogin || emailVerification.otpVerified;
+  const showPasswordFields = !useOTPLogin && (isLogin || emailVerification.otpVerified);
 
   return (
     <div className="auth-screen mobile-screen bg-black">
@@ -285,10 +326,13 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-white text-center">
-                {isLogin ? 'Welcome Back' : 'Create Account'}
+                {isLogin ? (useOTPLogin ? 'Sign in with Code' : 'Welcome Back') : 'Create Account'}
               </h2>
               <p className="text-gray-400 text-center mt-2">
-                {isLogin ? 'Sign in to your account' : 'Join the Zenlit community'}
+                {isLogin 
+                  ? (useOTPLogin ? 'Enter your email to receive a sign-in code' : 'Sign in to your account')
+                  : 'Join the Zenlit community'
+                }
               </p>
             </div>
 
@@ -300,11 +344,11 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email with OTP verification for signup only */}
+              {/* Email with OTP verification for signup or OTP login */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Email Address
-                  {!isLogin && emailVerification.otpVerified && (
+                  {((useOTPLogin && emailVerification.otpVerified) || (!isLogin && emailVerification.otpVerified)) && (
                     <CheckCircleIcon className="inline w-4 h-4 text-green-500 ml-2" />
                   )}
                 </label>
@@ -316,9 +360,9 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     className="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter your email"
                     required
-                    disabled={!isLogin && emailVerification.otpVerified}
+                    disabled={(useOTPLogin && emailVerification.otpVerified) || (!isLogin && emailVerification.otpVerified)}
                   />
-                  {!isLogin && !emailVerification.otpVerified && (
+                  {(useOTPLogin || (!isLogin && !emailVerification.otpVerified)) && (
                     <button
                       type="button"
                       onClick={handleSendOtp}
@@ -333,24 +377,25 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                       ) : emailVerification.countdown > 0 ? (
                         `Resend (${emailVerification.countdown}s)`
                       ) : emailVerification.otpSent ? (
-                        'Resend OTP'
+                        'Resend Code'
                       ) : (
-                        'Get OTP'
+                        useOTPLogin ? 'Send Code' : 'Get OTP'
                       )}
                     </button>
                   )}
                 </div>
                 {/* Email verification error */}
-                {!isLogin && emailVerification.error && !emailVerification.otpVerified && (
+                {((useOTPLogin || !isLogin) && emailVerification.error && !emailVerification.otpVerified) && (
                   <p className="text-red-400 text-xs mt-1">{emailVerification.error}</p>
                 )}
               </div>
 
-              {/* OTP Input (only show for signup after OTP is sent) */}
-              {!isLogin && emailVerification.otpSent && !emailVerification.otpVerified && (
+              {/* OTP Input (show for signup after OTP is sent, or for OTP login) */}
+              {((useOTPLogin && emailVerification.otpSent && !emailVerification.otpVerified) || 
+                (!isLogin && emailVerification.otpSent && !emailVerification.otpVerified)) && (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Enter OTP
+                    Enter Verification Code
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -376,7 +421,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                           Verifying...
                         </div>
                       ) : (
-                        'Verify OTP'
+                        'Verify'
                       )}
                     </button>
                   </div>
@@ -391,7 +436,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
               )}
 
               {/* Email Verified Message */}
-              {!isLogin && emailVerification.otpVerified && (
+              {((useOTPLogin && emailVerification.otpVerified) || (!isLogin && emailVerification.otpVerified)) && (
                 <div className="bg-green-900/30 border border-green-700 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <CheckCircleIcon className="w-5 h-5 text-green-500" />
@@ -432,8 +477,8 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                 </div>
               )}
 
-              {/* Password (only show after email verification for signup) */}
-              {canProceedToPassword && (
+              {/* Password (only show for password-based auth) */}
+              {showPasswordFields && (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Password
@@ -466,8 +511,8 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                 </div>
               )}
 
-              {/* Confirm Password for signup (only show after email verification) */}
-              {!isLogin && canProceedToPassword && (
+              {/* Confirm Password for signup */}
+              {!isLogin && showPasswordFields && (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Confirm Password
@@ -484,9 +529,16 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                 </div>
               )}
 
-              {/* Forgot Password Link (only for login) */}
-              {isLogin && (
-                <div className="text-right">
+              {/* Auth Options for Login */}
+              {isLogin && !useOTPLogin && (
+                <div className="flex justify-between items-center">
+                  <button
+                    type="button"
+                    onClick={handleUseOTPLogin}
+                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Sign in with email code
+                  </button>
                   <button
                     type="button"
                     onClick={handleForgotPassword}
@@ -497,10 +549,23 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                 </div>
               )}
 
+              {/* Back to password login option */}
+              {isLogin && useOTPLogin && !emailVerification.otpVerified && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={handleBackToPasswordLogin}
+                    className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Back to password login
+                  </button>
+                </div>
+              )}
+
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={isLoading || (!isLogin && !emailVerification.otpVerified)}
+                disabled={isLoading || (!isLogin && !emailVerification.otpVerified) || (useOTPLogin && !emailVerification.otpVerified)}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isLoading ? (

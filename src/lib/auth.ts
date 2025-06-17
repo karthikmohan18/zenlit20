@@ -96,13 +96,22 @@ export const signInWithPassword = async (email: string, password: string): Promi
 
     if (error) {
       console.error('Sign in error:', error.message)
-      // If invalid credentials, suggest using OTP instead
+      
+      // Handle specific error cases
       if (error.message.includes('Invalid login credentials')) {
         return { 
           success: false, 
-          error: 'Invalid email or password. If you signed up recently, try using "Forgot password?" to set up your password.' 
+          error: 'Invalid email or password. Please check your credentials and try again.' 
         }
       }
+      
+      if (error.message.includes('Email not confirmed')) {
+        return { 
+          success: false, 
+          error: 'Please check your email and click the confirmation link before signing in.' 
+        }
+      }
+      
       return { success: false, error: error.message }
     }
 
@@ -138,12 +147,14 @@ export const signUpWithPassword = async (
           first_name: firstName,
           last_name: lastName,
           full_name: `${firstName} ${lastName}`.trim()
-        }
+        },
+        emailRedirectTo: undefined // Disable email confirmation for now
       }
     })
 
     if (error) {
       console.error('Sign up error:', error.message)
+      
       // If user already exists, try to sign them in instead
       if (error.message.includes('User already registered')) {
         console.log('User already exists, attempting sign in...')
@@ -157,10 +168,20 @@ export const signUpWithPassword = async (
           }
         }
       }
+      
       return { success: false, error: error.message }
     }
 
     console.log('Sign up successful for user:', data.user?.id)
+    
+    // Check if user needs email confirmation
+    if (data.user && !data.session) {
+      return { 
+        success: false, 
+        error: 'Please check your email and click the confirmation link to complete registration.' 
+      }
+    }
+    
     // Profile is automatically created by the database trigger
     return { success: true, data }
   } catch (error) {
@@ -168,6 +189,39 @@ export const signUpWithPassword = async (
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to create account' 
+    }
+  }
+}
+
+// Alternative sign-in method using OTP (for users who can't remember password)
+export const signInWithOTP = async (email: string): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
+  try {
+    console.log('Attempting OTP sign-in for:', email)
+    
+    const { error } = await supabase!.auth.signInWithOtp({
+      email: email,
+      options: {
+        shouldCreateUser: false, // Don't create new user, only sign in existing
+        emailRedirectTo: undefined
+      }
+    })
+
+    if (error) {
+      console.error('OTP sign-in error:', error.message)
+      return { success: false, error: error.message }
+    }
+
+    console.log('OTP sent for sign-in')
+    return { success: true }
+  } catch (error) {
+    console.error('OTP sign-in catch error:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to send sign-in code' 
     }
   }
 }
@@ -233,6 +287,32 @@ export const signOut = async (): Promise<AuthResponse> => {
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Failed to sign out' 
+    }
+  }
+}
+
+// Helper function to check if user session is valid
+export const checkSession = async (): Promise<AuthResponse> => {
+  if (!isSupabaseAvailable()) {
+    return { success: false, error: 'Service temporarily unavailable' }
+  }
+
+  try {
+    const { data: { session }, error } = await supabase!.auth.getSession()
+    
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    if (!session) {
+      return { success: false, error: 'No active session' }
+    }
+
+    return { success: true, data: session }
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to check session' 
     }
   }
 }

@@ -11,6 +11,7 @@ import { MessagesScreen } from './screens/MessagesScreen';
 import { UserGroupIcon, Squares2X2Icon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { User } from './types';
 import { supabase } from './lib/supabase';
+import { checkSession } from './lib/auth';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'profileSetup' | 'app'>('welcome');
@@ -45,6 +46,19 @@ export default function App() {
         return;
       }
 
+      console.log('Checking authentication status...');
+
+      // First check if we have a valid session
+      const sessionResult = await checkSession();
+      
+      if (!sessionResult.success) {
+        console.log('No valid session found:', sessionResult.error);
+        setCurrentScreen('welcome');
+        setIsLoading(false);
+        return;
+      }
+
+      // Get current user
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error) {
@@ -55,6 +69,7 @@ export default function App() {
       }
 
       if (!user) {
+        console.log('No user found');
         setCurrentScreen('welcome');
         setIsLoading(false);
         return;
