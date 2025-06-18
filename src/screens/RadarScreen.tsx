@@ -279,11 +279,11 @@ export const RadarScreen: React.FC<Props> = ({
           console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users (fallback mode)`);
         }
       } else {
-        // Use location-based results - FIX: Add proper type checking
+        // Use location-based results - FIXED: Proper type checking
         console.log('🔄 RADAR DEBUG: Using location-based results');
         
         // Ensure result.users exists and is an array before mapping
-        if (result.users && Array.isArray(result.users)) {
+        if (result.success && result.users && Array.isArray(result.users)) {
           const transformedUsers: User[] = result.users.map(profile => ({
             ...transformProfileToUser(profile),
             distance: profile.distance
