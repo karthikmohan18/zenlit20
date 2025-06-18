@@ -268,14 +268,13 @@ export const getNearbyUsers = async (
     console.log('📍 Max distance:', maxDistance, 'km');
     console.log('📍 Limit:', limit);
 
-    // Get all users with any profile data (not just those with location)
+    // Get ALL users with basic profile data (much more inclusive query)
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
       .neq('id', currentUserId)
       .not('name', 'is', null)
-      .not('bio', 'is', null)
-      .limit(50); // Get more users for better filtering
+      .limit(100); // Get more users for better results
 
     console.log('🔍 LOCATION DEBUG: Raw profiles from database:', profiles);
     console.log('🔍 LOCATION DEBUG: Database query error:', error);
@@ -306,8 +305,6 @@ export const getNearbyUsers = async (
         console.log('👤 Profile name:', profile.name);
         console.log('👤 Profile latitude:', profile.latitude);
         console.log('👤 Profile longitude:', profile.longitude);
-        console.log('📍 Current location lat:', currentLocation.latitude);
-        console.log('📍 Current location lng:', currentLocation.longitude);
 
         let distance: number;
         
@@ -324,15 +321,16 @@ export const getNearbyUsers = async (
           );
           console.log('📏 Calculated real distance:', distance, 'km');
         } else {
-          // Assign random distance within 1km for users without location
-          // This ensures all users appear nearby for better UX
-          distance = Math.random() * 1; // 0-1km
+          // Assign random distance within 5km for users without location
+          // This ensures users without location still appear in radar
+          distance = Math.random() * 5; // 0-5km
           console.log('📏 Assigned random distance (no location):', distance, 'km');
         }
 
         const userWithDistance = {
           ...profile,
-          distance
+          distance,
+          hasRealLocation: hasLocation
         };
 
         console.log('✅ Final user object:', {
@@ -345,18 +343,24 @@ export const getNearbyUsers = async (
         return userWithDistance;
       })
       .filter(user => {
-        const withinDistance = user.distance <= Math.min(maxDistance, 1); // Limit to 1km for better UX
+        // More generous distance filtering - show users within 10km or without location
+        const withinDistance = user.distance <= Math.min(maxDistance, 10);
         console.log(`🔍 LOCATION DEBUG: User ${user.name} distance ${user.distance}km - within limit: ${withinDistance}`);
         return withinDistance;
       })
-      .sort((a, b) => a.distance - b.distance) // Sort by distance (closest first)
+      .sort((a, b) => {
+        // Sort by distance, but prioritize users with real location
+        if (a.hasRealLocation && !b.hasRealLocation) return -1;
+        if (!a.hasRealLocation && b.hasRealLocation) return 1;
+        return a.distance - b.distance;
+      })
       .slice(0, limit); // Limit results
 
     console.log('🔍 LOCATION DEBUG: Users after filtering and sorting:', usersWithDistance);
     console.log('🔍 LOCATION DEBUG: Final user count:', usersWithDistance.length);
 
     usersWithDistance.forEach((user, index) => {
-      console.log(`📋 Final user ${index + 1}: ${user.name} - ${user.distance}km away`);
+      console.log(`📋 Final user ${index + 1}: ${user.name} - ${user.distance}km away (real location: ${user.hasRealLocation})`);
     });
 
     return {
