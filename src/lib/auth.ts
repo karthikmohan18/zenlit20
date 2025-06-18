@@ -213,6 +213,7 @@ export const completeProfileSetup = async (profileData: {
         id: user.id,
         name: profileData.fullName.trim(),
         username: profileData.username.trim().toLowerCase(),
+        email: user.email, // Explicitly add email from authenticated user
         bio: profileData.bio || 'New to Zenlit! 👋',
         date_of_birth: profileData.dateOfBirth,
         gender: profileData.gender,
