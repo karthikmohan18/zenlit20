@@ -96,14 +96,18 @@ export const RadarScreen: React.FC<Props> = ({
 
   const initializeRadar = async () => {
     try {
+      console.log('🚀 RADAR DEBUG: Initializing radar screen');
+      
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
-        console.error('User not found:', userError);
+        console.error('🚀 RADAR DEBUG: User not found:', userError);
         setIsLoading(false);
         return;
       }
+
+      console.log('🚀 RADAR DEBUG: Current user found:', user.id);
 
       // Get user profile
       const { data: profile, error: profileError } = await supabase
@@ -113,16 +117,24 @@ export const RadarScreen: React.FC<Props> = ({
         .maybeSingle();
 
       if (profileError || !profile) {
-        console.error('Profile not found:', profileError);
+        console.error('🚀 RADAR DEBUG: Profile not found:', profileError);
         setIsLoading(false);
         return;
       }
+
+      console.log('🚀 RADAR DEBUG: User profile loaded:', {
+        id: profile.id,
+        name: profile.name,
+        hasLocation: !!(profile.latitude && profile.longitude),
+        latitude: profile.latitude,
+        longitude: profile.longitude
+      });
 
       setCurrentUser(profile);
 
       // Check if user already has location data
       if (profile.latitude && profile.longitude) {
-        console.log('User has existing location data');
+        console.log('🚀 RADAR DEBUG: User has existing location data');
         const userLocation: UserLocation = {
           latitude: profile.latitude,
           longitude: profile.longitude,
@@ -130,11 +142,12 @@ export const RadarScreen: React.FC<Props> = ({
         };
         setCurrentLocation(userLocation);
         setLocationPermission({ granted: true, denied: false, pending: false });
-        await loadNearbyUsers(user.id, userLocation);
+        await loadNearbyUsersWithFallback(user.id, userLocation);
         
         // Start location tracking for dynamic updates
         startLocationTracking(user.id);
       } else {
+        console.log('🚀 RADAR DEBUG: User has no location data, trying to get location');
         // Try to get real location first
         const permissionStatus = await checkLocationPermission();
         setLocationPermission(permissionStatus);
@@ -144,17 +157,17 @@ export const RadarScreen: React.FC<Props> = ({
           try {
             await handleRequestLocation();
           } catch (error) {
-            console.log('Real location failed, using default location');
+            console.log('🚀 RADAR DEBUG: Real location failed, using default location');
             await useDefaultLocationFallback(user.id);
           }
         } else {
           // Use default location immediately for better UX
-          console.log('Location not available, using default location');
+          console.log('🚀 RADAR DEBUG: Location not available, using default location');
           await useDefaultLocationFallback(user.id);
         }
       }
     } catch (error) {
-      console.error('Error initializing radar:', error);
+      console.error('🚀 RADAR DEBUG: Error initializing radar:', error);
       // Even if there's an error, try to show users with default location
       if (currentUser) {
         await useDefaultLocationFallback(currentUser.id);
@@ -166,8 +179,10 @@ export const RadarScreen: React.FC<Props> = ({
 
   const useDefaultLocationFallback = async (userId: string) => {
     try {
-      console.log('Using default location fallback');
+      console.log('🚀 RADAR DEBUG: Using default location fallback');
       const defaultLocation = getRandomDefaultLocation();
+      console.log('🚀 RADAR DEBUG: Generated default location:', defaultLocation);
+      
       setCurrentLocation(defaultLocation);
       setUseDefaultLocation(true);
       setLocationPermission({ granted: false, denied: false, pending: false });
@@ -175,30 +190,40 @@ export const RadarScreen: React.FC<Props> = ({
       // Save default location to profile if not exists
       try {
         await saveUserLocation(userId, defaultLocation);
+        console.log('🚀 RADAR DEBUG: Default location saved to profile');
       } catch (error) {
-        console.warn('Could not save default location:', error);
+        console.warn('🚀 RADAR DEBUG: Could not save default location:', error);
       }
       
       // Load users with default location
       await loadNearbyUsersWithFallback(userId, defaultLocation);
     } catch (error) {
-      console.error('Error using default location:', error);
+      console.error('🚀 RADAR DEBUG: Error using default location:', error);
     }
   };
 
   // Enhanced function to load nearby users with better fallback logic
   const loadNearbyUsersWithFallback = async (currentUserId: string, location: UserLocation) => {
     try {
-      console.log('Loading nearby users with fallback logic...');
+      console.log('🔄 RADAR DEBUG: Starting loadNearbyUsersWithFallback');
+      console.log('🔄 RADAR DEBUG: Current user ID:', currentUserId);
+      console.log('🔄 RADAR DEBUG: Location:', location);
+      
       if (!isUpdatingUsers) {
         setIsLoading(true);
       }
 
       // First try the location-based approach
+      console.log('🔄 RADAR DEBUG: Calling getNearbyUsers...');
       let result = await getNearbyUsers(currentUserId, location, 50, 20);
       
-      if (!result.success || !result.users || result.users.length === 0) {
-        console.log('No location-based users found, loading all users as fallback');
+      console.log('🔄 RADAR DEBUG: getNearbyUsers result:', result);
+      
+      const shouldUseFallback = !result.success || !result.users || result.users.length === 0;
+      console.log('🔄 RADAR DEBUG: Should use fallback?', shouldUseFallback);
+      
+      if (shouldUseFallback) {
+        console.log('🔄 RADAR DEBUG: No location-based users found, loading all users as fallback');
         
         // Fallback: Get all users and simulate distances
         const { data: profiles, error } = await supabase
@@ -208,6 +233,9 @@ export const RadarScreen: React.FC<Props> = ({
           .not('name', 'is', null)
           .not('bio', 'is', null)
           .limit(20);
+
+        console.log('🔄 RADAR DEBUG: Fallback profiles from database:', profiles);
+        console.log('🔄 RADAR DEBUG: Fallback database error:', error);
 
         if (error) {
           console.error('Error loading fallback users:', error);
@@ -229,33 +257,44 @@ export const RadarScreen: React.FC<Props> = ({
               profile.latitude,
               profile.longitude
             );
+            console.log(`🔄 RADAR DEBUG: Real distance for ${user.name}: ${user.distance}km`);
           } else {
             // Assign random distance within 1km for users without location
             user.distance = Math.random() * 1; // 0-1km
+            console.log(`🔄 RADAR DEBUG: Random distance for ${user.name}: ${user.distance}km`);
           }
           
           return user;
-        }).filter(user => user.distance <= 1) // Only show users within 1km
+        }).filter(user => {
+          const withinRange = user.distance <= 1;
+          console.log(`🔄 RADAR DEBUG: User ${user.name} within 1km range: ${withinRange}`);
+          return withinRange;
+        }) // Only show users within 1km
           .sort((a, b) => a.distance - b.distance); // Sort by distance
+
+        console.log('🔄 RADAR DEBUG: Final transformed users (fallback):', transformedUsers);
 
         if (mountedRef.current) {
           setUsers(transformedUsers);
-          console.log(`Loaded ${transformedUsers.length} nearby users (fallback mode)`);
+          console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users (fallback mode)`);
         }
       } else {
         // Use location-based results
+        console.log('🔄 RADAR DEBUG: Using location-based results');
         const transformedUsers: User[] = result.users.map(profile => ({
           ...transformProfileToUser(profile),
           distance: profile.distance
         }));
 
+        console.log('🔄 RADAR DEBUG: Final transformed users (location-based):', transformedUsers);
+
         if (mountedRef.current) {
           setUsers(transformedUsers);
-          console.log(`Loaded ${transformedUsers.length} nearby users (location-based)`);
+          console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users (location-based)`);
         }
       }
     } catch (error) {
-      console.error('Error loading nearby users:', error);
+      console.error('🔄 RADAR DEBUG: Error in loadNearbyUsersWithFallback:', error);
       if (mountedRef.current) {
         setUsers([]);
       }

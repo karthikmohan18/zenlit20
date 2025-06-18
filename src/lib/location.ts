@@ -250,7 +250,7 @@ export const hasLocationChangedSignificantly = (
   return distance >= thresholdKm;
 };
 
-// Enhanced function to get nearby users with better fallback logic
+// Enhanced function to get nearby users with better fallback logic and detailed logging
 export const getNearbyUsers = async (
   currentUserId: string,
   currentLocation: UserLocation,
@@ -262,7 +262,11 @@ export const getNearbyUsers = async (
   error?: string;
 }> => {
   try {
-    console.log('Fetching nearby users...', { currentLocation, maxDistance, limit });
+    console.log('🔍 LOCATION DEBUG: Starting getNearbyUsers function');
+    console.log('📍 Current user ID:', currentUserId);
+    console.log('📍 Current location:', currentLocation);
+    console.log('📍 Max distance:', maxDistance, 'km');
+    console.log('📍 Limit:', limit);
 
     // Get all users with any profile data (not just those with location)
     const { data: profiles, error } = await supabase
@@ -273,6 +277,9 @@ export const getNearbyUsers = async (
       .not('bio', 'is', null)
       .limit(50); // Get more users for better filtering
 
+    console.log('🔍 LOCATION DEBUG: Raw profiles from database:', profiles);
+    console.log('🔍 LOCATION DEBUG: Database query error:', error);
+
     if (error) {
       console.error('Error fetching users:', error);
       return {
@@ -282,18 +289,32 @@ export const getNearbyUsers = async (
     }
 
     if (!profiles || profiles.length === 0) {
+      console.log('🔍 LOCATION DEBUG: No profiles found in database');
       return {
         success: true,
         users: []
       };
     }
 
+    console.log('🔍 LOCATION DEBUG: Processing', profiles.length, 'profiles');
+
     // Process users and calculate distances
     const usersWithDistance = profiles
-      .map(profile => {
+      .map((profile, index) => {
+        console.log(`🔍 LOCATION DEBUG: Processing profile ${index + 1}/${profiles.length}`);
+        console.log('👤 Profile ID:', profile.id);
+        console.log('👤 Profile name:', profile.name);
+        console.log('👤 Profile latitude:', profile.latitude);
+        console.log('👤 Profile longitude:', profile.longitude);
+        console.log('📍 Current location lat:', currentLocation.latitude);
+        console.log('📍 Current location lng:', currentLocation.longitude);
+
         let distance: number;
         
-        if (profile.latitude && profile.longitude) {
+        const hasLocation = profile.latitude && profile.longitude;
+        console.log('📍 Profile has location data:', hasLocation);
+        
+        if (hasLocation) {
           // Calculate real distance for users with location
           distance = calculateDistance(
             currentLocation.latitude,
@@ -301,22 +322,42 @@ export const getNearbyUsers = async (
             profile.latitude,
             profile.longitude
           );
+          console.log('📏 Calculated real distance:', distance, 'km');
         } else {
           // Assign random distance within 1km for users without location
           // This ensures all users appear nearby for better UX
           distance = Math.random() * 1; // 0-1km
+          console.log('📏 Assigned random distance (no location):', distance, 'km');
         }
 
-        return {
+        const userWithDistance = {
           ...profile,
           distance
         };
+
+        console.log('✅ Final user object:', {
+          id: userWithDistance.id,
+          name: userWithDistance.name,
+          distance: userWithDistance.distance,
+          hasRealLocation: hasLocation
+        });
+
+        return userWithDistance;
       })
-      .filter(user => user.distance <= Math.min(maxDistance, 1)) // Limit to 1km for better UX
+      .filter(user => {
+        const withinDistance = user.distance <= Math.min(maxDistance, 1); // Limit to 1km for better UX
+        console.log(`🔍 LOCATION DEBUG: User ${user.name} distance ${user.distance}km - within limit: ${withinDistance}`);
+        return withinDistance;
+      })
       .sort((a, b) => a.distance - b.distance) // Sort by distance (closest first)
       .slice(0, limit); // Limit results
 
-    console.log(`Found ${usersWithDistance.length} nearby users`);
+    console.log('🔍 LOCATION DEBUG: Users after filtering and sorting:', usersWithDistance);
+    console.log('🔍 LOCATION DEBUG: Final user count:', usersWithDistance.length);
+
+    usersWithDistance.forEach((user, index) => {
+      console.log(`📋 Final user ${index + 1}: ${user.name} - ${user.distance}km away`);
+    });
 
     return {
       success: true,
@@ -324,7 +365,7 @@ export const getNearbyUsers = async (
     };
 
   } catch (error) {
-    console.error('Error getting nearby users:', error);
+    console.error('🔍 LOCATION DEBUG: Error in getNearbyUsers:', error);
     return {
       success: false,
       error: 'Failed to get nearby users'
