@@ -189,7 +189,13 @@ export const completeProfileSetup = async (profileData: {
       return { success: false, error: 'User not authenticated' }
     }
 
-    const user = sessionResult.session.user
+    const { data: sessionData, error } = await supabase.auth.getSession();
+    
+    if (error || !sessionData.session) {
+      throw new Error("No active session found");
+    }
+    
+    const user = sessionData.session.user;
 
     // Validate required fields
     if (!profileData.fullName.trim()) {
