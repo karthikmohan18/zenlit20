@@ -279,18 +279,27 @@ export const RadarScreen: React.FC<Props> = ({
           console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users (fallback mode)`);
         }
       } else {
-        // Use location-based results
+        // Use location-based results - FIX: Add proper type checking
         console.log('🔄 RADAR DEBUG: Using location-based results');
-        const transformedUsers: User[] = result.users.map(profile => ({
-          ...transformProfileToUser(profile),
-          distance: profile.distance
-        }));
+        
+        // Ensure result.users exists and is an array before mapping
+        if (result.users && Array.isArray(result.users)) {
+          const transformedUsers: User[] = result.users.map(profile => ({
+            ...transformProfileToUser(profile),
+            distance: profile.distance
+          }));
 
-        console.log('🔄 RADAR DEBUG: Final transformed users (location-based):', transformedUsers);
+          console.log('🔄 RADAR DEBUG: Final transformed users (location-based):', transformedUsers);
 
-        if (mountedRef.current) {
-          setUsers(transformedUsers);
-          console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users (location-based)`);
+          if (mountedRef.current) {
+            setUsers(transformedUsers);
+            console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users (location-based)`);
+          }
+        } else {
+          console.warn('🔄 RADAR DEBUG: result.users is not a valid array, falling back to empty array');
+          if (mountedRef.current) {
+            setUsers([]);
+          }
         }
       }
     } catch (error) {
