@@ -186,6 +186,11 @@ export const ProfileScreen: React.FC<Props> = ({
     }
   };
 
+  const handlePostDeleted = (postId: string) => {
+    // Remove the deleted post from the local state
+    setUserPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+  };
+
   // Show loading state
   if (isLoading || !profileData) {
     return (
@@ -223,6 +228,7 @@ export const ProfileScreen: React.FC<Props> = ({
         posts={userPosts}
         onBack={handleBackFromGallery}
         onUserClick={() => {}} // Since we're already viewing this user's profile
+        onPostDeleted={handlePostDeleted}
       />
     );
   }

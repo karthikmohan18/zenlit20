@@ -120,7 +120,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     reader.readAsDataURL(file);
   };
 
-  const handleDeleteProfilePhoto = () => {
+  const handleDeleteProfilePhoto = async () => {
     if (confirm('Are you sure you want to remove your profile photo?')) {
       setProfileUrl('');
       setProfileFile(null);
@@ -128,7 +128,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     }
   };
 
-  const handleDeleteCoverPhoto = () => {
+  const handleDeleteCoverPhoto = async () => {
     if (confirm('Are you sure you want to remove your cover photo?')) {
       setCoverUrl('');
       setCoverFile(null);
@@ -142,20 +142,54 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       let newProfileUrl = profileUrl;
       let newCoverUrl = coverUrl;
 
-      // Upload new profile photo if selected
-      if (profileFile) {
+      // Handle profile photo deletion
+      if (!profileUrl && user.dpUrl && !user.dpUrl.includes('/images/default-')) {
+        console.log('Deleting existing profile photo...');
+        const profileFilePath = extractFilePathFromUrl(user.dpUrl, 'avatars');
+        if (profileFilePath) {
+          await deleteImage('avatars', profileFilePath);
+        }
+        newProfileUrl = null;
+      }
+      // Handle profile photo upload
+      else if (profileFile) {
+        console.log('Uploading new profile photo...');
         const uploadedProfileUrl = await uploadProfileImage(profileFile);
         if (uploadedProfileUrl) {
+          // Delete old profile photo if it exists and is not a default
+          if (user.dpUrl && !user.dpUrl.includes('/images/default-')) {
+            const oldProfileFilePath = extractFilePathFromUrl(user.dpUrl, 'avatars');
+            if (oldProfileFilePath) {
+              await deleteImage('avatars', oldProfileFilePath);
+            }
+          }
           newProfileUrl = uploadedProfileUrl;
         } else {
           throw new Error('Failed to upload profile photo');
         }
       }
 
-      // Upload new cover photo if selected
-      if (coverFile) {
+      // Handle cover photo deletion
+      if (!coverUrl && user.coverPhotoUrl && !user.coverPhotoUrl.includes('/images/default-')) {
+        console.log('Deleting existing cover photo...');
+        const coverFilePath = extractFilePathFromUrl(user.coverPhotoUrl, 'banner');
+        if (coverFilePath) {
+          await deleteImage('banner', coverFilePath);
+        }
+        newCoverUrl = null;
+      }
+      // Handle cover photo upload
+      else if (coverFile) {
+        console.log('Uploading new cover photo...');
         const uploadedCoverUrl = await uploadBannerImage(coverFile);
         if (uploadedCoverUrl) {
+          // Delete old cover photo if it exists and is not a default
+          if (user.coverPhotoUrl && !user.coverPhotoUrl.includes('/images/default-')) {
+            const oldCoverFilePath = extractFilePathFromUrl(user.coverPhotoUrl, 'banner');
+            if (oldCoverFilePath) {
+              await deleteImage('banner', oldCoverFilePath);
+            }
+          }
           newCoverUrl = uploadedCoverUrl;
         } else {
           throw new Error('Failed to upload cover photo');

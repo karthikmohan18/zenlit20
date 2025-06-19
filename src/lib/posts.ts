@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Post } from '../types';
+import { deleteImage, extractFilePathFromUrl } from './storage';
 
 export interface CreatePostData {
   title: string;
@@ -134,5 +135,59 @@ export async function getAllPosts(limit: number = 50): Promise<Post[]> {
   } catch (error) {
     console.error('Error getting all posts:', error);
     return [];
+  }
+}
+
+// Delete post and its associated media from storage
+export async function deletePost(postId: string, userId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log(`Deleting post ${postId} for user ${userId}`);
+    
+    // First, get the post to retrieve the media URL
+    const { data: post, error: fetchError } = await supabase
+      .from('posts')
+      .select('media_url, user_id')
+      .eq('id', postId)
+      .eq('user_id', userId) // Ensure user owns the post
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error('Error fetching post for deletion:', fetchError);
+      return { success: false, error: 'Failed to fetch post' };
+    }
+
+    if (!post) {
+      return { success: false, error: 'Post not found or you do not have permission to delete it' };
+    }
+
+    // Delete the media from storage if it exists and is not a placeholder
+    if (post.media_url && !post.media_url.includes('/images/default-')) {
+      const filePath = extractFilePathFromUrl(post.media_url, 'posts');
+      if (filePath) {
+        console.log(`Deleting media file: ${filePath}`);
+        const deleteSuccess = await deleteImage('posts', filePath);
+        if (!deleteSuccess) {
+          console.warn('Failed to delete media file, but continuing with post deletion');
+        }
+      }
+    }
+
+    // Delete the post from the database
+    const { error: deleteError } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', postId)
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      console.error('Error deleting post from database:', deleteError);
+      return { success: false, error: 'Failed to delete post from database' };
+    }
+
+    console.log(`Successfully deleted post ${postId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error in deletePost:', error);
+    return { success: false, error: 'An unexpected error occurred' };
   }
 }

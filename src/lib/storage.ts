@@ -20,39 +20,84 @@ export function dataURLtoBlob(dataURL: string): Blob {
 // Check if bucket exists with improved error handling
 async function checkBucketExists(bucketName: string): Promise<boolean> {
   try {
+    console.log(`Checking if bucket "${bucketName}" exists...`);
+    
     const { data: buckets, error } = await supabase.storage.listBuckets();
+    
     if (error) {
-      console.warn(`Could not list buckets: ${error.message}`);
-      return true; // assume existence to avoid blocking
+      console.error(`Error listing buckets: ${error.message}`);
+      return false; // Return false instead of assuming existence
     }
-    if (buckets.some(b => b.name === bucketName)) return true;
-    // fallback direct access check
+    
+    const bucketExists = buckets?.some(b => b.name === bucketName) || false;
+    console.log(`Bucket "${bucketName}" exists: ${bucketExists}`);
+    
+    if (bucketExists) {
+      return true;
+    }
+    
+    // Try direct access as fallback
+    console.log(`Trying direct access to bucket "${bucketName}"...`);
     const { error: testError } = await supabase.storage.from(bucketName).list('', { limit: 1 });
-    return !testError;
-  } catch {
+    
+    if (testError) {
+      console.error(`Direct access to bucket "${bucketName}" failed: ${testError.message}`);
+      return false;
+    }
+    
+    console.log(`Direct access to bucket "${bucketName}" successful`);
     return true;
+  } catch (error) {
+    console.error(`Exception checking bucket "${bucketName}":`, error);
+    return false;
   }
 }
 
-// Generic upload helper
+// Generic upload helper with better error handling
 export async function uploadImage(
   bucket: string,
   filePath: string,
   imageDataURL: string
 ): Promise<string | null> {
-  if (!(await checkBucketExists(bucket))) {
-    console.warn(`Bucket "${bucket}" does not exist.`);
+  try {
+    console.log(`Starting upload to bucket "${bucket}" with path "${filePath}"`);
+    
+    const bucketExists = await checkBucketExists(bucket);
+    if (!bucketExists) {
+      console.error(`Bucket "${bucket}" does not exist or is not accessible`);
+      return null;
+    }
+
+    const blob = dataURLtoBlob(imageDataURL);
+    console.log(`Created blob of size: ${blob.size} bytes, type: ${blob.type}`);
+    
+    const { data, error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, blob, { 
+        upsert: true, 
+        contentType: blob.type,
+        cacheControl: '3600'
+      });
+
+    if (uploadError) {
+      console.error(`Upload to "${bucket}" failed:`, uploadError);
+      return null;
+    }
+
+    console.log(`Upload successful, getting public URL...`);
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    
+    if (!urlData?.publicUrl) {
+      console.error(`Failed to get public URL for uploaded file`);
+      return null;
+    }
+
+    console.log(`Upload complete, public URL: ${urlData.publicUrl}`);
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error(`Exception during upload to "${bucket}":`, error);
     return null;
   }
-  const blob = dataURLtoBlob(imageDataURL);
-  const { error: uploadError } = await supabase.storage
-    .from(bucket)
-    .upload(filePath, blob, { upsert: true, contentType: blob.type });
-  if (uploadError) {
-    console.error(`Upload to "${bucket}" failed: ${uploadError.message}`);
-    return null;
-  }
-  return supabase.storage.from(bucket).getPublicUrl(filePath).data.publicUrl;
 }
 
 // Upload profile image with resizing
@@ -96,6 +141,8 @@ export async function uploadProfileImage(arg1: File | string, arg2?: string): Pr
 // Upload banner image with resizing
 export async function uploadBannerImage(file: File): Promise<string | null> {
   try {
+    console.log('Starting banner image upload...');
+    
     // Validate file
     const validation = validateImageFile(file, 10); // 10MB limit for banner images
     if (!validation.valid) {
@@ -112,10 +159,22 @@ export async function uploadBannerImage(file: File): Promise<string | null> {
     const blob = dataURLtoBlob(resizedDataURL);
     const path = `${Date.now()}_${file.name}`;
     
-    const { error } = await supabase.storage.from('banner').upload(path, blob, { upsert: true });
-    if (error) throw error;
+    console.log(`Uploading banner image to path: ${path}`);
     
-    return supabase.storage.from('banner').getPublicUrl(path).data.publicUrl;
+    const { data, error } = await supabase.storage.from('banner').upload(path, blob, { 
+      upsert: true,
+      contentType: blob.type 
+    });
+    
+    if (error) {
+      console.error('Banner upload error:', error);
+      throw error;
+    }
+    
+    const { data: urlData } = supabase.storage.from('banner').getPublicUrl(path);
+    console.log('Banner upload successful:', urlData.publicUrl);
+    
+    return urlData.publicUrl;
   } catch (error) {
     console.error('Banner image upload error:', error);
     return null;
@@ -143,11 +202,15 @@ export async function uploadPostImage(
 // Delete image from storage
 export async function deleteImage(bucket: string, filePath: string): Promise<boolean> {
   try {
+    console.log(`Deleting image from bucket "${bucket}" at path "${filePath}"`);
+    
     const { error } = await supabase.storage.from(bucket).remove([filePath]);
     if (error) {
       console.error(`Failed to delete image from ${bucket}:`, error);
       return false;
     }
+    
+    console.log(`Successfully deleted image from ${bucket}: ${filePath}`);
     return true;
   } catch (error) {
     console.error('Delete image error:', error);
@@ -158,14 +221,19 @@ export async function deleteImage(bucket: string, filePath: string): Promise<boo
 // Extract file path from Supabase storage URL
 export function extractFilePathFromUrl(url: string, bucket: string): string | null {
   try {
+    if (!url || !bucket) return null;
+    
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split('/');
     const bucketIndex = pathParts.findIndex(part => part === bucket);
     
     if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
-      return pathParts.slice(bucketIndex + 1).join('/');
+      const filePath = pathParts.slice(bucketIndex + 1).join('/');
+      console.log(`Extracted file path from URL: ${filePath}`);
+      return filePath;
     }
     
+    console.warn(`Could not extract file path from URL: ${url}`);
     return null;
   } catch (error) {
     console.error('Error extracting file path from URL:', error);
@@ -178,7 +246,7 @@ export function generatePlaceholderImage(): string {
   return '/images/default-post.jpg';
 }
 
-// Check storage availability (unchanged)
+// Check storage availability with improved error handling
 export async function checkStorageAvailability(): Promise<{
   avatarsAvailable: boolean;
   postsAvailable: boolean;
