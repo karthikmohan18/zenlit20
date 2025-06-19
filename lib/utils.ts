@@ -7,13 +7,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Transform Supabase profile data to User type (removed Google fields)
+// Transform Supabase profile data to User type
 export function transformProfileToUser(profile: any): User {
   return {
     id: profile.id,
     name: profile.name,
     username: profile.username, // Include username
-    dpUrl: profile.profile_photo_url || '', // Don't use fallback image
+    dpUrl: profile.profile_photo_url || '',
     bio: profile.bio,
     gender: profile.gender,
     age: profile.date_of_birth ? 
@@ -27,7 +27,7 @@ export function transformProfileToUser(profile: any): User {
     },
     latitude: profile.latitude,
     longitude: profile.longitude,
-    coverPhotoUrl: profile.cover_photo_url, // Add cover photo support
+    coverPhotoUrl: profile.cover_photo_url || '',
     instagramUrl: profile.instagram_url,
     instagramVerified: profile.instagram_verified,
     facebookUrl: profile.facebook_url,
@@ -36,6 +36,8 @@ export function transformProfileToUser(profile: any): User {
     linkedInVerified: profile.linked_in_verified,
     twitterUrl: profile.twitter_url,
     twitterVerified: profile.twitter_verified,
+    googleUrl: profile.google_url,
+    googleVerified: profile.google_verified,
   }
 }
 

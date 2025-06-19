@@ -29,6 +29,8 @@ export interface User {
   linkedInVerified?: boolean;
   twitterUrl?: string;
   twitterVerified?: boolean;
+  googleUrl?: string;
+  googleVerified?: boolean;
 }
 
 export interface Post {
@@ -68,7 +70,7 @@ export interface CurrentUser extends User {
 }
 
 export interface SocialProvider {
-  id: 'instagram' | 'facebook' | 'linkedin' | 'twitter';
+  id: 'instagram' | 'facebook' | 'linkedin' | 'twitter' | 'google';
   name: string;
   color: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;

@@ -74,7 +74,7 @@ export const ProfileScreen: React.FC<Props> = ({
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle();
+        .maybeSingle(); // Use maybeSingle instead of single
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
@@ -148,12 +148,12 @@ export const ProfileScreen: React.FC<Props> = ({
           location: updatedProfile.location,
           interests: updatedProfile.interests,
           profile_photo_url: updatedProfile.dpUrl,
-          cover_photo_url: updatedProfile.coverPhotoUrl, // Add cover photo support
+          cover_photo_url: updatedProfile.coverPhotoUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id)
         .select()
-        .maybeSingle();
+        .maybeSingle(); // Use maybeSingle instead of single
 
       if (updateError) {
         throw updateError;
@@ -205,7 +205,8 @@ export const ProfileScreen: React.FC<Props> = ({
     profileData.instagram_verified,
     profileData.facebook_verified,
     profileData.linked_in_verified,
-    profileData.twitter_verified
+    profileData.twitter_verified,
+    profileData.google_verified
   ].filter(Boolean).length;
 
   if (showEditProfile) {
@@ -231,79 +232,79 @@ export const ProfileScreen: React.FC<Props> = ({
 
   return (
     <div className="min-h-full bg-black">
-      {/* Profile Header with Cover Photo - Only show if user has uploaded one */}
+      {/* Profile Header with Cover Photo */}
       <div className="relative">
-        {profileData.cover_photo_url ? (
-          <div className="h-48 bg-gradient-to-b from-blue-900 to-black">
+        <div className="h-48 bg-gray-800">
+          {profileData.cover_photo_url ? (
             <img
               src={profileData.cover_photo_url}
               alt="Profile Cover"
-              className="w-full h-full object-cover opacity-60"
+              className="w-full h-full object-cover"
             />
-          </div>
-        ) : (
-          <div className="h-48 bg-gradient-to-b from-blue-900 to-black flex items-center justify-center">
-            {isCurrentUser && (
-              <div className="text-center">
-                <CameraIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">Add a cover photo</p>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* Header buttons positioned on cover photo */}
-        <div className="absolute top-4 left-0 right-0 flex items-center justify-between px-4">
-          {/* Back button (only for other users) */}
-          {user && onBack && (
-            <button
-              onClick={onBack}
-              className="bg-black/50 backdrop-blur-sm p-3 rounded-full shadow-lg active:scale-95 transition-transform"
-            >
-              <ChevronLeftIcon className="w-5 h-5 text-white" />
-            </button>
-          )}
-          
-          {/* Spacer for centering when no back button */}
-          {(!user || !onBack) && <div className="w-12" />}
-          
-          {/* Settings button (only for current user) */}
-          {isCurrentUser && (
-            <div className="relative">
-              <button
-                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                className="bg-black/50 backdrop-blur-sm p-3 rounded-full shadow-lg active:scale-95 transition-transform"
-              >
-                <Cog6ToothIcon className="w-5 h-5 text-white" />
-              </button>
-              
-              {/* Settings Dropdown Menu */}
-              {showSettingsMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50">
-                  <button
-                    onClick={handleEditProfile}
-                    className="w-full flex items-center px-4 py-3 text-left text-white hover:bg-gray-800 active:bg-gray-700 transition-colors"
-                  >
-                    <UserIcon className="w-5 h-5 mr-3 text-gray-400" />
-                    <span>Edit Profile</span>
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center px-4 py-3 text-left text-white hover:bg-gray-800 active:bg-gray-700 transition-colors"
-                  >
-                    <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3 text-gray-400" />
-                    <span>Log Out</span>
-                  </button>
+          ) : (
+            <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+              {isCurrentUser && (
+                <div className="text-center">
+                  <CameraIcon className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">Add cover photo</p>
                 </div>
               )}
             </div>
           )}
           
-          {/* Spacer when viewing other user's profile */}
-          {!isCurrentUser && <div className="w-12" />}
+          {/* Header buttons positioned on cover photo */}
+          <div className="absolute top-4 left-0 right-0 flex items-center justify-between px-4">
+            {/* Back button (only for other users) */}
+            {user && onBack && (
+              <button
+                onClick={onBack}
+                className="bg-black/50 backdrop-blur-sm p-3 rounded-full shadow-lg active:scale-95 transition-transform"
+              >
+                <ChevronLeftIcon className="w-5 h-5 text-white" />
+              </button>
+            )}
+            
+            {/* Spacer for centering when no back button */}
+            {(!user || !onBack) && <div className="w-12" />}
+            
+            {/* Settings button (only for current user) */}
+            {isCurrentUser && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                  className="bg-black/50 backdrop-blur-sm p-3 rounded-full shadow-lg active:scale-95 transition-transform"
+                >
+                  <Cog6ToothIcon className="w-5 h-5 text-white" />
+                </button>
+                
+                {/* Settings Dropdown Menu */}
+                {showSettingsMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50">
+                    <button
+                      onClick={handleEditProfile}
+                      className="w-full flex items-center px-4 py-3 text-left text-white hover:bg-gray-800 active:bg-gray-700 transition-colors"
+                    >
+                      <UserIcon className="w-5 h-5 mr-3 text-gray-400" />
+                      <span>Edit Profile</span>
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center px-4 py-3 text-left text-white hover:bg-gray-800 active:bg-gray-700 transition-colors"
+                    >
+                      <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3 text-gray-400" />
+                      <span>Log Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Spacer when viewing other user's profile */}
+            {!isCurrentUser && <div className="w-12" />}
+          </div>
         </div>
         
-        {/* Profile Avatar - Use database image or show placeholder */}
+        {/* Profile Avatar */}
         <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <div className="relative">
             {profileData.profile_photo_url ? (
@@ -313,7 +314,7 @@ export const ProfileScreen: React.FC<Props> = ({
                 className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
               />
             ) : (
-              <div className="w-28 h-28 rounded-full border-4 border-black bg-gray-800 flex items-center justify-center shadow-xl">
+              <div className="w-28 h-28 rounded-full border-4 border-black bg-gray-700 flex items-center justify-center shadow-xl">
                 <UserIcon className="w-12 h-12 text-gray-400" />
               </div>
             )}
@@ -437,7 +438,7 @@ export const ProfileScreen: React.FC<Props> = ({
             )}
           </div>
           
-          {/* Posts Grid - Only show uploaded posts */}
+          {/* Posts Grid */}
           {isCurrentUser && userPosts.length > 0 ? (
             <div className="grid grid-cols-3 gap-1">
               {userPosts.slice(0, 9).map((post) => (

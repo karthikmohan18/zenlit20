@@ -16,8 +16,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     name: user.name,
     bio: user.bio,
     dpUrl: user.dpUrl,
-    coverPhotoUrl: user.coverPhotoUrl || '', // Add cover photo support
-    // Social verification data (removed Google fields)
+    coverPhotoUrl: user.coverPhotoUrl || '',
+    // Social verification data
     instagramUrl: user.instagramUrl,
     instagramVerified: user.instagramVerified,
     facebookUrl: user.facebookUrl,
@@ -26,6 +26,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     linkedInVerified: user.linkedInVerified,
     twitterUrl: user.twitterUrl,
     twitterVerified: user.twitterVerified,
+    googleUrl: user.googleUrl,
+    googleVerified: user.googleVerified,
   });
   
   const [isEditing, setIsEditing] = useState({
@@ -58,6 +60,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       linkedInVerified: updatedUser.linkedInVerified,
       twitterUrl: updatedUser.twitterUrl,
       twitterVerified: updatedUser.twitterVerified,
+      googleUrl: updatedUser.googleUrl,
+      googleVerified: updatedUser.googleVerified,
     }));
     setHasChanges(true);
   };
@@ -113,10 +117,9 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         }
       }
 
-      // Handle cover photo upload if a new photo was selected
+      // Handle cover photo upload if a new photo was selected (base64 data URL)
       if (formData.coverPhotoUrl && formData.coverPhotoUrl.startsWith('data:')) {
         console.log('Uploading new cover photo...');
-        // Use the same upload function for cover photos (you might want to create a separate one)
         const uploadedUrl = await uploadProfileImage(currentUser.id, formData.coverPhotoUrl);
         
         if (uploadedUrl) {
@@ -124,18 +127,19 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           console.log('Cover photo uploaded successfully:', uploadedUrl);
         } else {
           console.warn('Cover photo upload failed, keeping existing photo');
-          coverPhotoUrl = formData.coverPhotoUrl;
+          // Keep the original photo URL if upload fails
+          coverPhotoUrl = user.coverPhotoUrl || '';
         }
       }
 
-      // Update user profile in database (removed Google fields)
+      // Update user profile in database
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({
           name: formData.name,
           bio: formData.bio,
           profile_photo_url: profilePhotoUrl,
-          cover_photo_url: coverPhotoUrl, // Add cover photo support
+          cover_photo_url: coverPhotoUrl,
           instagram_url: formData.instagramUrl,
           instagram_verified: formData.instagramVerified,
           facebook_url: formData.facebookUrl,
@@ -144,6 +148,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           linked_in_verified: formData.linkedInVerified,
           twitter_url: formData.twitterUrl,
           twitter_verified: formData.twitterVerified,
+          google_url: formData.googleUrl,
+          google_verified: formData.googleVerified,
           updated_at: new Date().toISOString()
         })
         .eq('id', currentUser.id)
@@ -249,18 +255,18 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
 
       <div className="pb-8">
         {/* Cover Photo Section */}
-        <div className="relative h-48 bg-gradient-to-b from-blue-900 to-black">
+        <div className="relative h-48 bg-gray-800">
           {formData.coverPhotoUrl ? (
             <img
               src={formData.coverPhotoUrl}
               alt="Cover"
-              className="w-full h-full object-cover opacity-60"
+              className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full h-full bg-gray-800 flex items-center justify-center">
               <div className="text-center">
                 <CameraIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">Add a cover photo</p>
+                <p className="text-gray-400 text-sm">Add cover photo</p>
               </div>
             </div>
           )}
@@ -284,8 +290,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
                   className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
                 />
               ) : (
-                <div className="w-28 h-28 rounded-full border-4 border-black bg-gray-800 flex items-center justify-center shadow-xl">
-                  <CameraIcon className="w-12 h-12 text-gray-400" />
+                <div className="w-28 h-28 rounded-full border-4 border-black bg-gray-700 flex items-center justify-center shadow-xl">
+                  <CameraIcon className="w-8 h-8 text-gray-400" />
                 </div>
               )}
               <button
