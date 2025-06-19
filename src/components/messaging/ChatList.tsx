@@ -1,5 +1,15 @@
+import { useState, useEffect } from 'react';
 import { User, Message } from '../../types';
 import { format } from 'date-fns';
+import { getCurrentLocation, calculateDistance } from '../../lib/geo';
+
+interface Contact extends User {
+  latitude?: number;
+  longitude?: number;
+  hasHistory?: boolean;
+}
+
+interface ChatMessage extends Message {}
 
 interface ChatListProps {
   users: User[];
@@ -9,13 +19,75 @@ interface ChatListProps {
   searchQuery?: string;
 }
 
-export const ChatList = ({ 
-  users, 
-  messages, 
-  selectedUser, 
+export const ChatList = ({
+  users,
+  messages,
+  selectedUser,
   onSelectUser,
   searchQuery = ''
 }: ChatListProps) => {
+  const [currentCoords, setCurrentCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [nearbyContacts, setNearbyContacts] = useState<Contact[]>([]);
+  const [historyOnlyContacts, setHistoryOnlyContacts] = useState<Contact[]>([]);
+
+  useEffect(() => {
+    let watchId: number | undefined;
+
+    const loadLocation = async () => {
+      const loc = await getCurrentLocation();
+      if (loc) {
+        setCurrentCoords(loc);
+      }
+    };
+
+    loadLocation();
+
+    if (navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition((pos) => {
+        setCurrentCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      });
+    }
+
+    return () => {
+      if (watchId !== undefined) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!users || users.length === 0) {
+      setNearbyContacts([]);
+      setHistoryOnlyContacts([]);
+      return;
+    }
+
+    if (!currentCoords) {
+      setNearbyContacts([]);
+      setHistoryOnlyContacts(users.filter(u => (u as Contact).hasHistory) as Contact[]);
+      return;
+    }
+
+    const nearby: Contact[] = [];
+    const history: Contact[] = [];
+
+    users.forEach((u) => {
+      const contact = u as Contact;
+      if (contact.latitude != null && contact.longitude != null) {
+        const d = calculateDistance(currentCoords.latitude, currentCoords.longitude, contact.latitude, contact.longitude);
+        if (d <= 1) {
+          nearby.push(contact);
+        } else if (contact.hasHistory) {
+          history.push(contact);
+        }
+      } else if (contact.hasHistory) {
+        history.push(contact);
+      }
+    });
+
+    setNearbyContacts(nearby);
+    setHistoryOnlyContacts(history);
+  }, [users, currentCoords]);
   const getLatestMessage = (userId: string) => {
     return messages
       .filter(msg => msg.senderId === userId || msg.receiverId === userId)
@@ -48,7 +120,7 @@ export const ChatList = ({
     <div className="flex flex-col h-full bg-black">
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto">
-        {users.map((user) => {
+        {nearbyContacts.map((user) => {
           const latestMessage = getLatestMessage(user.id);
 
           return (
@@ -99,6 +171,50 @@ export const ChatList = ({
             </button>
           );
         })}
+        {historyOnlyContacts.length > 0 && (
+          <div className="mt-2 border-t border-gray-800 pt-2">
+            {historyOnlyContacts.map((user) => {
+              const latestMessage = getLatestMessage(user.id);
+
+              return (
+                <button
+                  key={user.id}
+                  onClick={() => onSelectUser(user)}
+                  className={`flex items-center px-4 py-3 w-full text-left transition-colors ${
+                    selectedUser?.id === user.id ? 'bg-gray-800' : 'hover:bg-gray-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="relative flex-shrink-0 w-11 h-11 bg-gray-700 rounded-full" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex flex-col min-w-0">
+                          <h3 className="font-semibold text-gray-400 truncate">Anonymous</h3>
+                        </div>
+                        {latestMessage && (
+                          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                            {format(new Date(latestMessage.timestamp), 'HH:mm')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        {latestMessage ? (
+                          <p className="text-sm text-gray-400 truncate pr-2">
+                            {latestMessage.content.length > 35
+                              ? `${latestMessage.content.substring(0, 35)}...`
+                              : latestMessage.content}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-500 italic">Start a conversation</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
