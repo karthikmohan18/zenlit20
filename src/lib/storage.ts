@@ -146,8 +146,7 @@ export async function uploadPostImage(
 
 // Fallback function to generate a placeholder image URL
 export function generatePlaceholderImage(): string {
-  const randomId = Math.random().toString(36).substring(2, 15);
-  return `https://picsum.photos/800/600?random=${randomId}`;
+  return '/images/default-post.jpg';
 }
 
 // Check storage availability with improved logic
