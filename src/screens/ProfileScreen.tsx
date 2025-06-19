@@ -145,7 +145,6 @@ export const ProfileScreen: React.FC<Props> = ({
           .update({
             name: updatedProfile.name,
             bio: updatedProfile.bio,
-            location: updatedProfile.location,
             profile_photo_url: updatedProfile.dpUrl,
             updated_at: new Date().toISOString()
           })
@@ -344,11 +343,6 @@ export const ProfileScreen: React.FC<Props> = ({
           <p className="text-gray-300 mt-2 text-base leading-relaxed">
             {profileData.bio || 'No bio available'}
           </p>
-
-          {/* Location */}
-          {profileData.location && (
-            <p className="text-gray-400 text-sm mt-2">📍 {profileData.location}</p>
-          )}
           
           {/* Social Links with verification indicators (excluding Facebook) */}
           <div className="flex justify-center gap-8 mt-8">

@@ -23,8 +23,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
     dateOfBirth: '',
     gender: '' as 'male' | 'female' | '',
     profilePhoto: null as string | null,
-    bio: '',
-    location: ''
+    bio: ''
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -157,7 +156,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         bio: profileData.bio,
         dateOfBirth: profileData.dateOfBirth,
         gender: profileData.gender,
-        location: profileData.location || undefined,
         profilePhotoUrl: profilePhotoUrl || undefined
       });
 
@@ -271,20 +269,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
             Female
           </button>
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Location (Optional)
-        </label>
-        <input
-          type="text"
-          value={profileData.location}
-          onChange={(e) => handleInputChange('location', e.target.value)}
-          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="City, Country"
-          maxLength={100}
-        />
       </div>
     </motion.div>
   );

@@ -187,7 +187,6 @@ export const completeProfileSetup = async (profileData: {
   bio?: string
   dateOfBirth?: string
   gender?: string
-  location?: string
   profilePhotoUrl?: string
 }): Promise<AuthResponse> => {
   if (!isSupabaseAvailable()) {
@@ -231,7 +230,6 @@ export const completeProfileSetup = async (profileData: {
         bio: profileData.bio || 'New to Zenlit! 👋',
         date_of_birth: profileData.dateOfBirth,
         gender: profileData.gender,
-        location: profileData.location,
         profile_photo_url: profileData.profilePhotoUrl,
         profile_completed: true,
         updated_at: new Date().toISOString()
