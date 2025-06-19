@@ -432,14 +432,19 @@ export const RadarScreen: React.FC<Props> = ({
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-gray-800">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
+            {/* Left side - Title and Location Status */}
             <div className="flex-1">
-              <h1 className="text-xl font-bold text-white text-center">People Nearby</h1>
-              <div className="flex items-center justify-center gap-2 mt-2">
+              <h1 className="text-xl font-bold text-white">People Nearby</h1>
+              <div className="flex items-center gap-2 mt-1">
+                {/* Location status with icon only */}
                 <div className="flex items-center gap-1">
-                  <MapPinIcon className={`w-4 h-4 ${
-                    isLocationTracking ? 'text-green-500' : 
-                    currentLocation ? 'text-blue-500' : 'text-gray-500'
-                  }`} />
+                  {isLocationTracking ? (
+                    <div className="w-4 h-4 bg-green-500 rounded-full animate-pulse" />
+                  ) : currentLocation ? (
+                    <MapPinIcon className="w-4 h-4 text-blue-500" />
+                  ) : (
+                    <MapPinIcon className="w-4 h-4 text-gray-500" />
+                  )}
                   <span className={`text-xs ${
                     isLocationTracking ? 'text-green-400' : 
                     currentLocation ? 'text-blue-400' : 'text-gray-400'
@@ -448,6 +453,8 @@ export const RadarScreen: React.FC<Props> = ({
                      currentLocation ? 'Location enabled' : 'Location required'}
                   </span>
                 </div>
+                
+                {/* Update indicator */}
                 {(isUpdatingUsers || isRefreshing) && (
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -459,7 +466,7 @@ export const RadarScreen: React.FC<Props> = ({
               </div>
             </div>
             
-            {/* Show Nearby Toggle */}
+            {/* Right side - Show Nearby Toggle */}
             <div className="flex items-center gap-2 ml-4">
               <span className="text-xs text-gray-400">Show Nearby</span>
               <input
