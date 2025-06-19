@@ -1,3 +1,4 @@
+// src/lib/storage.ts
 import { supabase } from './supabase';
 
 // Convert data URL (base64) to Blob for Supabase Storage upload
@@ -18,113 +19,55 @@ export function dataURLtoBlob(dataURL: string): Blob {
 // Check if bucket exists with improved error handling
 async function checkBucketExists(bucketName: string): Promise<boolean> {
   try {
-    // First try to list buckets
     const { data: buckets, error } = await supabase.storage.listBuckets();
-    
     if (error) {
-      console.warn(`Error listing buckets: ${error.message}`);
-      // If we can't list buckets, assume they exist to avoid blocking functionality
-      return true;
+      console.warn(`Could not list buckets: ${error.message}`);
+      return true; // assume existence to avoid blocking
     }
-    
-    const bucketExists = buckets?.some(bucket => bucket.name === bucketName);
-    
-    if (!bucketExists) {
-      console.warn(`Storage bucket '${bucketName}' not found in bucket list`);
-      // Try to test bucket access directly
-      try {
-        const { error: testError } = await supabase.storage
-          .from(bucketName)
-          .list('', { limit: 1 });
-        
-        // If no error, bucket exists and is accessible
-        if (!testError) {
-          console.log(`Bucket '${bucketName}' is accessible despite not being in list`);
-          return true;
-        }
-        
-        console.warn(`Bucket '${bucketName}' test failed: ${testError.message}`);
-        return false;
-      } catch (testErr) {
-        console.warn(`Bucket '${bucketName}' test error:`, testErr);
-        return false;
-      }
-    }
-    
-    return bucketExists;
-  } catch (error) {
-    console.warn(`Error checking bucket '${bucketName}' existence:`, error);
-    // Default to true to avoid blocking functionality
+    if (buckets.some(b => b.name === bucketName)) return true;
+    // fallback direct access check
+    const { error: testError } = await supabase.storage.from(bucketName).list('', { limit: 1 });
+    return !testError;
+  } catch {
     return true;
   }
 }
 
-// Upload image to Supabase Storage and return public URL
+// Generic upload helper
 export async function uploadImage(
   bucket: string,
   filePath: string,
   imageDataURL: string
 ): Promise<string | null> {
-  try {
-    // Check if bucket exists first
-    const bucketExists = await checkBucketExists(bucket);
-    if (!bucketExists) {
-      console.warn(`Storage bucket '${bucket}' does not exist or is not accessible.`);
-      return null;
-    }
-
-    // Convert data URL to blob
-    const blob = dataURLtoBlob(imageDataURL);
-    
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, blob, {
-        upsert: true, // Overwrite existing file
-        contentType: blob.type
-      });
-    
-    if (uploadError) {
-      console.error(`Upload error to bucket '${bucket}':`, uploadError);
-      return null;
-    }
-    
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filePath);
-    
-    return urlData.publicUrl;
-  } catch (error) {
-    console.error('Error uploading image:', error);
+  if (!(await checkBucketExists(bucket))) {
+    console.warn(`Bucket "${bucket}" does not exist.`);
     return null;
   }
+  const blob = dataURLtoBlob(imageDataURL);
+  const { error: uploadError } = await supabase.storage
+    .from(bucket)
+    .upload(filePath, blob, { upsert: true, contentType: blob.type });
+  if (uploadError) {
+    console.error(`Upload to "${bucket}" failed: ${uploadError.message}`);
+    return null;
+  }
+  return supabase.storage.from(bucket).getPublicUrl(filePath).data.publicUrl;
 }
 
-// Upload profile image with fallback
-export async function uploadProfileImage(file: File): Promise<string>;
+// Upload profile image
+export async function uploadProfileImage(file: File): Promise<string | null>;
 export async function uploadProfileImage(userId: string, imageDataURL: string): Promise<string | null>;
 export async function uploadProfileImage(arg1: File | string, arg2?: string): Promise<string | null> {
   try {
     if (arg1 instanceof File) {
       const file = arg1;
-      const filePath = `${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
+      const path = `${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
       if (error) throw error;
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
-      return data.publicUrl;
+      return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
     } else {
-      const userId = arg1;
-      const imageDataURL = arg2 as string;
-      const filePath = `${userId}/profile.jpg`;
-      const result = await uploadImage('avatars', filePath, imageDataURL);
-      if (!result) {
-        console.warn('Profile image upload failed, using fallback');
-      }
-      return result;
+      // fallback using data URL
+      return await uploadImage('avatars', `${arg1}/profile.jpg`, arg2!);
     }
   } catch (error) {
     console.error('Profile image upload error:', error);
@@ -132,17 +75,15 @@ export async function uploadProfileImage(arg1: File | string, arg2?: string): Pr
   }
 }
 
+// Upload banner image
 export async function uploadBannerImage(file: File): Promise<string> {
-  const filePath = `${Date.now()}_${file.name}`;
-  const { error } = await supabase.storage
-    .from('banner')
-    .upload(filePath, file, { upsert: true });
+  const path = `${Date.now()}_${file.name}`;
+  const { error } = await supabase.storage.from('banner').upload(path, file, { upsert: true });
   if (error) throw error;
-  const { data } = supabase.storage.from('banner').getPublicUrl(filePath);
-  return data.publicUrl;
+  return supabase.storage.from('banner').getPublicUrl(path).data.publicUrl;
 }
 
-// Upload post image with fallback
+// Upload post image (unchanged)
 export async function uploadPostImage(
   userId: string,
   imageDataURL: string
@@ -151,13 +92,8 @@ export async function uploadPostImage(
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 15);
     const filePath = `${userId}/post_${randomId}_${timestamp}.jpg`;
-    
     const result = await uploadImage('posts', filePath, imageDataURL);
-    
-    if (!result) {
-      console.warn('Post image upload failed, will use placeholder');
-    }
-    
+    if (!result) console.warn('Post image upload failed; using placeholder.');
     return result;
   } catch (error) {
     console.error('Post image upload error:', error);
@@ -165,46 +101,35 @@ export async function uploadPostImage(
   }
 }
 
-// Fallback function to generate a placeholder image URL
+// Fallback placeholder
 export function generatePlaceholderImage(): string {
   return '/images/default-post.jpg';
 }
 
-// Check storage availability with improved logic
+// Check storage availability (unchanged)
 export async function checkStorageAvailability(): Promise<{
   avatarsAvailable: boolean;
   postsAvailable: boolean;
   message: string;
 }> {
   try {
-    // Test both buckets
     const [avatarsExists, postsExists] = await Promise.all([
       checkBucketExists('avatars'),
-      checkBucketExists('posts')
+      checkBucketExists('posts'),
     ]);
-    
     let message = '';
     if (!avatarsExists && !postsExists) {
-      message = 'Storage buckets may not be configured. Using placeholder images.';
+      message = 'No storage buckets found; using placeholders.';
     } else if (!avatarsExists) {
-      message = 'Profile photo uploads may be limited. Post images should work.';
+      message = 'Profile uploads unavailable; posts ok.';
     } else if (!postsExists) {
-      message = 'Post image uploads may be limited. Profile photos should work.';
+      message = 'Post uploads unavailable; profiles ok.';
     } else {
-      message = 'Storage is available and configured.';
+      message = 'All storage buckets available.';
     }
-    
-    return {
-      avatarsAvailable: avatarsExists,
-      postsAvailable: postsExists,
-      message
-    };
+    return { avatarsAvailable: avatarsExists, postsAvailable: postsExists, message };
   } catch (error) {
-    console.warn('Error checking storage availability:', error);
-    return {
-      avatarsAvailable: true, // Default to true to avoid blocking functionality
-      postsAvailable: true,
-      message: 'Storage status unknown, assuming available.'
-    };
+    console.warn('Storage availability check error:', error);
+    return { avatarsAvailable: true, postsAvailable: true, message: 'Assuming storage available.' };
   }
 }
