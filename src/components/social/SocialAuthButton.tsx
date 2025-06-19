@@ -29,7 +29,7 @@ export const SocialAuthButton: React.FC<Props> = ({
     if (isConnecting) return 'Connecting...';
     if (isConnected && isVerified) return 'Verified';
     if (isConnected && !isVerified) return 'Reconnect';
-    return `Connect ${provider.name}`;
+    return 'Connect'; // Changed from `Connect ${provider.name}` to just 'Connect'
   };
 
   const getButtonStyle = () => {
