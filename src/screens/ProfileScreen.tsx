@@ -142,15 +142,14 @@ export const ProfileScreen: React.FC<Props> = ({
 
       const { data: savedProfile, error: updateError } = await supabase
         .from('profiles')
-        .update({
-          name: updatedProfile.name,
-          bio: updatedProfile.bio,
-          location: updatedProfile.location,
-          interests: updatedProfile.interests,
-          profile_photo_url: updatedProfile.dpUrl,
-          cover_photo_url: updatedProfile.coverPhotoUrl,
-          updated_at: new Date().toISOString()
-        })
+          .update({
+            name: updatedProfile.name,
+            bio: updatedProfile.bio,
+            location: updatedProfile.location,
+            interests: updatedProfile.interests,
+            profile_photo_url: updatedProfile.dpUrl,
+            updated_at: new Date().toISOString()
+          })
         .eq('id', user.id)
         .select()
         .maybeSingle(); // Use maybeSingle instead of single
@@ -235,21 +234,12 @@ export const ProfileScreen: React.FC<Props> = ({
       {/* Profile Header with Cover Photo */}
       <div className="relative">
         <div className="h-48 bg-gray-800">
-          {profileData.cover_photo_url ? (
+          {profileData.cover_photo_url && (
             <img
               src={profileData.cover_photo_url}
               alt="Profile Cover"
               className="w-full h-full object-cover"
             />
-          ) : (
-            <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-              {isCurrentUser && (
-                <div className="text-center">
-                  <CameraIcon className="w-12 h-12 text-gray-600 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">Add cover photo</p>
-                </div>
-              )}
-            </div>
           )}
           
           {/* Header buttons positioned on cover photo */}

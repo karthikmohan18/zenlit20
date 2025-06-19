@@ -177,7 +177,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
             )}
           <button
             onClick={handleImageSelect}
-            className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full shadow-lg"
+            className="absolute -bottom-1 -right-1 bg-blue-600 p-2 rounded-full border-2 border-black shadow-lg"
           >
             <CameraIcon className="w-4 h-4 text-white" />
           </button>
