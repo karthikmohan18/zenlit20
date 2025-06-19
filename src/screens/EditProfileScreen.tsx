@@ -150,6 +150,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
 
   return (
     <div className="h-full bg-black overflow-y-auto">
+      {/* Header */}
       <div className="sticky top-0 bg-black/90 backdrop-blur-sm border-b border-gray-800 px-4 py-3 flex items-center justify-between z-50">
         <button onClick={handleCancel} className="p-2 rounded-full hover:bg-gray-800">
           <ChevronLeftIcon className="w-5 h-5 text-white" />
@@ -166,24 +167,30 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         </button>
       </div>
 
-      <div className="relative -mt-14 mb-6 flex justify-center">
+      {/* Profile Photo Section */}
+      <div className="flex justify-center py-8">
         <div className="relative">
-          {profileUrl
-            ? <img src={profileUrl} alt="Profile" className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl" />
-            : (
-              <div className="w-28 h-28 rounded-full border-4 border-black bg-gray-700 flex items-center justify-center shadow-xl">
-                <CameraIcon className="w-8 h-8 text-gray-400" />
-              </div>
-            )}
+          {profileUrl ? (
+            <img 
+              src={profileUrl} 
+              alt="Profile" 
+              className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl" 
+            />
+          ) : (
+            <div className="w-28 h-28 rounded-full border-4 border-black bg-gray-700 flex items-center justify-center shadow-xl">
+              <CameraIcon className="w-8 h-8 text-gray-400" />
+            </div>
+          )}
           <button
             onClick={handleImageSelect}
-            className="absolute -bottom-1 -right-1 bg-blue-600 p-2 rounded-full border-2 border-black shadow-lg"
+            className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full shadow-lg"
           >
             <CameraIcon className="w-4 h-4 text-white" />
           </button>
         </div>
       </div>
 
+      {/* Form Content */}
       <div className="px-4 space-y-8 pb-8">
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-white">Basic Information</h2>
@@ -200,6 +207,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         <SocialAccountsSection user={{ ...user, ...formData }} onUserUpdate={handleUserUpdate} />
       </div>
 
+      {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
     </div>
   );
