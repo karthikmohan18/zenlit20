@@ -24,48 +24,6 @@ export const sendSignupOTP = async (email: string): Promise<AuthResponse> => {
   try {
     console.log('Sending signup OTP to:', email)
     
-    // Check if user already exists by attempting to sign in with a dummy password
-    console.log('Checking if user already exists with email:', email)
-    const { error: existingUserError } = await supabase!.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password: 'dummy-password-check-12345' // Deliberately incorrect password
-    })
-    
-    if (existingUserError) {
-      // Check the specific error message to determine if user exists
-      if (existingUserError.message.includes('Invalid login credentials')) {
-        // User exists but password is wrong (expected with dummy password)
-        console.log('User already exists with this email')
-        return { 
-          success: false, 
-          error: 'An account with this email already exists. Please sign in instead or use "Forgot password?" if you need to reset your password.' 
-        }
-      } else if (existingUserError.message.includes('Email not confirmed')) {
-        // User exists but email is not confirmed
-        console.log('User exists but email not confirmed')
-        return { 
-          success: false, 
-          error: 'An account with this email already exists but is not verified. Please check your email for the verification link or contact support.' 
-        }
-      } else if (existingUserError.message.includes('Too many requests')) {
-        // Rate limiting
-        return { 
-          success: false, 
-          error: 'Too many requests. Please wait before trying again.' 
-        }
-      }
-      // If it's a different error (like "User not found"), continue with signup
-      console.log('User does not exist, proceeding with signup. Error was:', existingUserError.message)
-    } else {
-      // This should never happen with a dummy password, but just in case
-      console.warn('Unexpected: dummy password login succeeded, signing out immediately')
-      await supabase!.auth.signOut()
-      return { 
-        success: false, 
-        error: 'An account with this email already exists. Please sign in instead.' 
-      }
-    }
-    
     const { data, error } = await supabase!.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
       options: {
@@ -78,6 +36,21 @@ export const sendSignupOTP = async (email: string): Promise<AuthResponse> => {
 
     if (error) {
       console.error('OTP send error:', error.message)
+      
+      // Handle specific Supabase errors
+      if (error.message.includes('User already registered')) {
+        return { 
+          success: false, 
+          error: 'An account with this email already exists. Please sign in instead or use "Forgot password?" if you need to reset your password.' 
+        }
+      }
+      
+      if (error.message.includes('Email not confirmed')) {
+        return { 
+          success: false, 
+          error: 'An account with this email already exists but is not verified. Please check your email for the verification link or contact support.' 
+        }
+      }
       
       if (error.message.includes('rate limit')) {
         return { 
