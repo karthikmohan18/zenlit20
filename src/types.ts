@@ -18,6 +18,8 @@ export interface User {
   // Location fields
   latitude?: number;
   longitude?: number;
+  // Cover photo field
+  coverPhotoUrl?: string;
   // Social media verification fields
   instagramUrl?: string;
   instagramVerified?: boolean;

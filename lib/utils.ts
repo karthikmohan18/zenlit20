@@ -13,7 +13,7 @@ export function transformProfileToUser(profile: any): User {
     id: profile.id,
     name: profile.name,
     username: profile.username, // Include username
-    dpUrl: profile.profile_photo_url || '/images/default-avatar.png',
+    dpUrl: profile.profile_photo_url || '', // Don't use fallback image
     bio: profile.bio,
     gender: profile.gender,
     age: profile.date_of_birth ? 
@@ -27,6 +27,7 @@ export function transformProfileToUser(profile: any): User {
     },
     latitude: profile.latitude,
     longitude: profile.longitude,
+    coverPhotoUrl: profile.cover_photo_url, // Add cover photo support
     instagramUrl: profile.instagram_url,
     instagramVerified: profile.instagram_verified,
     facebookUrl: profile.facebook_url,

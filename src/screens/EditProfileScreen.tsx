@@ -16,6 +16,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     name: user.name,
     bio: user.bio,
     dpUrl: user.dpUrl,
+    coverPhotoUrl: user.coverPhotoUrl || '', // Add cover photo support
     // Social verification data (removed Google fields)
     instagramUrl: user.instagramUrl,
     instagramVerified: user.instagramVerified,
@@ -74,6 +75,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         const imageUrl = e.target?.result as string;
         if (type === 'profile') {
           setFormData(prev => ({ ...prev, dpUrl: imageUrl }));
+        } else {
+          setFormData(prev => ({ ...prev, coverPhotoUrl: imageUrl }));
         }
         setHasChanges(true);
       };
@@ -93,6 +96,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       }
 
       let profilePhotoUrl = formData.dpUrl;
+      let coverPhotoUrl = formData.coverPhotoUrl;
 
       // Handle profile photo upload if a new photo was selected (base64 data URL)
       if (formData.dpUrl && formData.dpUrl.startsWith('data:')) {
@@ -109,6 +113,21 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         }
       }
 
+      // Handle cover photo upload if a new photo was selected
+      if (formData.coverPhotoUrl && formData.coverPhotoUrl.startsWith('data:')) {
+        console.log('Uploading new cover photo...');
+        // Use the same upload function for cover photos (you might want to create a separate one)
+        const uploadedUrl = await uploadProfileImage(currentUser.id, formData.coverPhotoUrl);
+        
+        if (uploadedUrl) {
+          coverPhotoUrl = uploadedUrl;
+          console.log('Cover photo uploaded successfully:', uploadedUrl);
+        } else {
+          console.warn('Cover photo upload failed, keeping existing photo');
+          coverPhotoUrl = formData.coverPhotoUrl;
+        }
+      }
+
       // Update user profile in database (removed Google fields)
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
@@ -116,6 +135,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           name: formData.name,
           bio: formData.bio,
           profile_photo_url: profilePhotoUrl,
+          cover_photo_url: coverPhotoUrl, // Add cover photo support
           instagram_url: formData.instagramUrl,
           instagram_verified: formData.instagramVerified,
           facebook_url: formData.facebookUrl,
@@ -230,11 +250,20 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       <div className="pb-8">
         {/* Cover Photo Section */}
         <div className="relative h-48 bg-gradient-to-b from-blue-900 to-black">
-          <img
-            src={`https://picsum.photos/800/400?random=${user.id}`}
-            alt="Cover"
-            className="w-full h-full object-cover opacity-60"
-          />
+          {formData.coverPhotoUrl ? (
+            <img
+              src={formData.coverPhotoUrl}
+              alt="Cover"
+              className="w-full h-full object-cover opacity-60"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center">
+                <CameraIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-400 text-sm">Add a cover photo</p>
+              </div>
+            </div>
+          )}
           
           <button
             onClick={() => handleImageSelect('cover')}
@@ -248,11 +277,17 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         <div className="relative -mt-14 mb-6">
           <div className="flex justify-center">
             <div className="relative">
-              <img
-                src={formData.dpUrl}
-                alt="Profile"
-                className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
-              />
+              {formData.dpUrl ? (
+                <img
+                  src={formData.dpUrl}
+                  alt="Profile"
+                  className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
+                />
+              ) : (
+                <div className="w-28 h-28 rounded-full border-4 border-black bg-gray-800 flex items-center justify-center shadow-xl">
+                  <CameraIcon className="w-12 h-12 text-gray-400" />
+                </div>
+              )}
               <button
                 onClick={() => handleImageSelect('profile')}
                 className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full text-white hover:bg-blue-700 active:scale-95 transition-all shadow-lg z-10"
