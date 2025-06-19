@@ -18,7 +18,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     bio: user.bio,
     dpUrl: user.dpUrl,
     coverPhotoUrl: user.coverPhotoUrl || '',
-    // Social verification data
     instagramUrl: user.instagramUrl,
     instagramVerified: user.instagramVerified,
     facebookUrl: user.facebookUrl,
@@ -28,12 +27,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     twitterUrl: user.twitterUrl,
     twitterVerified: user.twitterVerified,
   });
-  
-  const [isEditing, setIsEditing] = useState({
-    profilePicture: false,
-    coverPhoto: false
-  });
-  
   const [showSuccess, setShowSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -41,12 +34,13 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   const [profileUrl, setProfileUrl] = useState<string>('');
   const [bannerUrl, setBannerUrl] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('profile_photo_url, cover_photo_url')
         .eq('id', user.id)
@@ -59,10 +53,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   }, []);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
 
@@ -86,11 +77,14 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     input?.click();
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'cover') => {
+  const handleFileSelect = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    type: 'profile' | 'cover',
+  ) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         const imageUrl = e.target?.result as string;
         if (type === 'profile') {
           setFormData(prev => ({ ...prev, dpUrl: imageUrl }));
@@ -126,7 +120,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               .from('profiles')
               .update({ profile_photo_url: newProfileUrl })
               .eq('id', user.id);
-            
+
             if (profileUpdateError) {
               console.error('Profile photo URL update error:', profileUpdateError);
               throw new Error(`Failed to update profile photo: ${profileUpdateError.message}`);
@@ -149,7 +143,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               .from('profiles')
               .update({ cover_photo_url: newBannerUrl })
               .eq('id', user.id);
-            
+
             if (bannerUpdateError) {
               console.error('Cover photo URL update error:', bannerUpdateError);
               throw new Error(`Failed to update cover photo: ${bannerUpdateError.message}`);
@@ -174,7 +168,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         linked_in_verified: formData.linkedInVerified,
         twitter_url: formData.twitterUrl,
         twitter_verified: formData.twitterVerified,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       console.log('Updating profile with data:', updateData);
@@ -191,9 +185,9 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           message: updateError.message,
           code: updateError.code,
           details: updateError.details,
-          hint: updateError.hint
+          hint: updateError.hint,
         });
-        
+
         if (updateError.code === 'PGRST116') {
           throw new Error('Profile not found. Please try logging out and back in.');
         } else if (updateError.code === '23505') {
@@ -211,25 +205,23 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
 
       console.log('Profile updated successfully:', updatedProfile);
 
-      // Transform and return the updated profile
       const transformedUser = transformProfileToUser({
         ...updatedProfile,
         profile_photo_url: newProfileUrl,
-        cover_photo_url: newBannerUrl
+        cover_photo_url: newBannerUrl,
       });
 
       setShowSuccess(true);
       setTimeout(() => {
         onSave(transformedUser);
       }, 1500);
-
     } catch (error) {
       console.error('Profile save error:', {
-        error: error,
+        error,
         message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
-      
+
       if (error instanceof Error) {
         if (error.message.includes('upload')) {
           alert(`Upload failed: ${error.message}`);
@@ -258,7 +250,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     }
   };
 
-  // Success Animation Component
   if (showSuccess) {
     return (
       <div className="h-full bg-black flex items-center justify-center">
@@ -284,9 +275,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           >
             <ChevronLeftIcon className="w-5 h-5 text-white" />
           </button>
-          
           <h1 className="text-lg font-semibold text-white">Edit Profile</h1>
-          
           <button
             onClick={handleSave}
             disabled={loading}
@@ -321,7 +310,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               </div>
             </div>
           )}
-          
           <button
             onClick={() => handleImageSelect('cover')}
             className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm p-3 rounded-full text-white hover:bg-black/80 active:scale-95 transition-all z-10"
@@ -359,8 +347,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           {/* Basic Information */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">Basic Information</h2>
-            
-            {/* Name - Read Only */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Display Name
@@ -376,15 +362,13 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
                 Display name cannot be changed
               </p>
             </div>
-
-            {/* Bio */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Bio
               </label>
               <textarea
                 value={formData.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
+                onChange={e => handleInputChange('bio', e.target.value)}
                 className="w-full h-24 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 placeholder="Tell people about yourself..."
                 maxLength={150}
@@ -397,10 +381,10 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
             </div>
           </div>
 
-          {/* Social Accounts Authentication Section */}
+          {/* Social Accounts */}
           <SocialAccountsSection 
-            user={{ ...user, ...formData }}
-            onUserUpdate={handleUserUpdate}
+            user={{ ...user, ...formData }} 
+            onUserUpdate={handleUserUpdate} 
           />
         </div>
 
@@ -409,14 +393,14 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          onChange={(e) => handleFileSelect(e, 'profile')}
+          onChange={e => handleFileSelect(e, 'profile')}
           className="hidden"
         />
         <input
           ref={coverInputRef}
           type="file"
           accept="image/*"
-          onChange={(e) => handleFileSelect(e, 'cover')}
+          onChange={e => handleFileSelect(e, 'cover')}
           className="hidden"
         />
       </div>

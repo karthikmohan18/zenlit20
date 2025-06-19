@@ -110,10 +110,11 @@ export async function uploadProfileImage(arg1: File | string, arg2?: string): Pr
       const file = arg1;
       const filePath = `${Date.now()}_${file.name}`;
       const { error } = await supabase.storage
-        .from('profile_photos')
+        .from('avatars')
         .upload(filePath, file, { upsert: true });
       if (error) throw error;
-      const { data } = supabase.storage.from('profile_photos').getPublicUrl(filePath);
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
       return data.publicUrl;
     } else {
       const userId = arg1;
@@ -134,10 +135,10 @@ export async function uploadProfileImage(arg1: File | string, arg2?: string): Pr
 export async function uploadBannerImage(file: File): Promise<string> {
   const filePath = `${Date.now()}_${file.name}`;
   const { error } = await supabase.storage
-    .from('cover_photos')
+    .from('banner')
     .upload(filePath, file, { upsert: true });
   if (error) throw error;
-  const { data } = supabase.storage.from('cover_photos').getPublicUrl(filePath);
+  const { data } = supabase.storage.from('banner').getPublicUrl(filePath);
   return data.publicUrl;
 }
 
