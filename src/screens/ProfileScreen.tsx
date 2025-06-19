@@ -146,6 +146,7 @@ export const ProfileScreen: React.FC<Props> = ({
             name: updatedProfile.name,
             bio: updatedProfile.bio,
             profile_photo_url: updatedProfile.dpUrl,
+            cover_photo_url: updatedProfile.coverPhotoUrl,
             updated_at: new Date().toISOString()
           })
         .eq('id', user.id)
@@ -231,12 +232,14 @@ export const ProfileScreen: React.FC<Props> = ({
       {/* Profile Header with Cover Photo */}
       <div className="relative">
         <div className="h-48 bg-gray-800">
-          {profileData.cover_photo_url && (
+          {profileData.cover_photo_url ? (
             <img
               src={profileData.cover_photo_url}
               alt="Profile Cover"
               className="w-full h-full object-cover"
             />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900" />
           )}
           
           {/* Header buttons positioned on cover photo */}
