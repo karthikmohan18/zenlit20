@@ -5,8 +5,7 @@ import {
   IconBrandInstagram, 
   IconBrandLinkedin, 
   IconBrandX, 
-  IconBrandFacebook,
-  IconBrandGoogle 
+  IconBrandFacebook
 } from '@tabler/icons-react';
 
 interface Props {
@@ -41,12 +40,6 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
       name: 'X (Twitter)',
       color: 'gray',
       icon: IconBrandX
-    },
-    {
-      id: 'google',
-      name: 'Google',
-      color: 'red',
-      icon: IconBrandGoogle
     }
   ];
 
@@ -75,12 +68,6 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
           isConnected: !!user.twitterUrl,
           isVerified: !!user.twitterVerified,
           profileUrl: user.twitterUrl
-        };
-      case 'google':
-        return {
-          isConnected: !!user.googleUrl,
-          isVerified: !!user.googleVerified,
-          profileUrl: user.googleUrl
         };
       default:
         return {
@@ -128,8 +115,7 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
         instagram: 'https://instagram.com/verified_user',
         facebook: 'https://facebook.com/verified.user',
         linkedin: 'https://linkedin.com/in/verified-user',
-        twitter: 'https://twitter.com/verified_user',
-        google: 'https://plus.google.com/verified.user'
+        twitter: 'https://twitter.com/verified_user'
       };
 
       const profileUrl = mockProfileUrls[providerId as keyof typeof mockProfileUrls];

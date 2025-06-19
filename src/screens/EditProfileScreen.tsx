@@ -16,7 +16,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     name: user.name,
     bio: user.bio,
     dpUrl: user.dpUrl,
-    // Social verification data
+    // Social verification data (removed Google fields)
     instagramUrl: user.instagramUrl,
     instagramVerified: user.instagramVerified,
     facebookUrl: user.facebookUrl,
@@ -25,8 +25,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     linkedInVerified: user.linkedInVerified,
     twitterUrl: user.twitterUrl,
     twitterVerified: user.twitterVerified,
-    googleUrl: user.googleUrl,
-    googleVerified: user.googleVerified,
   });
   
   const [isEditing, setIsEditing] = useState({
@@ -59,8 +57,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       linkedInVerified: updatedUser.linkedInVerified,
       twitterUrl: updatedUser.twitterUrl,
       twitterVerified: updatedUser.twitterVerified,
-      googleUrl: updatedUser.googleUrl,
-      googleVerified: updatedUser.googleVerified,
     }));
     setHasChanges(true);
   };
@@ -113,7 +109,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         }
       }
 
-      // Update user profile in database
+      // Update user profile in database (removed Google fields)
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -128,8 +124,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           linked_in_verified: formData.linkedInVerified,
           twitter_url: formData.twitterUrl,
           twitter_verified: formData.twitterVerified,
-          google_url: formData.googleUrl,
-          google_verified: formData.googleVerified,
           updated_at: new Date().toISOString()
         })
         .eq('id', currentUser.id)

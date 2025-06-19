@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Transform Supabase profile data to User type
+// Transform Supabase profile data to User type (removed Google fields)
 export function transformProfileToUser(profile: any): User {
   return {
     id: profile.id,
@@ -35,8 +35,6 @@ export function transformProfileToUser(profile: any): User {
     linkedInVerified: profile.linked_in_verified,
     twitterUrl: profile.twitter_url,
     twitterVerified: profile.twitter_verified,
-    googleUrl: profile.google_url,
-    googleVerified: profile.google_verified,
   }
 }
 

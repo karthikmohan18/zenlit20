@@ -74,7 +74,7 @@ export const ProfileScreen: React.FC<Props> = ({
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle(); // Use maybeSingle instead of single
+        .maybeSingle();
 
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
@@ -152,7 +152,7 @@ export const ProfileScreen: React.FC<Props> = ({
         })
         .eq('id', user.id)
         .select()
-        .maybeSingle(); // Use maybeSingle instead of single
+        .maybeSingle();
 
       if (updateError) {
         throw updateError;
@@ -199,13 +199,12 @@ export const ProfileScreen: React.FC<Props> = ({
     );
   }
 
-  // Count verified social accounts
+  // Count verified social accounts (removed Google)
   const verifiedAccountsCount = [
     profileData.instagram_verified,
     profileData.facebook_verified,
     profileData.linked_in_verified,
-    profileData.twitter_verified,
-    profileData.google_verified
+    profileData.twitter_verified
   ].filter(Boolean).length;
 
   if (showEditProfile) {
@@ -363,7 +362,7 @@ export const ProfileScreen: React.FC<Props> = ({
             </div>
           )}
           
-          {/* Social Links with verification indicators */}
+          {/* Social Links with verification indicators (removed Google) */}
           <div className="flex justify-center gap-8 mt-8">
             <a
               href={profileData.twitter_url || '#'}
