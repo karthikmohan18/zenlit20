@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RadarUserCard } from '../components/radar/RadarUserCard';
 import { LocationPermissionModal } from '../components/radar/LocationPermissionModal';
 import { User, UserLocation, LocationPermissionStatus } from '../types';
-import { MapPinIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import { transformProfileToUser } from '../../lib/utils';
 import { 
@@ -48,10 +48,12 @@ export const RadarScreen: React.FC<Props> = ({
   const [lastLocationUpdate, setLastLocationUpdate] = useState<number>(0);
   const [isUpdatingUsers, setIsUpdatingUsers] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Refs for cleanup
   const locationWatchId = useRef<number | null>(null);
   const mountedRef = useRef(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -154,7 +156,7 @@ export const RadarScreen: React.FC<Props> = ({
     try {
       console.log('🔄 RADAR DEBUG: Loading users within 1km radius');
       
-      if (!isUpdatingUsers) {
+      if (!isUpdatingUsers && !isRefreshing) {
         setIsLoading(true);
       }
 
@@ -323,29 +325,63 @@ export const RadarScreen: React.FC<Props> = ({
     onNavigate('messages');
   };
 
-  const handleRetryLocation = () => {
-    setLocationError(null);
-    if (isGeolocationSupported() && isSecureContext()) {
-      setShowLocationModal(true);
-    } else {
-      setLocationError('Location access is required to find users within 1km radius');
-    }
-  };
-
-  const handleRefreshLocation = async () => {
-    if (!currentUser || isRequestingLocation) return;
-    
-    setLocationError(null);
-    
-    if (isGeolocationSupported() && isSecureContext()) {
-      await handleRequestLocation();
-    } else {
-      setLocationError('Location access is required to find users within 1km radius');
-    }
-  };
-
   const handleEnablePreciseLocation = () => {
     setShowLocationModal(true);
+  };
+
+  // Pull to refresh handler
+  const handleRefresh = async () => {
+    if (isRefreshing || !currentUser || !currentLocation) return;
+    
+    setIsRefreshing(true);
+    setLocationError(null);
+    
+    try {
+      // Refresh location and reload users
+      if (isGeolocationSupported() && isSecureContext()) {
+        await handleRequestLocation();
+      } else if (currentLocation) {
+        // Just reload users with current location
+        await loadUsersWithin1km(currentUser.id, currentLocation);
+      }
+    } catch (error) {
+      console.error('Refresh error:', error);
+      setLocationError('Failed to refresh. Please try again.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Pull to refresh implementation
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const startY = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (scrollRef.current && scrollRef.current.scrollTop === 0) {
+      startY.current = e.touches[0].clientY;
+      setIsPulling(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling || !scrollRef.current) return;
+    
+    const currentY = e.touches[0].clientY;
+    const distance = Math.max(0, currentY - startY.current);
+    
+    if (distance > 0 && scrollRef.current.scrollTop === 0) {
+      e.preventDefault();
+      setPullDistance(Math.min(distance, 100));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isPulling && pullDistance > 60) {
+      handleRefresh();
+    }
+    setIsPulling(false);
+    setPullDistance(0);
   };
 
   // When visibility is turned on, request location permission if needed
@@ -384,7 +420,7 @@ export const RadarScreen: React.FC<Props> = ({
       <div className="min-h-full bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Finding people within 1km...</p>
+          <p className="text-gray-400">Finding people nearby...</p>
         </div>
       </div>
     );
@@ -394,11 +430,11 @@ export const RadarScreen: React.FC<Props> = ({
     <div className="min-h-full bg-black">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-gray-800">
-        <div className="px-4 py-3">
+        <div className="px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-white">People Within 1km</h1>
-              <div className="flex items-center gap-2 mt-1">
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-white text-center">People Nearby</h1>
+              <div className="flex items-center justify-center gap-2 mt-2">
                 <div className="flex items-center gap-1">
                   <MapPinIcon className={`w-4 h-4 ${
                     isLocationTracking ? 'text-green-500' : 
@@ -408,48 +444,30 @@ export const RadarScreen: React.FC<Props> = ({
                     isLocationTracking ? 'text-green-400' : 
                     currentLocation ? 'text-blue-400' : 'text-gray-400'
                   }`}>
-                    {isLocationTracking ? 'Live tracking (1km radius)' : 
-                     currentLocation ? 'Location enabled (1km radius)' : 'Location required'}
+                    {isLocationTracking ? 'Live tracking' : 
+                     currentLocation ? 'Location enabled' : 'Location required'}
                   </span>
                 </div>
-                {isUpdatingUsers && (
+                {(isUpdatingUsers || isRefreshing) && (
                   <div className="flex items-center gap-1">
                     <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs text-blue-400">Updating...</span>
+                    <span className="text-xs text-blue-400">
+                      {isRefreshing ? 'Refreshing...' : 'Updating...'}
+                    </span>
                   </div>
                 )}
               </div>
-              <p className="text-sm text-gray-400">
-                {currentLocation ? 
-                  (users.length > 0 ? `${users.length} people within 1km` : 'No people within 1km') :
-                  'Enable location to find people within 1km'
-                }
-              </p>
             </div>
             
-            {/* Refresh location button */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleRefreshLocation}
-                disabled={isRequestingLocation}
-                className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 active:scale-95 transition-all disabled:bg-gray-600"
-                title="Refresh location and update nearby users"
-              >
-                {isRequestingLocation ? (
-                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <ArrowPathIcon className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
-              <label className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">Show Nearby</span>
-                <input
-                  type="checkbox"
-                  className="relative w-10 h-5 rounded-full appearance-none bg-gray-700 checked:bg-blue-600 transition-colors cursor-pointer before:absolute before:left-1 before:top-1 before:w-3 before:h-3 before:bg-white before:rounded-full before:transition-transform checked:before:translate-x-5"
-                  checked={isVisible}
-                  onChange={(e) => setIsVisible(e.target.checked)}
-                />
-              </label>
+            {/* Show Nearby Toggle */}
+            <div className="flex items-center gap-2 ml-4">
+              <span className="text-xs text-gray-400">Show Nearby</span>
+              <input
+                type="checkbox"
+                className="relative w-10 h-5 rounded-full appearance-none bg-gray-700 checked:bg-blue-600 transition-colors cursor-pointer before:absolute before:left-1 before:top-1 before:w-3 before:h-3 before:bg-white before:rounded-full before:transition-transform checked:before:translate-x-5"
+                checked={isVisible}
+                onChange={(e) => setIsVisible(e.target.checked)}
+              />
             </div>
           </div>
         </div>
@@ -464,7 +482,7 @@ export const RadarScreen: React.FC<Props> = ({
               <div>
                 <span className="text-sm text-blue-400 font-medium">Location Required</span>
                 <p className="text-xs text-blue-300">
-                  Enable precise location to find people within 1km radius
+                  Enable location to find people nearby
                 </p>
               </div>
             </div>
@@ -485,14 +503,38 @@ export const RadarScreen: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             <span className="text-xs text-green-400">
-              Live tracking active - finding people within 1km as you move
+              Live tracking active - finding people as you move
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Pull to refresh indicator */}
+      {isPulling && pullDistance > 0 && (
+        <div className="flex justify-center py-2 bg-gray-900/50">
+          <div className="flex items-center gap-2">
+            <div className={`w-4 h-4 border-2 border-blue-500 rounded-full transition-transform ${
+              pullDistance > 60 ? 'border-t-transparent animate-spin' : ''
+            }`} />
+            <span className="text-xs text-blue-400">
+              {pullDistance > 60 ? 'Release to refresh' : 'Pull down to refresh'}
             </span>
           </div>
         </div>
       )}
 
       {/* Users List */}
-      <div className="px-4 py-4 space-y-4 pb-20">
+      <div 
+        ref={scrollRef}
+        className="px-4 py-4 space-y-4 pb-20 overflow-y-auto"
+        style={{ 
+          transform: `translateY(${Math.min(pullDistance * 0.5, 50)}px)`,
+          transition: isPulling ? 'none' : 'transform 0.3s ease'
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {isVisible ? (
           currentLocation ? (
             users.length > 0 ? (
@@ -509,7 +551,6 @@ export const RadarScreen: React.FC<Props> = ({
                 <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                   <MapPinIcon className="w-8 h-8 text-gray-400" />
                 </div>
-                <p className="text-gray-400 mb-2">No people within 1km</p>
                 <p className="text-gray-500 text-sm">
                   Move around or check back later to find people nearby!
                 </p>
@@ -522,7 +563,7 @@ export const RadarScreen: React.FC<Props> = ({
               </div>
               <p className="text-gray-400 mb-2">Location Access Required</p>
               <p className="text-gray-500 text-sm mb-4">
-                We need your location to find people within 1km radius
+                We need your location to find people nearby
               </p>
               <button
                 onClick={handleEnablePreciseLocation}
@@ -534,7 +575,7 @@ export const RadarScreen: React.FC<Props> = ({
           )
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-400">Visibility is off. Toggle on to see nearby users.</p>
+            <p className="text-gray-400">Toggle "Show Nearby" to see people around you</p>
           </div>
         )}
       </div>
