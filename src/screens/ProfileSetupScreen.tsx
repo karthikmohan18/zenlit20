@@ -13,14 +13,8 @@ interface Props {
   onBack?: () => void;
 }
 
-const interests = [
-  'Photography', 'Travel', 'Fitness', 'Music', 'Art', 'Technology', 'Food', 'Fashion',
-  'Sports', 'Reading', 'Gaming', 'Movies', 'Dancing', 'Hiking', 'Cooking', 'Yoga',
-  'Writing', 'Pets', 'Nature', 'Coffee', 'Design', 'Business', 'Science', 'History'
-];
-
 export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
-  const [step, setStep] = useState<'basic' | 'photo' | 'interests' | 'bio'>('basic');
+  const [step, setStep] = useState<'basic' | 'photo' | 'bio'>('basic');
   const [isLoading, setIsLoading] = useState(false);
   const [isUsernameValid, setIsUsernameValid] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -29,7 +23,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
     dateOfBirth: '',
     gender: '' as 'male' | 'female' | '',
     profilePhoto: null as string | null,
-    selectedInterests: [] as string[],
     bio: '',
     location: ''
   });
@@ -47,15 +40,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
     if (username !== profileData.username) {
       handleInputChange('username', username);
     }
-  };
-
-  const handleInterestToggle = (interest: string) => {
-    setProfileData(prev => ({
-      ...prev,
-      selectedInterests: prev.selectedInterests.includes(interest)
-        ? prev.selectedInterests.filter(i => i !== interest)
-        : [...prev.selectedInterests, interest]
-    }));
   };
 
   const handlePhotoSelect = () => {
@@ -84,16 +68,10 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
            profileData.gender;
   };
 
-  const canProceedFromInterests = () => {
-    return profileData.selectedInterests.length >= 3;
-  };
-
   const handleNext = () => {
     if (step === 'basic' && canProceedFromBasic()) {
       setStep('photo');
     } else if (step === 'photo') {
-      setStep('interests');
-    } else if (step === 'interests' && canProceedFromInterests()) {
       setStep('bio');
     }
   };
@@ -101,10 +79,8 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
   const handleBack = () => {
     if (step === 'photo') {
       setStep('basic');
-    } else if (step === 'interests') {
-      setStep('photo');
     } else if (step === 'bio') {
-      setStep('interests');
+      setStep('photo');
     } else if (onBack) {
       onBack();
     }
@@ -182,7 +158,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         dateOfBirth: profileData.dateOfBirth,
         gender: profileData.gender,
         location: profileData.location || undefined,
-        interests: profileData.selectedInterests,
         profilePhotoUrl: profilePhotoUrl || undefined
       });
 
@@ -370,37 +345,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
     </motion.div>
   );
 
-  const renderInterestsStep = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="space-y-6"
-    >
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">What are you into?</h2>
-        <p className="text-gray-400">
-          Select at least 3 interests (Selected: {profileData.selectedInterests.length})
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
-        {interests.map((interest) => (
-          <button
-            key={interest}
-            onClick={() => handleInterestToggle(interest)}
-            className={`p-3 rounded-lg border-2 transition-all text-sm ${
-              profileData.selectedInterests.includes(interest)
-                ? 'border-blue-500 bg-blue-600/20 text-blue-400'
-                : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
-            }`}
-          >
-            {interest}
-          </button>
-        ))}
-      </div>
-    </motion.div>
-  );
-
   const renderBioStep = () => (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -420,7 +364,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           value={profileData.bio}
           onChange={(e) => handleInputChange('bio', e.target.value)}
           className="w-full h-32 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-          placeholder="Tell people about yourself, your interests, what you're looking for..."
+          placeholder="Tell people about yourself, what you're looking for..."
           maxLength={200}
         />
         <div className="flex justify-end mt-1">
@@ -452,21 +396,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
             <p className="text-gray-300 text-sm mt-1">
               {profileData.bio || 'Your bio will appear here...'}
             </p>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {profileData.selectedInterests.slice(0, 3).map((interest) => (
-                <span
-                  key={interest}
-                  className="px-2 py-1 bg-blue-600/20 text-blue-400 text-xs rounded-full"
-                >
-                  {interest}
-                </span>
-              ))}
-              {profileData.selectedInterests.length > 3 && (
-                <span className="px-2 py-1 bg-gray-600/20 text-gray-400 text-xs rounded-full">
-                  +{profileData.selectedInterests.length - 3} more
-                </span>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -474,7 +403,7 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
   );
 
   const getStepProgress = () => {
-    const steps = ['basic', 'photo', 'interests', 'bio'];
+    const steps = ['basic', 'photo', 'bio'];
     return ((steps.indexOf(step) + 1) / steps.length) * 100;
   };
 
@@ -484,8 +413,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         return canProceedFromBasic();
       case 'photo':
         return true; // Photo is optional
-      case 'interests':
-        return canProceedFromInterests();
       case 'bio':
         return profileData.bio.trim().length > 0;
       default:
@@ -516,10 +443,9 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
             </div>
             
             <span className="text-sm text-gray-400 min-w-0">
-              {step === 'basic' && '1/4'}
-              {step === 'photo' && '2/4'}
-              {step === 'interests' && '3/4'}
-              {step === 'bio' && '4/4'}
+              {step === 'basic' && '1/3'}
+              {step === 'photo' && '2/3'}
+              {step === 'bio' && '3/3'}
             </span>
           </div>
 
@@ -527,7 +453,6 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           <div className="flex-1 overflow-y-auto mobile-scroll">
             {step === 'basic' && renderBasicInfo()}
             {step === 'photo' && renderPhotoStep()}
-            {step === 'interests' && renderInterestsStep()}
             {step === 'bio' && renderBioStep()}
           </div>
 

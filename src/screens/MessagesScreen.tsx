@@ -67,7 +67,6 @@ export const MessagesScreen: React.FC<Props> = ({
         age: profile.date_of_birth ? 
           new Date().getFullYear() - new Date(profile.date_of_birth).getFullYear() : 25,
         distance: Math.floor(Math.random() * 50) + 1,
-        interests: profile.interests || [],
         links: {
           Twitter: profile.twitter_url || '#',
           Instagram: profile.instagram_url || '#',

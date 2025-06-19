@@ -114,25 +114,6 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
             </div>
           </div>
 
-          {/* Interests (if available) */}
-          {user.interests && user.interests.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {user.interests.slice(0, 3).map((interest) => (
-                <span
-                  key={interest}
-                  className="px-2 py-1 bg-blue-600/20 text-blue-400 text-xs rounded-full"
-                >
-                  {interest}
-                </span>
-              ))}
-              {user.interests.length > 3 && (
-                <span className="px-2 py-1 bg-gray-600/20 text-gray-400 text-xs rounded-full">
-                  +{user.interests.length - 3} more
-                </span>
-              )}
-            </div>
-          )}
-
           {/* Proximity-based insights for 1km radius */}
           {user.distance < 0.2 && (
             <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-3 mb-4">

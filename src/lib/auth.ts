@@ -188,7 +188,6 @@ export const completeProfileSetup = async (profileData: {
   dateOfBirth?: string
   gender?: string
   location?: string
-  interests?: string[]
   profilePhotoUrl?: string
 }): Promise<AuthResponse> => {
   if (!isSupabaseAvailable()) {
@@ -233,7 +232,6 @@ export const completeProfileSetup = async (profileData: {
         date_of_birth: profileData.dateOfBirth,
         gender: profileData.gender,
         location: profileData.location,
-        interests: profileData.interests || [],
         profile_photo_url: profileData.profilePhotoUrl,
         profile_completed: true,
         updated_at: new Date().toISOString()

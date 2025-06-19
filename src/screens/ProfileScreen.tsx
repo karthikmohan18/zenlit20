@@ -146,7 +146,6 @@ export const ProfileScreen: React.FC<Props> = ({
             name: updatedProfile.name,
             bio: updatedProfile.bio,
             location: updatedProfile.location,
-            interests: updatedProfile.interests,
             profile_photo_url: updatedProfile.dpUrl,
             updated_at: new Date().toISOString()
           })
@@ -349,25 +348,6 @@ export const ProfileScreen: React.FC<Props> = ({
           {/* Location */}
           {profileData.location && (
             <p className="text-gray-400 text-sm mt-2">📍 {profileData.location}</p>
-          )}
-
-          {/* Interests */}
-          {profileData.interests && profileData.interests.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              {profileData.interests.slice(0, 6).map((interest: string) => (
-                <span
-                  key={interest}
-                  className="px-3 py-1 bg-blue-600/20 text-blue-400 text-sm rounded-full"
-                >
-                  {interest}
-                </span>
-              ))}
-              {profileData.interests.length > 6 && (
-                <span className="px-3 py-1 bg-gray-600/20 text-gray-400 text-sm rounded-full">
-                  +{profileData.interests.length - 6} more
-                </span>
-              )}
-            </div>
           )}
           
           {/* Social Links with verification indicators (excluding Facebook) */}

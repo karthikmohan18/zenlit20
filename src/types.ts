@@ -9,7 +9,6 @@ export interface User {
   gender: 'male' | 'female';
   age: number;
   distance: number;
-  interests: string[];
   links: {
     Twitter: string;
     Instagram: string;
