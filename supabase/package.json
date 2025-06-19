@@ -9,6 +9,7 @@
     "generate-types": "supabase gen types typescript --local > ../src/types/supabase.ts",
     "dev:web": "cd .. && npm run dev"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
 }
