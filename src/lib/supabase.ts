@@ -1,16 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Ensure environment variables are available with fallbacks
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://udixrkvcyrxmmrbadhpj.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkaXhya3ZjeXJ4bW1yYmFkaHBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5NjI3MjIsImV4cCI6MjA2NTUzODcyMn0.BXmEyUjCNsZmKUnQHNPE_fIEB6QDIpnxKD6wbgyOHEA'
 
-// Validate environment variables and throw error if missing
+// Validate environment variables
 if (!supabaseUrl) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+  console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
 }
 
 if (!supabaseAnonKey) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
+  console.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY environment variable')
 }
 
 // Custom fetch function to suppress expected auth error logs
@@ -49,6 +49,11 @@ const customFetch = async (url: RequestInfo | URL, options?: RequestInit) => {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: {
     fetch: customFetch
+  },
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
   }
 })
 
