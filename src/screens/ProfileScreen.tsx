@@ -199,10 +199,9 @@ export const ProfileScreen: React.FC<Props> = ({
     );
   }
 
-  // Count verified social accounts
+  // Count verified social accounts (excluding Facebook)
   const verifiedAccountsCount = [
     profileData.instagram_verified,
-    profileData.facebook_verified,
     profileData.linked_in_verified,
     profileData.twitter_verified,
     profileData.google_verified
@@ -371,7 +370,7 @@ export const ProfileScreen: React.FC<Props> = ({
             </div>
           )}
           
-          {/* Social Links with verification indicators */}
+          {/* Social Links with verification indicators (excluding Facebook) */}
           <div className="flex justify-center gap-8 mt-8">
             <a
               href={profileData.twitter_url || '#'}

@@ -20,11 +20,9 @@ export interface User {
   longitude?: number;
   // Cover photo field
   coverPhotoUrl?: string;
-  // Social media verification fields
+  // Social media verification fields (removed Facebook)
   instagramUrl?: string;
   instagramVerified?: boolean;
-  facebookUrl?: string;
-  facebookVerified?: boolean;
   linkedInUrl?: string;
   linkedInVerified?: boolean;
   twitterUrl?: string;
@@ -70,7 +68,7 @@ export interface CurrentUser extends User {
 }
 
 export interface SocialProvider {
-  id: 'instagram' | 'facebook' | 'linkedin' | 'twitter' | 'google';
+  id: 'instagram' | 'linkedin' | 'twitter' | 'google'; // Removed 'facebook'
   name: string;
   color: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;

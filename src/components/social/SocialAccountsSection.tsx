@@ -4,8 +4,7 @@ import { SocialAuthButton } from './SocialAuthButton';
 import { 
   IconBrandInstagram, 
   IconBrandLinkedin, 
-  IconBrandX, 
-  IconBrandFacebook
+  IconBrandX
 } from '@tabler/icons-react';
 
 interface Props {
@@ -22,12 +21,6 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
       name: 'Instagram',
       color: 'pink',
       icon: IconBrandInstagram
-    },
-    {
-      id: 'facebook',
-      name: 'Facebook',
-      color: 'blue',
-      icon: IconBrandFacebook
     },
     {
       id: 'linkedin',
@@ -50,12 +43,6 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
           isConnected: !!user.instagramUrl,
           isVerified: !!user.instagramVerified,
           profileUrl: user.instagramUrl
-        };
-      case 'facebook':
-        return {
-          isConnected: !!user.facebookUrl,
-          isVerified: !!user.facebookVerified,
-          profileUrl: user.facebookUrl
         };
       case 'linkedin':
         return {
@@ -113,7 +100,6 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
       // Simulate successful OAuth response
       const mockProfileUrls = {
         instagram: 'https://instagram.com/verified_user',
-        facebook: 'https://facebook.com/verified.user',
         linkedin: 'https://linkedin.com/in/verified-user',
         twitter: 'https://twitter.com/verified_user'
       };
