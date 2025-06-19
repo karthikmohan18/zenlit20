@@ -18,7 +18,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     bio: user.bio,
     dpUrl: user.dpUrl,
     coverPhotoUrl: user.coverPhotoUrl || '',
-    // Social verification data
     instagramUrl: user.instagramUrl,
     instagramVerified: user.instagramVerified,
     facebookUrl: user.facebookUrl,
@@ -28,12 +27,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     twitterUrl: user.twitterUrl,
     twitterVerified: user.twitterVerified,
   });
-  
-  const [isEditing, setIsEditing] = useState({
-    profilePicture: false,
-    coverPhoto: false
-  });
-  
   const [showSuccess, setShowSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -41,12 +34,13 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   const [profileUrl, setProfileUrl] = useState<string>('');
   const [bannerUrl, setBannerUrl] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('profile_photo_url, cover_photo_url')
         .eq('id', user.id)
@@ -59,10 +53,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   }, []);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
 
@@ -111,19 +102,139 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   const handleSave = async () => {
     setLoading(true);
     try {
+      console.log('Starting profile save process...');
+      console.log('Profile file:', profileFile);
+      console.log('Banner file:', bannerFile);
+      console.log('Form data:', formData);
+
+      let newProfileUrl = profileUrl;
+      let newBannerUrl = bannerUrl;
+
       if (profileFile) {
-        const newProfileUrl = await uploadProfileImage(profileFile);
-        await supabase.from('profiles').update({ profile_photo_url: newProfileUrl }).eq('id', user.id);
-        setProfileUrl(newProfileUrl);
+        console.log('Uploading profile image...');
+        try {
+          newProfileUrl = await uploadProfileImage(profileFile);
+          console.log('Profile image uploaded:', newProfileUrl);
+          if (newProfileUrl) {
+            const { error: profileUpdateError } = await supabase
+              .from('profiles')
+              .update({ profile_photo_url: newProfileUrl })
+              .eq('id', user.id);
+
+            if (profileUpdateError) {
+              console.error('Profile photo URL update error:', profileUpdateError);
+              throw new Error(`Failed to update profile photo: ${profileUpdateError.message}`);
+            }
+            setProfileUrl(newProfileUrl);
+          }
+        } catch (uploadError) {
+          console.error('Profile image upload error:', uploadError);
+          throw new Error(`Profile image upload failed: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+        }
       }
+
       if (bannerFile) {
-        const newBannerUrl = await uploadBannerImage(bannerFile);
-        await supabase.from('profiles').update({ cover_photo_url: newBannerUrl }).eq('id', user.id);
-        setBannerUrl(newBannerUrl);
+        console.log('Uploading banner image...');
+        try {
+          newBannerUrl = await uploadBannerImage(bannerFile);
+          console.log('Banner image uploaded:', newBannerUrl);
+          if (newBannerUrl) {
+            const { error: bannerUpdateError } = await supabase
+              .from('profiles')
+              .update({ cover_photo_url: newBannerUrl })
+              .eq('id', user.id);
+
+            if (bannerUpdateError) {
+              console.error('Cover photo URL update error:', bannerUpdateError);
+              throw new Error(`Failed to update cover photo: ${bannerUpdateError.message}`);
+            }
+            setBannerUrl(newBannerUrl);
+          }
+        } catch (uploadError) {
+          console.error('Banner image upload error:', uploadError);
+          throw new Error(`Banner image upload failed: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`);
+        }
       }
-    } catch (err) {
-      console.error(err);
-      alert('Upload failed – please try again.');
+
+      // Update other profile fields
+      const updateData = {
+        name: formData.name,
+        bio: formData.bio,
+        instagram_url: formData.instagramUrl,
+        instagram_verified: formData.instagramVerified,
+        facebook_url: formData.facebookUrl,
+        facebook_verified: formData.facebookVerified,
+        linked_in_url: formData.linkedInUrl,
+        linked_in_verified: formData.linkedInVerified,
+        twitter_url: formData.twitterUrl,
+        twitter_verified: formData.twitterVerified,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log('Updating profile with data:', updateData);
+
+      const { data: updatedProfile, error: updateError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Profile update error:', {
+          message: updateError.message,
+          code: updateError.code,
+          details: updateError.details,
+          hint: updateError.hint,
+        });
+
+        if (updateError.code === 'PGRST116') {
+          throw new Error('Profile not found. Please try logging out and back in.');
+        } else if (updateError.code === '23505') {
+          throw new Error('Username is already taken. Please choose a different one.');
+        } else if (updateError.message.includes('auth')) {
+          throw new Error('Authentication error. Please log in again.');
+        } else {
+          throw new Error(`Database error: ${updateError.message}`);
+        }
+      }
+
+      if (!updatedProfile) {
+        throw new Error('Profile update returned no data');
+      }
+
+      console.log('Profile updated successfully:', updatedProfile);
+
+      const transformedUser = transformProfileToUser({
+        ...updatedProfile,
+        profile_photo_url: newProfileUrl,
+        cover_photo_url: newBannerUrl,
+      });
+
+      setShowSuccess(true);
+      setTimeout(() => {
+        onSave(transformedUser);
+      }, 1500);
+    } catch (error) {
+      console.error('Profile save error:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      if (error instanceof Error) {
+        if (error.message.includes('upload')) {
+          alert(`Upload failed: ${error.message}`);
+        } else if (error.message.includes('auth')) {
+          alert('Authentication error. Please log in again.');
+        } else if (error.message.includes('database') || error.message.includes('Database')) {
+          alert(`Database error: ${error.message}`);
+        } else {
+          alert(`Failed to save profile: ${error.message}`);
+        }
+      } else {
+        alert('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -139,7 +250,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     }
   };
 
-  // Success Animation Component
   if (showSuccess) {
     return (
       <div className="h-full bg-black flex items-center justify-center">
@@ -165,9 +275,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           >
             <ChevronLeftIcon className="w-5 h-5 text-white" />
           </button>
-          
           <h1 className="text-lg font-semibold text-white">Edit Profile</h1>
-          
           <button
             onClick={handleSave}
             disabled={loading}
@@ -184,7 +292,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           </button>
         </div>
       </div>
-
 
       <div className="pb-8">
         {/* Cover Photo Section */}
@@ -203,7 +310,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               </div>
             </div>
           )}
-          
           <button
             onClick={() => handleImageSelect('cover')}
             className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm p-3 rounded-full text-white hover:bg-black/80 active:scale-95 transition-all z-10"
@@ -241,8 +347,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           {/* Basic Information */}
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">Basic Information</h2>
-            
-            {/* Name - Read Only */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Display Name
@@ -258,15 +362,13 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
                 Display name cannot be changed
               </p>
             </div>
-
-            {/* Bio */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Bio
               </label>
               <textarea
                 value={formData.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
+                onChange={e => handleInputChange('bio', e.target.value)}
                 className="w-full h-24 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 placeholder="Tell people about yourself..."
                 maxLength={150}
@@ -279,10 +381,10 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
             </div>
           </div>
 
-          {/* Social Accounts Authentication Section */}
+          {/* Social Accounts */}
           <SocialAccountsSection 
-            user={{ ...user, ...formData }}
-            onUserUpdate={handleUserUpdate}
+            user={{ ...user, ...formData }} 
+            onUserUpdate={handleUserUpdate} 
           />
         </div>
 
@@ -291,14 +393,14 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          onChange={(e) => handleFileSelect(e, 'profile')}
+          onChange={e => handleFileSelect(e, 'profile')}
           className="hidden"
         />
         <input
           ref={coverInputRef}
           type="file"
           accept="image/*"
-          onChange={(e) => handleFileSelect(e, 'cover')}
+          onChange={e => handleFileSelect(e, 'cover')}
           className="hidden"
         />
       </div>
