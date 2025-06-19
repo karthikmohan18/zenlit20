@@ -231,8 +231,8 @@ export const ProfileScreen: React.FC<Props> = ({
   return (
     <div className="min-h-full bg-black">
       {/* Profile Header with Cover Photo */}
-      <div className="relative">
-        <div className="h-48 bg-gray-800">
+      <div className="relative bg-gray-800 pb-8">
+        <div className="h-48">
           {profileData.cover_photo_url && (
             <img
               src={profileData.cover_photo_url}
@@ -292,9 +292,9 @@ export const ProfileScreen: React.FC<Props> = ({
             {!isCurrentUser && <div className="w-12" />}
           </div>
         </div>
-        
+
         {/* Profile Avatar */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute top-4 left-4">
           <div className="relative">
             {profileData.profile_photo_url ? (
               <img
@@ -315,63 +315,26 @@ export const ProfileScreen: React.FC<Props> = ({
             )}
           </div>
         </div>
-        
-        {/* Click outside to close settings menu */}
-        {showSettingsMenu && (
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setShowSettingsMenu(false)}
-          />
-        )}
-      </div>
 
-      {/* Profile Content */}
-      <div className="mt-16 px-4 pb-20">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h1 className="text-2xl font-bold text-white">{profileData.name}</h1>
-            {verifiedAccountsCount > 0 && (
-              <CheckCircleIcon className="w-6 h-6 text-blue-500" />
-            )}
-          </div>
-          
-          {/* Verification status */}
+        {/* Username */}
+        <div className="pt-40 pl-4 pr-4">
+          <h1 className="text-2xl font-semibold mt-2 text-white">{profileData.name}</h1>
           {verifiedAccountsCount > 0 && (
-            <p className="text-sm text-blue-400 mb-2">
+            <p className="text-sm text-blue-400 mt-1">
               {verifiedAccountsCount} verified account{verifiedAccountsCount !== 1 ? 's' : ''}
             </p>
           )}
-          
-          <p className="text-gray-300 mt-2 text-base leading-relaxed">
-            {profileData.bio || 'No bio available'}
-          </p>
-
-          {/* Location */}
           {profileData.location && (
             <p className="text-gray-400 text-sm mt-2">📍 {profileData.location}</p>
           )}
+          <section className="mt-4 px-4">
+            <p className="text-gray-300 text-base leading-relaxed">
+              {profileData.bio || 'No bio available'}
+            </p>
+          </section>
 
-          {/* Interests */}
-          {profileData.interests && profileData.interests.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              {profileData.interests.slice(0, 6).map((interest: string) => (
-                <span
-                  key={interest}
-                  className="px-3 py-1 bg-blue-600/20 text-blue-400 text-sm rounded-full"
-                >
-                  {interest}
-                </span>
-              ))}
-              {profileData.interests.length > 6 && (
-                <span className="px-3 py-1 bg-gray-600/20 text-gray-400 text-sm rounded-full">
-                  +{profileData.interests.length - 6} more
-                </span>
-              )}
-            </div>
-          )}
-          
           {/* Social Links with verification indicators (excluding Facebook) */}
-          <div className="flex justify-center gap-8 mt-8">
+          <div className="flex space-x-4 justify-start mt-4">
             <a
               href={profileData.twitter_url || '#'}
               target="_blank"
@@ -413,7 +376,18 @@ export const ProfileScreen: React.FC<Props> = ({
             </a>
           </div>
         </div>
-        
+
+        {/* Click outside to close settings menu */}
+        {showSettingsMenu && (
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setShowSettingsMenu(false)}
+          />
+        )}
+      </div>
+
+      {/* Profile Content */}
+      <div className="px-4 pb-20">
         {/* Posts Section */}
         <div className="mt-10">
           <div className="flex items-center justify-between mb-6">
