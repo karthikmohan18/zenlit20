@@ -214,24 +214,21 @@ export const calculateDistance = (
   lat2: number,
   lon2: number
 ): number => {
-  const R = 6371; // Earth's radius in kilometers
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
-  
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c; // Distance in kilometers
-  
-  return Math.round(distance * 10) / 10; // Round to 1 decimal place
-};
+  const R = 6371; // Earth's radius in km
 
-// Helper function to convert degrees to radians
-const toRadians = (degrees: number): number => {
-  return degrees * (Math.PI / 180);
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
 };
 
 // Check if location has changed significantly (more than 100 meters)
@@ -250,11 +247,11 @@ export const hasLocationChangedSignificantly = (
   return distance >= thresholdKm;
 };
 
-// Enhanced function to get nearby users with better fallback logic and detailed logging
+// Enhanced function to get nearby users within 1km radius
 export const getNearbyUsers = async (
   currentUserId: string,
   currentLocation: UserLocation,
-  maxDistance: number = 50, // kilometers
+  maxDistance: number = 1, // Changed to 1km radius
   limit: number = 20
 ): Promise<{
   success: boolean;
@@ -265,16 +262,18 @@ export const getNearbyUsers = async (
     console.log('🔍 LOCATION DEBUG: Starting getNearbyUsers function');
     console.log('📍 Current user ID:', currentUserId);
     console.log('📍 Current location:', currentLocation);
-    console.log('📍 Max distance:', maxDistance, 'km');
+    console.log('📍 Max distance:', maxDistance, 'km (1km radius)');
     console.log('📍 Limit:', limit);
 
-    // Get ALL users with basic profile data (much more inclusive query)
+    // Get users with location data only (since we need precise distance calculation)
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
       .neq('id', currentUserId)
       .not('name', 'is', null)
-      .limit(100); // Get more users for better results
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null)
+      .limit(100); // Get more users for better filtering
 
     console.log('🔍 LOCATION DEBUG: Raw profiles from database:', profiles);
     console.log('🔍 LOCATION DEBUG: Database query error:', error);
@@ -288,16 +287,16 @@ export const getNearbyUsers = async (
     }
 
     if (!profiles || profiles.length === 0) {
-      console.log('🔍 LOCATION DEBUG: No profiles found in database');
+      console.log('🔍 LOCATION DEBUG: No profiles with location data found');
       return {
         success: true,
         users: []
       };
     }
 
-    console.log('🔍 LOCATION DEBUG: Processing', profiles.length, 'profiles');
+    console.log('🔍 LOCATION DEBUG: Processing', profiles.length, 'profiles with location data');
 
-    // Process users and calculate distances
+    // Process users and calculate precise distances using haversine formula
     const usersWithDistance = profiles
       .map((profile, index) => {
         console.log(`🔍 LOCATION DEBUG: Processing profile ${index + 1}/${profiles.length}`);
@@ -306,61 +305,48 @@ export const getNearbyUsers = async (
         console.log('👤 Profile latitude:', profile.latitude);
         console.log('👤 Profile longitude:', profile.longitude);
 
-        let distance: number;
-        
-        const hasLocation = profile.latitude && profile.longitude;
-        console.log('📍 Profile has location data:', hasLocation);
-        
-        if (hasLocation) {
-          // Calculate real distance for users with location
-          distance = calculateDistance(
-            currentLocation.latitude,
-            currentLocation.longitude,
-            profile.latitude,
-            profile.longitude
-          );
-          console.log('📏 Calculated real distance:', distance, 'km');
-        } else {
-          // Assign random distance within 5km for users without location
-          // This ensures users without location still appear in radar
-          distance = Math.random() * 5; // 0-5km
-          console.log('📏 Assigned random distance (no location):', distance, 'km');
-        }
+        // Calculate precise distance using haversine formula
+        const distance = calculateDistance(
+          currentLocation.latitude,
+          currentLocation.longitude,
+          profile.latitude,
+          profile.longitude
+        );
+
+        console.log('📏 Calculated precise distance:', distance, 'km');
 
         const userWithDistance = {
           ...profile,
           distance,
-          hasRealLocation: hasLocation
+          hasRealLocation: true
         };
 
         console.log('✅ Final user object:', {
           id: userWithDistance.id,
           name: userWithDistance.name,
           distance: userWithDistance.distance,
-          hasRealLocation: hasLocation
+          hasRealLocation: true
         });
 
         return userWithDistance;
       })
       .filter(user => {
-        // More generous distance filtering - show users within 10km or without location
-        const withinDistance = user.distance <= Math.min(maxDistance, 10);
-        console.log(`🔍 LOCATION DEBUG: User ${user.name} distance ${user.distance}km - within limit: ${withinDistance}`);
-        return withinDistance;
+        // Filter users within 1km radius only
+        const withinRadius = user.distance <= maxDistance;
+        console.log(`🔍 LOCATION DEBUG: User ${user.name} distance ${user.distance.toFixed(3)}km - within 1km radius: ${withinRadius}`);
+        return withinRadius;
       })
       .sort((a, b) => {
-        // Sort by distance, but prioritize users with real location
-        if (a.hasRealLocation && !b.hasRealLocation) return -1;
-        if (!a.hasRealLocation && b.hasRealLocation) return 1;
+        // Sort by distance (closest first)
         return a.distance - b.distance;
       })
       .slice(0, limit); // Limit results
 
-    console.log('🔍 LOCATION DEBUG: Users after filtering and sorting:', usersWithDistance);
-    console.log('🔍 LOCATION DEBUG: Final user count:', usersWithDistance.length);
+    console.log('🔍 LOCATION DEBUG: Users within 1km radius after filtering:', usersWithDistance);
+    console.log('🔍 LOCATION DEBUG: Final user count within 1km:', usersWithDistance.length);
 
     usersWithDistance.forEach((user, index) => {
-      console.log(`📋 Final user ${index + 1}: ${user.name} - ${user.distance}km away (real location: ${user.hasRealLocation})`);
+      console.log(`📋 Final user ${index + 1}: ${user.name} - ${user.distance.toFixed(3)}km away`);
     });
 
     return {

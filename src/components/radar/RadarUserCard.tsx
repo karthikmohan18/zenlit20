@@ -20,34 +20,32 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
     ? user.bio.substring(0, 100) 
     : user.bio;
 
-  // Format distance display with more detailed ranges
+  // Format distance display with more detailed ranges for 1km radius
   const formatDistance = (distance: number): string => {
-    if (distance < 0.1) {
-      return 'Very close (< 100m)';
-    } else if (distance < 0.5) {
+    if (distance < 0.05) {
+      return 'Very close (< 50m)';
+    } else if (distance < 0.1) {
       return `${Math.round(distance * 1000)}m away`;
+    } else if (distance < 0.5) {
+      return `${(distance * 1000).toFixed(0)}m away`;
     } else if (distance < 1) {
       return `${(distance * 1000).toFixed(0)}m away`;
-    } else if (distance < 5) {
-      return `${distance.toFixed(1)} km away`;
-    } else if (distance < 10) {
-      return `${distance.toFixed(1)} km away`;
     } else {
-      return `${Math.round(distance)} km away`;
+      return `${distance.toFixed(2)} km away`;
     }
   };
 
-  // Get distance color based on proximity
+  // Get distance color based on proximity within 1km
   const getDistanceColor = (distance: number): string => {
-    if (distance < 1) return 'text-green-400';
-    if (distance < 5) return 'text-yellow-400';
-    if (distance < 15) return 'text-orange-400';
-    return 'text-gray-400';
+    if (distance < 0.1) return 'text-green-400'; // < 100m
+    if (distance < 0.3) return 'text-yellow-400'; // < 300m
+    if (distance < 0.6) return 'text-orange-400'; // < 600m
+    return 'text-gray-400'; // < 1km
   };
 
   // Get distance icon based on proximity
   const getDistanceIcon = (distance: number) => {
-    if (distance < 1) {
+    if (distance < 0.1) {
       return <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />;
     }
     return <MapPinIcon className="w-4 h-4" />;
@@ -70,7 +68,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                   className="w-14 h-14 rounded-full object-cover ring-2 ring-blue-500"
                 />
                 {/* Online indicator for very close users */}
-                {user.distance < 0.5 && (
+                {user.distance < 0.1 && (
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 flex items-center justify-center">
                     <div className="w-2 h-2 bg-white rounded-full" />
                   </div>
@@ -87,7 +85,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
                   )}
                 </div>
                 
-                {/* Enhanced distance indicator */}
+                {/* Enhanced distance indicator for 1km radius */}
                 <div className={`flex items-center gap-1 text-sm flex-shrink-0 ml-3 ${getDistanceColor(user.distance)}`}>
                   {getDistanceIcon(user.distance)}
                   <span className="font-medium">{formatDistance(user.distance)}</span>
@@ -135,13 +133,13 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
             </div>
           )}
 
-          {/* Location-based insights */}
-          {user.distance < 2 && (
+          {/* Proximity-based insights for 1km radius */}
+          {user.distance < 0.2 && (
             <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-3 mb-4">
               <div className="flex items-center gap-2">
                 <MapPinIcon className="w-4 h-4 text-green-400" />
                 <span className="text-sm text-green-300">
-                  {user.distance < 0.5 ? 'Very close by!' : 'Nearby - perfect for meeting up!'}
+                  {user.distance < 0.1 ? 'Very close by!' : 'Nearby - perfect for meeting up!'}
                 </span>
               </div>
             </div>
@@ -204,11 +202,11 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
               <button
                 onClick={() => onMessage(user)}
                 className={`text-white px-4 py-3 rounded-xl active:scale-95 transition-all ${
-                  user.distance < 1 
+                  user.distance < 0.2 
                     ? 'bg-green-600 hover:bg-green-700' 
                     : 'bg-blue-600 hover:bg-blue-700'
                 }`}
-                title={user.distance < 1 ? 'Send message (nearby!)' : 'Send message'}
+                title={user.distance < 0.2 ? 'Send message (very close!)' : 'Send message'}
               >
                 <ChatBubbleLeftIcon className="w-5 h-5" />
               </button>
@@ -216,7 +214,7 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
           </div>
 
           {/* Last seen indicator for very close users */}
-          {user.distance < 0.1 && (
+          {user.distance < 0.05 && (
             <div className="mt-3 pt-3 border-t border-gray-700">
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <ClockIcon className="w-3 h-3" />

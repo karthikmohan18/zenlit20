@@ -47,7 +47,6 @@ export const RadarScreen: React.FC<Props> = ({
   const [isLocationTracking, setIsLocationTracking] = useState(false);
   const [lastLocationUpdate, setLastLocationUpdate] = useState<number>(0);
   const [isUpdatingUsers, setIsUpdatingUsers] = useState(false);
-  const [useDefaultLocation, setUseDefaultLocation] = useState(false);
 
   // Refs for cleanup
   const locationWatchId = useRef<number | null>(null);
@@ -69,7 +68,7 @@ export const RadarScreen: React.FC<Props> = ({
 
   const initializeRadar = async () => {
     try {
-      console.log('🚀 RADAR DEBUG: Initializing radar screen');
+      console.log('🚀 RADAR DEBUG: Initializing radar screen with 1km radius');
       
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -115,12 +114,12 @@ export const RadarScreen: React.FC<Props> = ({
         };
         setCurrentLocation(userLocation);
         setLocationPermission({ granted: true, denied: false, pending: false });
-        await loadRealUsersOnly(user.id, userLocation);
+        await loadUsersWithin1km(user.id, userLocation);
         
         // Start location tracking for dynamic updates
         startLocationTracking(user.id);
       } else {
-        console.log('🚀 RADAR DEBUG: User has no location data, trying to get location');
+        console.log('🚀 RADAR DEBUG: User has no location data, need location for 1km radius');
         // Try to get real location first
         const permissionStatus = await checkLocationPermission();
         setLocationPermission(permissionStatus);
@@ -130,90 +129,58 @@ export const RadarScreen: React.FC<Props> = ({
           try {
             await handleRequestLocation();
           } catch (error) {
-            console.log('🚀 RADAR DEBUG: Real location failed, loading users without location');
-            await loadRealUsersOnly(user.id, null);
+            console.log('🚀 RADAR DEBUG: Real location failed, cannot show users within 1km without location');
+            setUsers([]); // No users without location for 1km radius
           }
         } else {
-          // Load real users without location
-          console.log('🚀 RADAR DEBUG: Location not available, loading users without location');
-          await loadRealUsersOnly(user.id, null);
+          // Cannot show users within 1km without location
+          console.log('🚀 RADAR DEBUG: Location not available, cannot show users within 1km radius');
+          setUsers([]);
         }
       }
     } catch (error) {
       console.error('🚀 RADAR DEBUG: Error initializing radar:', error);
-      // Even if there's an error, try to show users
-      if (currentUser) {
-        await loadRealUsersOnly(currentUser.id, null);
-      }
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load only real users from database - no more dummy data
-  const loadRealUsersOnly = async (currentUserId: string, location: UserLocation | null) => {
+  // Load users within 1km radius only
+  const loadUsersWithin1km = async (currentUserId: string, location: UserLocation) => {
     try {
-      console.log('🔄 RADAR DEBUG: Loading real users only');
+      console.log('🔄 RADAR DEBUG: Loading users within 1km radius');
       
       if (!isUpdatingUsers) {
         setIsLoading(true);
       }
 
-      // Get all real users from database
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', currentUserId)
-        .not('name', 'is', null)
-        .not('bio', 'is', null)
-        .limit(50);
+      // Use the updated getNearbyUsers function with 1km radius
+      const result = await getNearbyUsers(currentUserId, location, 1, 20);
 
-      console.log('🔄 RADAR DEBUG: Real profiles from database:', profiles);
-
-      if (error) {
-        console.error('Error loading real users:', error);
+      if (!result.success) {
+        console.error('Error loading nearby users:', result.error);
         if (mountedRef.current) {
           setUsers([]);
         }
         return;
       }
 
-      // Transform profiles and calculate distances if location is available
-      const transformedUsers: User[] = (profiles || []).map(profile => {
+      // Transform profiles to User type
+      const transformedUsers: User[] = (result.users || []).map(profile => {
         const user = transformProfileToUser(profile);
-        
-        // Calculate real distance if both users have location data
-        if (location && profile.latitude && profile.longitude) {
-          user.distance = calculateDistance(
-            location.latitude,
-            location.longitude,
-            profile.latitude,
-            profile.longitude
-          );
-          console.log(`🔄 RADAR DEBUG: Real distance for ${user.name}: ${user.distance}km`);
-        } else {
-          // Show all users but without specific distance
-          user.distance = 0; // No distance available
-          console.log(`🔄 RADAR DEBUG: No location data for distance calculation: ${user.name}`);
-        }
-        
+        user.distance = profile.distance; // Use the calculated distance
         return user;
-      }).sort((a, b) => {
-        // Sort by distance if available, otherwise by name
-        if (a.distance === 0 && b.distance === 0) {
-          return a.name.localeCompare(b.name);
-        }
-        return a.distance - b.distance;
       });
 
-      console.log('🔄 RADAR DEBUG: Final transformed real users:', transformedUsers);
+      console.log('🔄 RADAR DEBUG: Final users within 1km:', transformedUsers);
 
       if (mountedRef.current) {
         setUsers(transformedUsers);
-        console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} real users`);
+        console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users within 1km radius`);
       }
     } catch (error) {
-      console.error('🔄 RADAR DEBUG: Error in loadRealUsersOnly:', error);
+      console.error('🔄 RADAR DEBUG: Error in loadUsersWithin1km:', error);
       if (mountedRef.current) {
         setUsers([]);
       }
@@ -229,15 +196,15 @@ export const RadarScreen: React.FC<Props> = ({
     createDebouncedLocationUpdate(async (location: UserLocation) => {
       if (!currentUser || !mountedRef.current) return;
       
-      console.log('Location changed significantly, updating nearby users...');
+      console.log('Location changed significantly, updating users within 1km...');
       setIsUpdatingUsers(true);
       
       try {
         // Save new location to profile
         await saveUserLocation(currentUser.id, location);
         
-        // Update nearby users
-        await loadRealUsersOnly(currentUser.id, location);
+        // Update nearby users within 1km
+        await loadUsersWithin1km(currentUser.id, location);
         
         setLastLocationUpdate(Date.now());
       } catch (error) {
@@ -256,7 +223,7 @@ export const RadarScreen: React.FC<Props> = ({
       stopWatchingLocation(locationWatchId.current);
     }
 
-    console.log('Starting dynamic location tracking...');
+    console.log('Starting dynamic location tracking for 1km radius...');
     setIsLocationTracking(true);
 
     const watchId = watchUserLocation(
@@ -266,7 +233,7 @@ export const RadarScreen: React.FC<Props> = ({
         setCurrentLocation(prevLocation => {
           // Check if location has changed significantly
           if (prevLocation && hasLocationChangedSignificantly(prevLocation, newLocation, 0.1)) {
-            console.log('Significant location change detected');
+            console.log('Significant location change detected, updating 1km radius');
             debouncedUpdateUsers(newLocation);
           }
           
@@ -304,14 +271,13 @@ export const RadarScreen: React.FC<Props> = ({
       const result = await requestLocationAndSave(currentUser.id, currentUser.location);
       
       if (result.success && result.location) {
-        console.log('Location obtained and saved successfully');
+        console.log('Location obtained and saved successfully for 1km radius');
         setCurrentLocation(result.location);
         setLocationPermission({ granted: true, denied: false, pending: false });
         setShowLocationModal(false);
-        setUseDefaultLocation(false);
         
-        // Load nearby users with the new location
-        await loadRealUsersOnly(currentUser.id, result.location);
+        // Load users within 1km with the new location
+        await loadUsersWithin1km(currentUser.id, result.location);
         
         // Start location tracking for dynamic updates
         startLocationTracking(currentUser.id);
@@ -319,8 +285,8 @@ export const RadarScreen: React.FC<Props> = ({
         console.error('Failed to get location:', result.error);
         setLocationError(result.error || 'Failed to get location');
         
-        // Load users without location
-        await loadRealUsersOnly(currentUser.id, null);
+        // Cannot show users without location for 1km radius
+        setUsers([]);
         
         // Update permission status based on error
         if (result.error?.includes('denied')) {
@@ -329,10 +295,10 @@ export const RadarScreen: React.FC<Props> = ({
       }
     } catch (error) {
       console.error('Location request error:', error);
-      setLocationError('Failed to get location. Showing all users.');
+      setLocationError('Failed to get location. Cannot show users within 1km without location.');
       
-      // Load users without location
-      await loadRealUsersOnly(currentUser.id, null);
+      // Cannot show users without location
+      setUsers([]);
     } finally {
       setIsRequestingLocation(false);
     }
@@ -355,8 +321,7 @@ export const RadarScreen: React.FC<Props> = ({
     if (isGeolocationSupported() && isSecureContext()) {
       setShowLocationModal(true);
     } else {
-      // Just refresh users without location
-      handleRefreshLocation();
+      setLocationError('Location access is required to find users within 1km radius');
     }
   };
 
@@ -368,8 +333,7 @@ export const RadarScreen: React.FC<Props> = ({
     if (isGeolocationSupported() && isSecureContext()) {
       await handleRequestLocation();
     } else {
-      // Refresh users without location
-      await loadRealUsersOnly(currentUser.id, currentLocation);
+      setLocationError('Location access is required to find users within 1km radius');
     }
   };
 
@@ -382,7 +346,7 @@ export const RadarScreen: React.FC<Props> = ({
       <div className="min-h-full bg-black flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400">Finding people nearby...</p>
+          <p className="text-gray-400">Finding people within 1km...</p>
         </div>
       </div>
     );
@@ -395,7 +359,7 @@ export const RadarScreen: React.FC<Props> = ({
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-white">Nearby People</h1>
+              <h1 className="text-xl font-bold text-white">People Within 1km</h1>
               <div className="flex items-center gap-2 mt-1">
                 <div className="flex items-center gap-1">
                   <MapPinIcon className={`w-4 h-4 ${
@@ -406,8 +370,8 @@ export const RadarScreen: React.FC<Props> = ({
                     isLocationTracking ? 'text-green-400' : 
                     currentLocation ? 'text-blue-400' : 'text-gray-400'
                   }`}>
-                    {isLocationTracking ? 'Live tracking' : 
-                     currentLocation ? 'Location enabled' : 'No location'}
+                    {isLocationTracking ? 'Live tracking (1km radius)' : 
+                     currentLocation ? 'Location enabled (1km radius)' : 'Location required'}
                   </span>
                 </div>
                 {isUpdatingUsers && (
@@ -418,7 +382,10 @@ export const RadarScreen: React.FC<Props> = ({
                 )}
               </div>
               <p className="text-sm text-gray-400">
-                {users.length > 0 ? `${users.length} people found` : 'Searching for people...'}
+                {currentLocation ? 
+                  (users.length > 0 ? `${users.length} people within 1km` : 'No people within 1km') :
+                  'Enable location to find people within 1km'
+                }
               </p>
             </div>
             
@@ -441,18 +408,21 @@ export const RadarScreen: React.FC<Props> = ({
 
       {/* Location Status Info */}
       {!currentLocation && (
-        <div className="px-4 py-2 bg-blue-900/20 border-b border-blue-700/30">
+        <div className="px-4 py-3 bg-blue-900/20 border-b border-blue-700/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-              <span className="text-xs text-blue-400">
-                Enable location to see distances and find people nearby
-              </span>
+              <ExclamationTriangleIcon className="w-5 h-5 text-blue-500" />
+              <div>
+                <span className="text-sm text-blue-400 font-medium">Location Required</span>
+                <p className="text-xs text-blue-300">
+                  Enable precise location to find people within 1km radius
+                </p>
+              </div>
             </div>
             {isGeolocationSupported() && isSecureContext() && (
               <button
                 onClick={handleEnablePreciseLocation}
-                className="text-xs text-blue-400 hover:text-blue-300 underline"
+                className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
               >
                 Enable
               </button>
@@ -466,7 +436,7 @@ export const RadarScreen: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             <span className="text-xs text-green-400">
-              Live location tracking active - radar updates automatically as you move
+              Live tracking active - finding people within 1km as you move
             </span>
           </div>
         </div>
@@ -474,34 +444,42 @@ export const RadarScreen: React.FC<Props> = ({
 
       {/* Users List */}
       <div className="px-4 py-4 space-y-4 pb-20">
-        {users.length > 0 ? (
-          users.map((user) => (
-            <RadarUserCard
-              key={user.id}
-              user={user}
-              onMessage={handleMessage}
-              onViewProfile={() => handleViewProfile(user)}
-            />
-          ))
+        {currentLocation ? (
+          users.length > 0 ? (
+            users.map((user) => (
+              <RadarUserCard
+                key={user.id}
+                user={user}
+                onMessage={handleMessage}
+                onViewProfile={() => handleViewProfile(user)}
+              />
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MapPinIcon className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-400 mb-2">No people within 1km</p>
+              <p className="text-gray-500 text-sm">
+                Move around or check back later to find people nearby!
+              </p>
+            </div>
+          )
         ) : (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MapPinIcon className="w-8 h-8 text-gray-400" />
+              <ExclamationTriangleIcon className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-gray-400 mb-2">No people found</p>
-            <p className="text-gray-500 text-sm">
-              Users will appear here as they join Zenlit!
+            <p className="text-gray-400 mb-2">Location Access Required</p>
+            <p className="text-gray-500 text-sm mb-4">
+              We need your location to find people within 1km radius
             </p>
-            {!currentLocation && (
-              <div className="mt-4">
-                <button
-                  onClick={handleEnablePreciseLocation}
-                  className="text-blue-400 hover:text-blue-300 text-sm underline"
-                >
-                  Enable location to find people nearby
-                </button>
-              </div>
-            )}
+            <button
+              onClick={handleEnablePreciseLocation}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              Enable Location
+            </button>
           </div>
         )}
       </div>
