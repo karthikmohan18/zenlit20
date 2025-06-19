@@ -36,14 +36,14 @@ export const requestUserLocation = async (): Promise<{
 
     console.log('Requesting user location...');
 
-    // Request location with high accuracy
+    // Request location with high accuracy and increased timeout
     const position = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         resolve,
         reject,
         {
           enableHighAccuracy: true,
-          timeout: 15000, // 15 seconds timeout
+          timeout: 30000, // Increased to 30 seconds timeout
           maximumAge: 60000 // 1 minute cache for dynamic updates
         }
       );
@@ -143,7 +143,7 @@ export const watchUserLocation = (
       },
       {
         enableHighAccuracy: true,
-        timeout: 30000, // 30 seconds timeout for watch
+        timeout: 60000, // Increased to 60 seconds timeout for watch
         maximumAge: 30000 // 30 seconds cache for dynamic updates
       }
     );
