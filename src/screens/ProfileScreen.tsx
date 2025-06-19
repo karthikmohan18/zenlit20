@@ -199,7 +199,7 @@ export const ProfileScreen: React.FC<Props> = ({
     );
   }
 
-  // Count verified social accounts (removed Google)
+  // Count verified social accounts
   const verifiedAccountsCount = [
     profileData.instagram_verified,
     profileData.facebook_verified,
@@ -230,11 +230,11 @@ export const ProfileScreen: React.FC<Props> = ({
 
   return (
     <div className="min-h-full bg-black">
-      {/* Profile Header with Cover Photo */}
+      {/* Profile Header with Cover Photo - Use local default instead of stock image */}
       <div className="relative">
         <div className="h-48 bg-gradient-to-b from-blue-900 to-black">
           <img
-            src={`https://picsum.photos/800/400?random=${profileData.id || 'default'}`}
+            src="/images/default-cover.jpg"
             alt="Profile Cover"
             className="w-full h-full object-cover opacity-60"
           />
@@ -291,11 +291,11 @@ export const ProfileScreen: React.FC<Props> = ({
           </div>
         </div>
         
-        {/* Profile Avatar */}
+        {/* Profile Avatar - Use database image or local default */}
         <div className="absolute left-1/2 transform -translate-x-1/2 -translate-y-1/2">
           <div className="relative">
             <img
-              src={profileData.profile_photo_url || `https://i.pravatar.cc/300?img=${profileData.id || 'default'}`}
+              src={profileData.profile_photo_url || '/images/default-avatar.png'}
               alt={profileData.name}
               className="w-28 h-28 rounded-full border-4 border-black object-cover shadow-xl"
             />
@@ -362,7 +362,7 @@ export const ProfileScreen: React.FC<Props> = ({
             </div>
           )}
           
-          {/* Social Links with verification indicators (removed Google) */}
+          {/* Social Links with verification indicators */}
           <div className="flex justify-center gap-8 mt-8">
             <a
               href={profileData.twitter_url || '#'}

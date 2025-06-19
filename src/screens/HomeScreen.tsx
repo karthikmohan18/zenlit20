@@ -44,11 +44,11 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
         return;
       }
 
-      // Transform database profile to User type
+      // Transform database profile to User type - use local default instead of stock image
       const transformedUser: User = {
         id: profile.id,
         name: profile.name,
-        dpUrl: profile.profile_photo_url || `https://i.pravatar.cc/300?img=${profile.id}`,
+        dpUrl: profile.profile_photo_url || '/images/default-avatar.png',
         bio: profile.bio,
         gender: profile.gender,
         age: profile.date_of_birth ? 
@@ -68,8 +68,6 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
         linkedInVerified: profile.linked_in_verified,
         twitterUrl: profile.twitter_url,
         twitterVerified: profile.twitter_verified,
-        googleUrl: profile.google_url,
-        googleVerified: profile.google_verified,
       };
       setSelectedUser(transformedUser);
     } catch (error) {
