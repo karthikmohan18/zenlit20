@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, CheckCircleIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { PasswordResetScreen } from './PasswordResetScreen';
 import { sendSignupOTP, verifySignupOTP, setUserPassword, signInWithPassword } from '../lib/auth';
 
@@ -107,7 +107,14 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         setOtpCountdown(60); // Start 60 second countdown
       } else {
         console.error('OTP send failed:', result.error);
-        setError(result.error || 'Failed to send verification code');
+        // Check if the error indicates an existing account
+        if (result.error && result.error.includes('already exists')) {
+          // Switch to login view and pre-fill email
+          setCurrentView('login');
+          setError('An account with this email already exists. Please sign in below.');
+        } else {
+          setError(result.error || 'Failed to send verification code');
+        }
       }
     } catch (error) {
       console.error('OTP send error:', error);
@@ -252,6 +259,19 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     setCurrentView('login');
   };
 
+  const handleBackButton = () => {
+    if (currentView === 'signup') {
+      if (signupStep === 'email') {
+        setCurrentView('login');
+      } else if (signupStep === 'otp') {
+        setSignupStep('email');
+      } else if (signupStep === 'password') {
+        setSignupStep('otp');
+      }
+    }
+    setError(null);
+  };
+
   // Show password reset screen
   if (currentView === 'passwordReset') {
     return <PasswordResetScreen onBack={handleBackFromPasswordReset} />;
@@ -268,6 +288,19 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-6 pt-4">
+            {/* Back Button */}
+            {currentView === 'signup' && (
+              <div className="flex items-center justify-start mb-4">
+                <button
+                  onClick={handleBackButton}
+                  className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <ArrowLeftIcon className="w-5 h-5" />
+                  <span className="text-sm">Back</span>
+                </button>
+              </div>
+            )}
+            
             <h1 className="text-3xl font-bold text-white mb-2">Zenlit</h1>
             <p className="text-gray-400">Connect with people around you</p>
           </div>
