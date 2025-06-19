@@ -102,23 +102,43 @@ export async function uploadImage(
 }
 
 // Upload profile image with fallback
-export async function uploadProfileImage(
-  userId: string,
-  imageDataURL: string
-): Promise<string | null> {
+export async function uploadProfileImage(file: File): Promise<string>;
+export async function uploadProfileImage(userId: string, imageDataURL: string): Promise<string | null>;
+export async function uploadProfileImage(arg1: File | string, arg2?: string): Promise<string | null> {
   try {
-    const filePath = `${userId}/profile.jpg`;
-    const result = await uploadImage('avatars', filePath, imageDataURL);
-    
-    if (!result) {
-      console.warn('Profile image upload failed, using fallback');
+    if (arg1 instanceof File) {
+      const file = arg1;
+      const filePath = `${Date.now()}_${file.name}`;
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      return data.publicUrl;
+    } else {
+      const userId = arg1;
+      const imageDataURL = arg2 as string;
+      const filePath = `${userId}/profile.jpg`;
+      const result = await uploadImage('avatars', filePath, imageDataURL);
+      if (!result) {
+        console.warn('Profile image upload failed, using fallback');
+      }
+      return result;
     }
-    
-    return result;
   } catch (error) {
     console.error('Profile image upload error:', error);
     return null;
   }
+}
+
+export async function uploadBannerImage(file: File): Promise<string> {
+  const filePath = `${Date.now()}_${file.name}`;
+  const { error } = await supabase.storage
+    .from('banner')
+    .upload(filePath, file, { upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from('banner').getPublicUrl(filePath);
+  return data.publicUrl;
 }
 
 // Upload post image with fallback

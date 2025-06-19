@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../types';
 import { ChevronLeftIcon, CameraIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { SocialAccountsSection } from '../components/social/SocialAccountsSection';
-import { supabase } from '../../lib/supabase';
-import { uploadProfileImage, transformProfileToUser } from '../../lib/utils';
+import { uploadProfileImage, uploadBannerImage } from '../lib/storage';
+import { supabase } from '../lib/supabaseClient';
+import { transformProfileToUser } from '../../lib/utils';
 
 interface Props {
   user: User;
@@ -33,11 +34,29 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     coverPhoto: false
   });
   
-  const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [profileUrl, setProfileUrl] = useState<string>('');
+  const [bannerUrl, setBannerUrl] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('profile_photo_url, cover_photo_url')
+        .eq('id', user.id)
+        .single();
+      if (data) {
+        setProfileUrl(data.profile_photo_url || '');
+        setBannerUrl(data.cover_photo_url || '');
+      }
+    })();
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -67,16 +86,21 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     input?.click();
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, type: 'profile' | 'cover') => {
+  const handleFileSelect = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    type: 'profile' | 'cover',
+  ) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         const imageUrl = e.target?.result as string;
         if (type === 'profile') {
           setFormData(prev => ({ ...prev, dpUrl: imageUrl }));
+          setProfileFile(file);
         } else {
           setFormData(prev => ({ ...prev, coverPhotoUrl: imageUrl }));
+          setBannerFile(file);
         }
         setHasChanges(true);
       };
@@ -85,126 +109,23 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
-    
+    setLoading(true);
     try {
-      // Get current user
-      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('User fetch error:', userError);
-        throw new Error(`Authentication error: ${userError.message}`);
+      if (profileFile) {
+        const newProfileUrl = await uploadProfileImage(profileFile);
+        await supabase.from('profiles').update({ profile_photo_url: newProfileUrl }).eq('id', user.id);
+        setProfileUrl(newProfileUrl);
       }
-      
-      if (!currentUser) {
-        throw new Error('User not authenticated');
+      if (bannerFile) {
+        const newBannerUrl = await uploadBannerImage(bannerFile);
+        await supabase.from('profiles').update({ cover_photo_url: newBannerUrl }).eq('id', user.id);
+        setBannerUrl(newBannerUrl);
       }
-
-      let profilePhotoUrl = formData.dpUrl;
-      let coverPhotoUrl = formData.coverPhotoUrl;
-
-      // Handle profile photo upload if a new photo was selected (base64 data URL)
-      if (formData.dpUrl && formData.dpUrl.startsWith('data:')) {
-        console.log('Uploading new profile photo...');
-        const uploadedUrl = await uploadProfileImage(currentUser.id, formData.dpUrl);
-        
-        if (uploadedUrl) {
-          profilePhotoUrl = uploadedUrl;
-          console.log('Profile photo uploaded successfully:', uploadedUrl);
-        } else {
-          console.warn('Profile photo upload failed, keeping existing photo');
-          // Keep the original photo URL if upload fails
-          profilePhotoUrl = user.dpUrl;
-        }
-      }
-
-      // Handle cover photo upload if a new photo was selected (base64 data URL)
-      if (formData.coverPhotoUrl && formData.coverPhotoUrl.startsWith('data:')) {
-        console.log('Uploading new cover photo...');
-        const uploadedUrl = await uploadProfileImage(currentUser.id, formData.coverPhotoUrl);
-        
-        if (uploadedUrl) {
-          coverPhotoUrl = uploadedUrl;
-          console.log('Cover photo uploaded successfully:', uploadedUrl);
-        } else {
-          console.warn('Cover photo upload failed, keeping existing photo');
-          // Keep the original photo URL if upload fails
-          coverPhotoUrl = user.coverPhotoUrl || '';
-        }
-      }
-
-      // Prepare update data - only include fields that exist in the database
-      const updateData = {
-        name: formData.name,
-        bio: formData.bio,
-        profile_photo_url: profilePhotoUrl,
-        cover_photo_url: coverPhotoUrl,
-        instagram_url: formData.instagramUrl,
-        instagram_verified: formData.instagramVerified,
-        facebook_url: formData.facebookUrl,
-        facebook_verified: formData.facebookVerified,
-        linked_in_url: formData.linkedInUrl,
-        linked_in_verified: formData.linkedInVerified,
-        twitter_url: formData.twitterUrl,
-        twitter_verified: formData.twitterVerified,
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('Updating profile with data:', updateData);
-
-      // Update user profile in database
-      const { data: updatedProfile, error: updateError } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', currentUser.id)
-        .select()
-        .maybeSingle();
-
-      if (updateError) {
-        console.error('Database update error:', updateError);
-        throw new Error(`Database error: ${updateError.message} (Code: ${updateError.code})`);
-      }
-
-      if (!updatedProfile) {
-        throw new Error('Profile not found for update');
-      }
-
-      console.log('Profile updated successfully:', updatedProfile);
-
-      // Transform the database profile to User type and call onSave
-      const transformedUser = transformProfileToUser(updatedProfile);
-      onSave(transformedUser);
-      
-      setIsSaving(false);
-      setShowSuccess(true);
-      setHasChanges(false);
-      
-      // Auto close success message and go back
-      setTimeout(() => {
-        setShowSuccess(false);
-        onBack();
-      }, 2000);
-
-    } catch (error) {
-      console.error('Profile save error:', error);
-      setIsSaving(false);
-      
-      // Provide more specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('cover_photo_url')) {
-          alert('Database schema error: Cover photo field not found. Please contact support.');
-        } else if (error.message.includes('avatars')) {
-          alert('Failed to upload profile photo. Please ensure you have a stable internet connection and try again.');
-        } else if (error.message.includes('Authentication')) {
-          alert('Authentication error. Please log out and log back in.');
-        } else if (error.message.includes('Database')) {
-          alert(`Database error: ${error.message}`);
-        } else {
-          alert(`Failed to save profile: ${error.message}`);
-        }
-      } else {
-        alert('Failed to save profile. Please try again.');
-      }
+    } catch (err) {
+      console.error(err);
+      alert('Upload failed – please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -249,10 +170,10 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           
           <button
             onClick={handleSave}
-            disabled={!hasChanges || isSaving}
+            disabled={loading}
             className="bg-blue-600 text-white px-4 py-2 rounded-full font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {isSaving ? (
+            {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Saving...
@@ -263,6 +184,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           </button>
         </div>
       </div>
+
 
       <div className="pb-8">
         {/* Cover Photo Section */}
