@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User } from '../types';
 import { ChevronLeftIcon, CameraIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { SocialAccountsSection } from '../components/social/SocialAccountsSection';
-import { uploadProfileImage, uploadBannerImage } from '../lib/storage';
+import { uploadProfileImage } from '../lib/storage';
 import { supabase } from '../lib/supabaseClient';
 import { transformProfileToUser } from '../../lib/utils';
 
@@ -27,26 +27,22 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     twitterVerified: user.twitterVerified,
   });
   const [profileFile, setProfileFile] = useState<File | null>(null);
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [profileUrl, setProfileUrl] = useState<string>(user.dpUrl);
-  const [bannerUrl, setBannerUrl] = useState<string>(user.coverPhotoUrl || '');
   const [loading, setLoading] = useState<boolean>(false);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [hasChanges, setHasChanges] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('profile_photo_url, cover_photo_url')
+        .select('profile_photo_url')
         .eq('id', user.id)
         .single();
       if (data) {
         setProfileUrl(data.profile_photo_url || profileUrl);
-        setBannerUrl(data.cover_photo_url || bannerUrl);
       }
     })();
   }, []);
@@ -71,26 +67,18 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     setHasChanges(true);
   };
 
-  const handleImageSelect = (type: 'profile' | 'cover') => {
-    (type === 'profile' ? fileInputRef : coverInputRef).current?.click();
+  const handleImageSelect = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleFileSelect = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: 'profile' | 'cover'
-  ) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
     reader.onload = () => {
       const url = reader.result as string;
-      if (type === 'profile') {
-        setProfileUrl(url);
-        setProfileFile(file);
-      } else {
-        setBannerUrl(url);
-        setBannerFile(file);
-      }
+      setProfileUrl(url);
+      setProfileFile(file);
       setHasChanges(true);
     };
     reader.readAsDataURL(file);
@@ -100,17 +88,11 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     setLoading(true);
     try {
       let newDp = profileUrl;
-      let newBanner = bannerUrl;
 
       if (profileFile) {
         newDp = (await uploadProfileImage(profileFile)) || newDp;
         await supabase.from('profiles').update({ profile_photo_url: newDp }).eq('id', user.id);
         setProfileUrl(newDp);
-      }
-      if (bannerFile) {
-        newBanner = await uploadBannerImage(bannerFile);
-        await supabase.from('profiles').update({ cover_photo_url: newBanner }).eq('id', user.id);
-        setBannerUrl(newBanner);
       }
 
       const updateData = {
@@ -138,8 +120,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       setTimeout(() => {
         onSave(transformProfileToUser({
           ...updated,
-          profile_photo_url: newDp,
-          cover_photo_url: newBanner
+          profile_photo_url: newDp
         }));
       }, 1500);
     } catch (err) {
@@ -185,22 +166,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         </button>
       </div>
 
-      <div className="relative h-48 bg-gray-800">
-        {bannerUrl
-          ? <img src={bannerUrl} alt="Cover" className="w-full h-full object-cover" />
-          : (
-            <div className="w-full h-full flex items-center justify-center">
-              <CameraIcon className="w-12 h-12 text-gray-400" />
-            </div>
-          )}
-        <button
-          onClick={() => handleImageSelect('cover')}
-          className="absolute bottom-4 right-4 bg-black/60 p-3 rounded-full"
-        >
-          <CameraIcon className="w-5 h-5 text-white" />
-        </button>
-      </div>
-
       <div className="relative -mt-14 mb-6 flex justify-center">
         <div className="relative">
           {profileUrl
@@ -211,7 +176,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
               </div>
             )}
           <button
-            onClick={() => handleImageSelect('profile')}
+            onClick={handleImageSelect}
             className="absolute bottom-0 right-0 bg-blue-600 p-2 rounded-full shadow-lg"
           >
             <CameraIcon className="w-4 h-4 text-white" />
@@ -235,8 +200,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         <SocialAccountsSection user={{ ...user, ...formData }} onUserUpdate={handleUserUpdate} />
       </div>
 
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={e => handleFileSelect(e, 'profile')} className="hidden" />
-      <input ref={coverInputRef} type="file" accept="image/*" onChange={e => handleFileSelect(e, 'cover')} className="hidden" />
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
     </div>
   );
 };
