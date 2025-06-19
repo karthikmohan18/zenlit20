@@ -26,8 +26,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     linkedInVerified: user.linkedInVerified,
     twitterUrl: user.twitterUrl,
     twitterVerified: user.twitterVerified,
-    googleUrl: user.googleUrl,
-    googleVerified: user.googleVerified,
   });
   
   const [isEditing, setIsEditing] = useState({
@@ -60,8 +58,6 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       linkedInVerified: updatedUser.linkedInVerified,
       twitterUrl: updatedUser.twitterUrl,
       twitterVerified: updatedUser.twitterVerified,
-      googleUrl: updatedUser.googleUrl,
-      googleVerified: updatedUser.googleVerified,
     }));
     setHasChanges(true);
   };
@@ -95,8 +91,13 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       // Get current user
       const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
       
-      if (userError || !currentUser) {
-        throw new Error('User not found');
+      if (userError) {
+        console.error('User fetch error:', userError);
+        throw new Error(`Authentication error: ${userError.message}`);
+      }
+      
+      if (!currentUser) {
+        throw new Error('User not authenticated');
       }
 
       let profilePhotoUrl = formData.dpUrl;
@@ -132,39 +133,43 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         }
       }
 
+      // Prepare update data - only include fields that exist in the database
+      const updateData = {
+        name: formData.name,
+        bio: formData.bio,
+        profile_photo_url: profilePhotoUrl,
+        cover_photo_url: coverPhotoUrl,
+        instagram_url: formData.instagramUrl,
+        instagram_verified: formData.instagramVerified,
+        facebook_url: formData.facebookUrl,
+        facebook_verified: formData.facebookVerified,
+        linked_in_url: formData.linkedInUrl,
+        linked_in_verified: formData.linkedInVerified,
+        twitter_url: formData.twitterUrl,
+        twitter_verified: formData.twitterVerified,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Updating profile with data:', updateData);
+
       // Update user profile in database
       const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
-        .update({
-          name: formData.name,
-          bio: formData.bio,
-          profile_photo_url: profilePhotoUrl,
-          cover_photo_url: coverPhotoUrl,
-          instagram_url: formData.instagramUrl,
-          instagram_verified: formData.instagramVerified,
-          facebook_url: formData.facebookUrl,
-          facebook_verified: formData.facebookVerified,
-          linked_in_url: formData.linkedInUrl,
-          linked_in_verified: formData.linkedInVerified,
-          twitter_url: formData.twitterUrl,
-          twitter_verified: formData.twitterVerified,
-          google_url: formData.googleUrl,
-          google_verified: formData.googleVerified,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', currentUser.id)
         .select()
         .maybeSingle();
 
       if (updateError) {
-        throw updateError;
+        console.error('Database update error:', updateError);
+        throw new Error(`Database error: ${updateError.message} (Code: ${updateError.code})`);
       }
 
       if (!updatedProfile) {
         throw new Error('Profile not found for update');
       }
 
-      console.log('Profile updated successfully');
+      console.log('Profile updated successfully:', updatedProfile);
 
       // Transform the database profile to User type and call onSave
       const transformedUser = transformProfileToUser(updatedProfile);
@@ -186,8 +191,14 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       
       // Provide more specific error messages
       if (error instanceof Error) {
-        if (error.message.includes('avatars')) {
+        if (error.message.includes('cover_photo_url')) {
+          alert('Database schema error: Cover photo field not found. Please contact support.');
+        } else if (error.message.includes('avatars')) {
           alert('Failed to upload profile photo. Please ensure you have a stable internet connection and try again.');
+        } else if (error.message.includes('Authentication')) {
+          alert('Authentication error. Please log out and log back in.');
+        } else if (error.message.includes('Database')) {
+          alert(`Database error: ${error.message}`);
         } else {
           alert(`Failed to save profile: ${error.message}`);
         }
