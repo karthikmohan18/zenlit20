@@ -4,10 +4,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"npm --prefix supabase run start\" \"next dev\"",
+    "dev:web": "next dev",
+    "dev:supabase": "npm --prefix supabase run start",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "supabase:reset": "npm --prefix supabase run reset",
+    "supabase:types": "npm --prefix supabase run generate-types"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
@@ -32,6 +36,7 @@
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "autoprefixer": "^10.4.14",
+    "concurrently": "^8.2.2",
     "eslint": "^8.0.0",
     "eslint-config-next": "^15.0.0",
     "postcss": "^8.4.27",

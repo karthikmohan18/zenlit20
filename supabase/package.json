@@ -1,0 +1,14 @@
+{
+  "name": "supabase-backend",
+  "version": "1.0.0",
+  "description": "Supabase backend configuration",
+  "scripts": {
+    "start": "supabase start",
+    "stop": "supabase stop",
+    "reset": "supabase db reset",
+    "generate-types": "supabase gen types typescript --local > ../src/types/supabase.ts",
+    "dev:web": "cd .. && npm run dev"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
