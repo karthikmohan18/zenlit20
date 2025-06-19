@@ -73,7 +73,7 @@ export default function App() {
 
       console.log('Checking authentication status...');
 
-      // Check if we have a valid session
+      // Check if we have a valid session with network error handling
       const sessionResult = await checkSession();
       
       if (!sessionResult.success) {
@@ -83,15 +83,33 @@ export default function App() {
         return;
       }
 
-      const { data: sessionData, error } = await supabase.auth.getSession();
-      if (error || !sessionData.session) {
-        // Handle error or no session
+      try {
+        const { data: sessionData, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Session fetch error:', error);
+          setCurrentScreen('welcome');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!sessionData.session) {
+          console.log('No active session found');
+          setCurrentScreen('welcome');
+          setIsLoading(false);
+          return;
+        }
+
+        const user = sessionData.session.user;
+        console.log('Valid session found for user:', user.id);
+
+        await handleAuthenticatedUser(user);
+      } catch (networkError) {
+        console.error('Network error during session check:', networkError);
+        // If there's a network error, fall back to welcome screen
+        setCurrentScreen('welcome');
+        setIsLoading(false);
         return;
       }
-      const user = sessionData.session.user;
-      console.log('Valid session found for user:', user.id);
-
-      await handleAuthenticatedUser(user);
       
     } catch (error) {
       console.error('Auth check error:', error);
@@ -105,40 +123,56 @@ export default function App() {
     try {
       console.log('Handling authenticated user:', user.id);
 
-      // Check if user has a profile (should exist due to trigger)
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+      // Check if user has a profile with proper error handling
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Profile fetch error:', profileError);
+        if (profileError) {
+          if (profileError.code === 'PGRST116') {
+            // No profile found (not an error)
+            console.log('No profile found, redirecting to profile setup');
+            setCurrentScreen('profileSetup');
+            return;
+          } else {
+            console.error('Profile fetch error:', profileError);
+            // For other database errors, still allow profile setup
+            setCurrentScreen('profileSetup');
+            return;
+          }
+        }
+
+        if (!profile) {
+          console.log('No profile found, redirecting to profile setup');
+          setCurrentScreen('profileSetup');
+          return;
+        }
+
+        console.log('Profile found:', profile);
+        setCurrentUser(profile);
+        setIsLoggedIn(true);
+
+        // Check if profile has essential fields filled out
+        const isProfileComplete = profile.name && 
+                                 profile.bio && 
+                                 profile.date_of_birth && 
+                                 profile.gender &&
+                                 profile.username;
+
+        if (isProfileComplete) {
+          setCurrentScreen('app');
+        } else {
+          setCurrentScreen('profileSetup');
+        }
+      } catch (networkError) {
+        console.error('Network error fetching profile:', networkError);
+        // If we can't fetch the profile due to network issues,
+        // redirect to profile setup where they can try again
         setCurrentScreen('profileSetup');
         return;
-      }
-
-      if (!profile) {
-        console.log('No profile found, redirecting to profile setup');
-        setCurrentScreen('profileSetup');
-        return;
-      }
-
-      console.log('Profile found:', profile);
-      setCurrentUser(profile);
-      setIsLoggedIn(true);
-
-      // Check if profile has essential fields filled out
-      const isProfileComplete = profile.name && 
-                               profile.bio && 
-                               profile.date_of_birth && 
-                               profile.gender &&
-                               profile.username;
-
-      if (isProfileComplete) {
-        setCurrentScreen('app');
-      } else {
-        setCurrentScreen('profileSetup');
       }
     } catch (error) {
       console.error('Error handling authenticated user:', error);
