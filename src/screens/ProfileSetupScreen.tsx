@@ -4,6 +4,9 @@ import { motion } from 'framer-motion';
 import { CameraIcon, CheckIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../../lib/supabase';
 import { uploadProfileImage } from '../../lib/utils';
+import { completeProfileSetup } from '../lib/auth';
+import { reserveUsername, checkUsernameAvailability } from '../lib/username';
+import { UsernameInput } from '../components/common/UsernameInput';
 
 interface Props {
   onComplete: (profileData: any) => void;
@@ -19,8 +22,10 @@ const interests = [
 export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
   const [step, setStep] = useState<'basic' | 'photo' | 'interests' | 'bio'>('basic');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUsernameValid, setIsUsernameValid] = useState(false);
   const [profileData, setProfileData] = useState({
     displayName: '',
+    username: '',
     dateOfBirth: '',
     gender: '' as 'male' | 'female' | '',
     profilePhoto: null as string | null,
@@ -35,6 +40,13 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleUsernameValidation = (isValid: boolean, username: string) => {
+    setIsUsernameValid(isValid);
+    if (username !== profileData.username) {
+      handleInputChange('username', username);
+    }
   };
 
   const handleInterestToggle = (interest: string) => {
@@ -66,6 +78,8 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
 
   const canProceedFromBasic = () => {
     return profileData.displayName.trim() && 
+           profileData.username.trim() &&
+           isUsernameValid &&
            profileData.dateOfBirth && 
            profileData.gender;
   };
@@ -102,6 +116,31 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       return;
     }
 
+    // CRITICAL: Double-check username availability immediately before proceeding
+    if (!profileData.username.trim()) {
+      alert('Please choose a username');
+      return;
+    }
+
+    console.log('Final username validation before profile completion...');
+    
+    // Perform immediate username check (bypass debounce)
+    try {
+      const usernameCheck = await checkUsernameAvailability(profileData.username);
+      
+      if (!usernameCheck.available) {
+        alert(`Username error: ${usernameCheck.error || 'Username is not available'}`);
+        setStep('basic'); // Go back to basic info step
+        return;
+      }
+      
+      console.log('Username is available, proceeding with profile setup');
+    } catch (error) {
+      console.error('Username validation error:', error);
+      alert('Unable to verify username availability. Please try again.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -112,12 +151,20 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         throw new Error('User not found');
       }
 
+      // First, reserve the username
+      console.log('Reserving username:', profileData.username);
+      const usernameResult = await reserveUsername(profileData.username, user.id);
+      
+      if (!usernameResult.success) {
+        throw new Error(usernameResult.error || 'Failed to reserve username');
+      }
+
       let profilePhotoUrl = null;
 
       // Handle profile photo upload if a new photo was selected
       if (profileData.profilePhoto && profileData.profilePhoto.startsWith('data:')) {
         console.log('Uploading profile photo...');
-        profilePhotoUrl = await uploadProfileImage(supabase, user.id, profileData.profilePhoto);
+        profilePhotoUrl = await uploadProfileImage(user.id, profileData.profilePhoto);
         
         if (!profilePhotoUrl) {
           // Photo upload failed, but continue with profile creation
@@ -127,44 +174,36 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
         }
       }
 
-      // Update user profile in database
-      const { data: updatedProfile, error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          name: profileData.displayName,
-          bio: profileData.bio,
-          date_of_birth: profileData.dateOfBirth,
-          gender: profileData.gender,
-          location: profileData.location,
-          interests: profileData.selectedInterests,
-          profile_photo_url: profilePhotoUrl, // Use uploaded URL or null
-          profile_completed: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
-        .select()
-        .maybeSingle();
+      // Complete profile setup using the auth service
+      const result = await completeProfileSetup({
+        fullName: profileData.displayName,
+        username: profileData.username,
+        bio: profileData.bio,
+        dateOfBirth: profileData.dateOfBirth,
+        gender: profileData.gender,
+        location: profileData.location || undefined,
+        interests: profileData.selectedInterests,
+        profilePhotoUrl: profilePhotoUrl || undefined
+      });
 
-      if (updateError) {
-        throw updateError;
-      }
-
-      // Handle case where profile was not found for update
-      if (!updatedProfile) {
-        throw new Error('Profile not found for update. Please try logging out and back in.');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to complete profile setup');
       }
 
       console.log('Profile setup completed successfully');
       
       // Complete profile setup with the updated data from database
-      onComplete(updatedProfile);
+      onComplete(result.data);
 
     } catch (error) {
       console.error('Profile setup error:', error);
       
       // Provide more specific error messages
       if (error instanceof Error) {
-        if (error.message.includes('avatars')) {
+        if (error.message.includes('username')) {
+          alert(`Username error: ${error.message}`);
+          setStep('basic'); // Go back to username step
+        } else if (error.message.includes('avatars')) {
           alert('Failed to upload profile photo. Please ensure you have a stable internet connection and try again.');
         } else {
           alert(`Failed to save profile: ${error.message}`);
@@ -199,6 +238,19 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="How should people know you?"
           maxLength={50}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Username *
+        </label>
+        <UsernameInput
+          value={profileData.username}
+          onChange={(value) => handleInputChange('username', value)}
+          onValidationChange={handleUsernameValidation}
+          placeholder="username123"
+          required
         />
       </div>
 
@@ -394,6 +446,9 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
           )}
           <div className="flex-1">
             <h4 className="font-semibold text-white">{profileData.displayName || 'Your Name'}</h4>
+            {profileData.username && (
+              <p className="text-gray-400 text-sm">@{profileData.username}</p>
+            )}
             <p className="text-gray-300 text-sm mt-1">
               {profileData.bio || 'Your bio will appear here...'}
             </p>

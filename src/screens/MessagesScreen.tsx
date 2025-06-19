@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ChatList } from '../components/messaging/ChatList';
 import { ChatWindow } from '../components/messaging/ChatWindow';
 import { User, Message } from '../types';
 import { generateMessages } from '../data/mockData';
 import { supabase } from '../lib/supabase';
+import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface Props {
   selectedUser?: User | null;
@@ -20,6 +21,7 @@ export const MessagesScreen: React.FC<Props> = ({
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(initialSelectedUser || undefined);
   const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [isMobile] = useState(window.innerWidth < 768);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -42,13 +44,14 @@ export const MessagesScreen: React.FC<Props> = ({
       setCurrentUserId(currentUser.id);
 
       // Get users who have completed their profiles for messaging
+      // Include username in the select query
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*') // This includes username
         .neq('id', currentUser.id) // Exclude current user
         .not('name', 'is', null)
         .not('bio', 'is', null)
-        .limit(10);
+        .limit(50); // Increased limit for better search results
 
       if (error) {
         console.error('Error loading users:', error);
@@ -59,6 +62,7 @@ export const MessagesScreen: React.FC<Props> = ({
       const transformedUsers: User[] = (profiles || []).map(profile => ({
         id: profile.id,
         name: profile.name,
+        username: profile.username, // Include username
         dpUrl: profile.profile_photo_url || `https://i.pravatar.cc/300?img=${profile.id}`,
         bio: profile.bio,
         gender: profile.gender,
@@ -97,6 +101,28 @@ export const MessagesScreen: React.FC<Props> = ({
     }
   };
 
+  // Filter users based on search query
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return allUsers;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return allUsers.filter(user => {
+      // Search by name
+      const nameMatch = user.name.toLowerCase().includes(query);
+      
+      // Search by username (if available)
+      const usernameMatch = user.username?.toLowerCase().includes(query);
+      
+      // Search by username without @ symbol
+      const usernameWithoutAt = query.startsWith('@') ? query.slice(1) : query;
+      const usernameExactMatch = user.username?.toLowerCase().includes(usernameWithoutAt);
+      
+      return nameMatch || usernameMatch || usernameExactMatch;
+    });
+  }, [allUsers, searchQuery]);
+
   const getMessagesForUser = (userId: string): Message[] => {
     return allMessages.filter(msg => 
       msg.senderId === userId || msg.receiverId === userId
@@ -132,6 +158,10 @@ export const MessagesScreen: React.FC<Props> = ({
     }
   };
 
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
+
   const selectedUserMessages = selectedUser ? getMessagesForUser(selectedUser.id) : [];
 
   if (isLoading) {
@@ -151,13 +181,54 @@ export const MessagesScreen: React.FC<Props> = ({
       {isMobile ? (
         <>
           {!selectedUser ? (
-            <div className="w-full">
-              <ChatList
-                users={allUsers}
-                messages={allMessages}
-                selectedUser={selectedUser}
-                onSelectUser={handleSelectUser}
-              />
+            <div className="w-full flex flex-col">
+              {/* Header with Search */}
+              <div className="px-4 py-3 bg-black border-b border-gray-800 flex-shrink-0">
+                <h2 className="text-xl font-bold text-white mb-3">Messages</h2>
+                
+                {/* Search Input */}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Search by name or @username"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={clearSearch}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-white transition-colors" />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Search Results Count */}
+                {searchQuery && (
+                  <p className="text-sm text-gray-400 mt-2">
+                    {filteredUsers.length === 0 
+                      ? 'No users found' 
+                      : `${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''} found`
+                    }
+                  </p>
+                )}
+              </div>
+              
+              {/* Chat List */}
+              <div className="flex-1 overflow-hidden">
+                <ChatList
+                  users={filteredUsers}
+                  messages={allMessages}
+                  selectedUser={selectedUser}
+                  onSelectUser={handleSelectUser}
+                  searchQuery={searchQuery}
+                />
+              </div>
             </div>
           ) : (
             <div className="w-full">
@@ -175,14 +246,56 @@ export const MessagesScreen: React.FC<Props> = ({
       ) : (
         /* Desktop: Show both panels */
         <>
-          <div className="w-80 border-r border-gray-800">
-            <ChatList
-              users={allUsers}
-              messages={allMessages}
-              selectedUser={selectedUser}
-              onSelectUser={handleSelectUser}
-            />
+          <div className="w-80 border-r border-gray-800 flex flex-col">
+            {/* Header with Search */}
+            <div className="px-4 py-3 bg-black border-b border-gray-800 flex-shrink-0">
+              <h2 className="text-xl font-bold text-white mb-3">Messages</h2>
+              
+              {/* Search Input */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Search by name or @username"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    <XMarkIcon className="h-5 w-5 text-gray-400 hover:text-white transition-colors" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Search Results Count */}
+              {searchQuery && (
+                <p className="text-sm text-gray-400 mt-2">
+                  {filteredUsers.length === 0 
+                    ? 'No users found' 
+                    : `${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''} found`
+                  }
+                </p>
+              )}
+            </div>
+            
+            {/* Chat List */}
+            <div className="flex-1 overflow-hidden">
+              <ChatList
+                users={filteredUsers}
+                messages={allMessages}
+                selectedUser={selectedUser}
+                onSelectUser={handleSelectUser}
+                searchQuery={searchQuery}
+              />
+            </div>
           </div>
+          
           <div className="flex-1">
             {selectedUser ? (
               <ChatWindow
@@ -202,6 +315,11 @@ export const MessagesScreen: React.FC<Props> = ({
                     </svg>
                   </div>
                   <p className="text-gray-400">Select a conversation to start messaging</p>
+                  {searchQuery && (
+                    <p className="text-gray-500 text-sm mt-2">
+                      Or search for someone to start a new conversation
+                    </p>
+                  )}
                 </div>
               </div>
             )}

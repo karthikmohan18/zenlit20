@@ -2,7 +2,7 @@ import React from 'react';
 import { User, Post } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { generatePosts } from '../utils/mockDataGenerator';
-import { format } from 'date-fns';
+import { formatPostDate } from '../utils/dateUtils';
 
 interface Props {
   user: User;
@@ -63,7 +63,7 @@ export const PostsGalleryScreen: React.FC<Props> = ({ user, posts, onBack, onUse
                   <div className="flex-1">
                     <h3 className="font-semibold text-white">{post.userName}</h3>
                     <p className="text-xs text-gray-400">
-                      {format(new Date(post.timestamp), 'MMM d, yyyy • h:mm a')}
+                      {formatPostDate(post.timestamp)}
                     </p>
                   </div>
                 </button>

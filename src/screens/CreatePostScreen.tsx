@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
-import { addPostToCurrentUser } from '../data/mockData';
+import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { generateId } from '../utils/generateId';
-import { Post } from '../types';
 import { supabase } from '../lib/supabase';
+import { uploadPostImage, generatePlaceholderImage, checkStorageAvailability } from '../lib/storage';
+import { createPost } from '../lib/posts';
 
 export const CreatePostScreen: React.FC = () => {
   const [caption, setCaption] = useState('');
@@ -15,14 +15,35 @@ export const CreatePostScreen: React.FC = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [storageStatus, setStorageStatus] = useState<{
+    available: boolean;
+    message: string;
+  }>({ available: true, message: '' });
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load current user data
+  // Load current user data and check storage
   React.useEffect(() => {
     loadCurrentUser();
+    checkStorage();
   }, []);
+
+  const checkStorage = async () => {
+    try {
+      const status = await checkStorageAvailability();
+      setStorageStatus({
+        available: status.postsAvailable,
+        message: status.message
+      });
+    } catch (error) {
+      console.error('Storage check error:', error);
+      setStorageStatus({
+        available: true, // Default to true to avoid blocking functionality
+        message: 'Storage status unknown, proceeding normally.'
+      });
+    }
+  };
 
   const loadCurrentUser = async () => {
     try {
@@ -102,33 +123,81 @@ export const CreatePostScreen: React.FC = () => {
     
     setIsPosting(true);
     
-    // Simulate posting delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Create new post
-    const newPost: Post = {
-      id: generateId(),
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userDpUrl: currentUser.profile_photo_url || `https://i.pravatar.cc/300?img=${currentUser.id}`,
-      title: `Post by ${currentUser.name}`,
-      mediaUrl: selectedMedia || `https://picsum.photos/800/600?random=${generateId()}`,
-      caption: caption.trim() || 'New post from Zenlit!',
-      timestamp: new Date().toISOString()
-    };
-    
-    // Add to current user's posts (latest first)
-    addPostToCurrentUser(newPost);
-    
-    setIsPosting(false);
-    setShowSuccess(true);
-    
-    // Reset form after success animation
-    setTimeout(() => {
-      setCaption('');
-      setSelectedMedia(null);
-      setShowSuccess(false);
-    }, 2000);
+    try {
+      let mediaUrl = selectedMedia;
+      let uploadAttempted = false;
+      
+      // If we have a selected media that's a data URL (captured photo), try to upload it
+      if (selectedMedia && selectedMedia.startsWith('data:')) {
+        uploadAttempted = true;
+        
+        if (storageStatus.available) {
+          console.log('Attempting to upload image to Supabase...');
+          
+          try {
+            const uploadedUrl = await uploadPostImage(currentUser.id, selectedMedia);
+            
+            if (uploadedUrl) {
+              mediaUrl = uploadedUrl;
+              console.log('Image uploaded successfully:', uploadedUrl);
+            } else {
+              console.warn('Image upload failed, using placeholder');
+              mediaUrl = generatePlaceholderImage();
+            }
+          } catch (uploadError) {
+            console.error('Upload error:', uploadError);
+            mediaUrl = generatePlaceholderImage();
+          }
+        } else {
+          console.warn('Storage not available, using placeholder image');
+          mediaUrl = generatePlaceholderImage();
+        }
+      } else if (!selectedMedia) {
+        // If no media selected, use a placeholder
+        mediaUrl = generatePlaceholderImage();
+      }
+
+      // Create post using the posts service
+      const newPost = await createPost({
+        title: `Post by ${currentUser.name}`,
+        caption: caption.trim() || 'New post from Zenlit!',
+        mediaUrl: mediaUrl!,
+        mediaType: 'image'
+      });
+
+      if (!newPost) {
+        throw new Error('Failed to create post');
+      }
+
+      console.log('Post created successfully:', newPost);
+      
+      setIsPosting(false);
+      setShowSuccess(true);
+      
+      // Reset form after success animation
+      setTimeout(() => {
+        setCaption('');
+        setSelectedMedia(null);
+        setShowSuccess(false);
+      }, 2000);
+
+    } catch (error) {
+      console.error('Post creation error:', error);
+      setIsPosting(false);
+      
+      // Show user-friendly error message
+      if (error instanceof Error) {
+        if (error.message.includes('storage') || error.message.includes('bucket')) {
+          alert('Image upload is currently unavailable. Your post was created with a placeholder image.');
+        } else if (error.message.includes('posts') || error.message.includes('database')) {
+          alert('Failed to save post. Please try again.');
+        } else {
+          alert(`Failed to create post: ${error.message}`);
+        }
+      } else {
+        alert('Failed to create post. Please try again.');
+      }
+    }
   };
 
   const startCamera = async () => {
@@ -296,7 +365,7 @@ export const CreatePostScreen: React.FC = () => {
             <CheckIcon className="w-10 h-10 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-white mb-2">Post Shared!</h2>
-          <p className="text-gray-400">Your post has been added to your profile</p>
+          <p className="text-gray-400">Your post has been saved successfully</p>
         </div>
       </div>
     );
@@ -408,6 +477,21 @@ export const CreatePostScreen: React.FC = () => {
       </div>
 
       <div className="p-4 space-y-6 pb-20">
+        {/* Storage Status Info (only show if there might be issues) */}
+        {!storageStatus.available && (
+          <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <ExclamationTriangleIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-medium text-blue-300 mb-1">Storage Info</h3>
+                <p className="text-xs text-blue-200">
+                  {storageStatus.message}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* User Info */}
         <div className="flex items-center space-x-3">
           <img

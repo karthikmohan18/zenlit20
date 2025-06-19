@@ -3,50 +3,39 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { PasswordResetScreen } from './PasswordResetScreen';
-import { sendOTP, verifyOTP, signInWithPassword, signUpWithPassword, ensureProfileExists } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { sendSignupOTP, verifySignupOTP, setUserPassword, signInWithPassword } from '../lib/auth';
 
 interface Props {
   onLogin: () => void;
 }
 
 export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
-  const [currentView, setCurrentView] = useState<'login' | 'passwordReset'>('login');
-  const [isLogin, setIsLogin] = useState(true);
+  const [currentView, setCurrentView] = useState<'login' | 'signup' | 'passwordReset'>('login');
+  const [signupStep, setSignupStep] = useState<'email' | 'otp' | 'password' | 'complete'>('email');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    dateOfBirth: '',
     otp: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailVerification, setEmailVerification] = useState({
-    otpSent: false,
-    otpVerified: false,
-    isVerifying: false,
-    isSendingOtp: false,
-    countdown: 0,
-    error: null as string | null
-  });
+  const [otpCountdown, setOtpCountdown] = useState(0);
 
-  // Countdown timer effect
+  // Countdown timer effect for OTP resend
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (emailVerification.countdown > 0) {
+    if (otpCountdown > 0) {
       timer = setTimeout(() => {
-        setEmailVerification(prev => ({
-          ...prev,
-          countdown: prev.countdown - 1
-        }));
+        setOtpCountdown(prev => prev - 1);
       }, 1000);
     }
     return () => clearTimeout(timer);
-  }, [emailVerification.countdown]);
+  }, [otpCountdown]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -56,117 +45,124 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     
     // Clear errors when user starts typing
     if (error) setError(null);
-    if (field === 'otp' && emailVerification.error) {
-      setEmailVerification(prev => ({ ...prev, error: null }));
-    }
   };
 
-  const handleSendOtp = async () => {
-    if (!formData.email) {
-      setError('Please enter your email address first');
+  // LOGIN FLOW: Existing users with email/password
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
       return;
     }
 
-    // Validate email format
+    setIsLoading(true);
+
+    try {
+      console.log('Attempting login for:', formData.email);
+      const result = await signInWithPassword(formData.email, formData.password);
+      
+      if (result.success) {
+        console.log('Login successful');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        onLogin();
+      } else {
+        console.error('Login failed:', result.error);
+        setError(result.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // SIGNUP STEP 1: Send OTP to email
+  const handleSendOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!formData.email) {
+      setError('Please enter your email address');
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Please enter a valid email address');
       return;
     }
 
-    setEmailVerification(prev => ({ 
-      ...prev, 
-      isSendingOtp: true, 
-      error: null 
-    }));
-    setError(null);
-    
+    setIsLoading(true);
+
     try {
-      const result = await sendOTP(formData.email);
+      console.log('Sending OTP for signup to:', formData.email);
+      const result = await sendSignupOTP(formData.email);
       
       if (result.success) {
-        setEmailVerification(prev => ({ 
-          ...prev, 
-          otpSent: true, 
-          isSendingOtp: false,
-          countdown: 60,
-          error: null
-        }));
+        console.log('OTP sent successfully');
+        setSignupStep('otp');
+        setOtpCountdown(60); // Start 60 second countdown
       } else {
-        setEmailVerification(prev => ({ 
-          ...prev, 
-          isSendingOtp: false,
-          error: result.error || 'Failed to send OTP'
-        }));
+        console.error('OTP send failed:', result.error);
+        setError(result.error || 'Failed to send verification code');
       }
     } catch (error) {
-      setEmailVerification(prev => ({ 
-        ...prev, 
-        isSendingOtp: false,
-        error: 'Network error. Please try again.'
-      }));
+      console.error('OTP send error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleVerifyOtp = async () => {
+  // SIGNUP STEP 2: Verify OTP
+  const handleVerifyOTP = async () => {
+    setError(null);
+
     if (!formData.otp || formData.otp.length !== 6) {
-      setEmailVerification(prev => ({ 
-        ...prev, 
-        error: 'Please enter a valid 6-digit OTP' 
-      }));
+      setError('Please enter a valid 6-digit code');
       return;
     }
 
-    setEmailVerification(prev => ({ ...prev, isVerifying: true, error: null }));
-    
+    setIsLoading(true);
+
     try {
-      const result = await verifyOTP(formData.email, formData.otp);
+      console.log('Verifying OTP for:', formData.email);
+      const result = await verifySignupOTP(formData.email, formData.otp);
       
       if (result.success) {
-        setEmailVerification(prev => ({ 
-          ...prev, 
-          otpVerified: true, 
-          isVerifying: false,
-          error: null
-        }));
+        console.log('OTP verified successfully, user authenticated');
+        setSignupStep('password');
       } else {
-        setEmailVerification(prev => ({ 
-          ...prev, 
-          isVerifying: false,
-          error: result.error || 'Invalid OTP. Please try again.'
-        }));
+        console.error('OTP verification failed:', result.error);
+        setError(result.error || 'Invalid verification code');
       }
     } catch (error) {
-      setEmailVerification(prev => ({ 
-        ...prev, 
-        isVerifying: false,
-        error: 'Network error. Please try again.'
-      }));
+      console.error('OTP verification error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // SIGNUP STEP 3: Set password
+  const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Validation
-    if (!formData.email || !formData.password) {
-      setError('Please fill in all required fields');
+    if (!formData.password || !formData.confirmPassword) {
+      setError('Please fill in all password fields');
       return;
     }
 
-    // For signup, require email verification
-    if (!isLogin && !emailVerification.otpVerified) {
-      setError('Please verify your email address first');
-      return;
-    }
-
-    if (!isLogin && formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    if (!isLogin && formData.password.length < 6) {
+    if (formData.password.length < 6) {
       setError('Password must be at least 6 characters long');
       return;
     }
@@ -174,36 +170,44 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-      if (isLogin) {
-        // Existing user login with password
-        const result = await signInWithPassword(formData.email, formData.password);
-        
-        if (result.success) {
-          // Ensure profile exists after login
-          if (result.data?.user) {
-            await ensureProfileExists(result.data.user);
-          }
+      console.log('Setting password for authenticated user');
+      const result = await setUserPassword(formData.password);
+      
+      if (result.success) {
+        console.log('Password set successfully');
+        setSignupStep('complete');
+        // Auto-proceed to app after a short delay
+        setTimeout(() => {
           onLogin();
-        } else {
-          setError(result.error || 'Login failed');
-        }
+        }, 2000);
       } else {
-        // New user signup (OTP already verified)
-        // Use email as both first and last name for simplicity
-        const emailName = formData.email.split('@')[0];
-        const result = await signUpWithPassword(
-          formData.email, 
-          formData.password,
-          emailName, // Use email prefix as first name
-          '' // Empty last name
-        );
-        
-        if (result.success) {
-          // Profile creation is handled in signUpWithPassword
-          onLogin();
-        } else {
-          setError(result.error || 'Account creation failed');
-        }
+        console.error('Password set failed:', result.error);
+        setError(result.error || 'Failed to set password');
+      }
+    } catch (error) {
+      console.error('Password set error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Resend OTP
+  const handleResendOTP = async () => {
+    if (otpCountdown > 0) return;
+
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const result = await sendSignupOTP(formData.email);
+      
+      if (result.success) {
+        setOtpCountdown(60);
+        // Clear the OTP field
+        setFormData(prev => ({ ...prev, otp: '' }));
+      } else {
+        setError(result.error || 'Failed to resend code');
       }
     } catch (error) {
       setError('Network error. Please try again.');
@@ -212,24 +216,30 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     }
   };
 
-  const toggleMode = () => {
-    setIsLogin(!isLogin);
+  const switchToSignup = () => {
+    setCurrentView('signup');
+    setSignupStep('email');
     setFormData({
       email: '',
       password: '',
       confirmPassword: '',
       firstName: '',
       lastName: '',
-      dateOfBirth: '',
       otp: ''
     });
-    setEmailVerification({
-      otpSent: false,
-      otpVerified: false,
-      isVerifying: false,
-      isSendingOtp: false,
-      countdown: 0,
-      error: null
+    setError(null);
+  };
+
+  const switchToLogin = () => {
+    setCurrentView('login');
+    setSignupStep('email');
+    setFormData({
+      email: '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: '',
+      otp: ''
     });
     setError(null);
   };
@@ -247,8 +257,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
     return <PasswordResetScreen onBack={handleBackFromPasswordReset} />;
   }
 
-  const canProceedToPassword = isLogin || emailVerification.otpVerified;
-
   return (
     <div className="auth-screen mobile-screen bg-black">
       <motion.div
@@ -258,7 +266,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
         transition={{ duration: 0.4 }}
       >
         <div className="w-full max-w-md">
-          {/* Header with more space above */}
+          {/* Header */}
           <div className="text-center mb-6 pt-4">
             <h1 className="text-3xl font-bold text-white mb-2">Zenlit</h1>
             <p className="text-gray-400">Connect with people around you</p>
@@ -268,10 +276,18 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
           <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-white text-center">
-                {isLogin ? 'Welcome Back' : 'Create Account'}
+                {currentView === 'login' ? 'Welcome Back' : 
+                 signupStep === 'email' ? 'Create Account' :
+                 signupStep === 'otp' ? 'Verify Email' :
+                 signupStep === 'password' ? 'Set Password' :
+                 'Account Created!'}
               </h2>
               <p className="text-gray-400 text-center mt-2">
-                {isLogin ? 'Sign in to your account' : 'Join the Zenlit community'}
+                {currentView === 'login' ? 'Sign in with your email and password' : 
+                 signupStep === 'email' ? 'Enter your email to get started' :
+                 signupStep === 'otp' ? `We sent a code to ${formData.email}` :
+                 signupStep === 'password' ? 'Choose a secure password' :
+                 'Welcome to Zenlit!'}
               </p>
             </div>
 
@@ -282,111 +298,23 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email with OTP verification */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Email Address
-                  {!isLogin && emailVerification.otpVerified && (
-                    <CheckCircleIcon className="inline w-4 h-4 text-green-500 ml-2" />
-                  )}
-                </label>
-                <div className="flex gap-2">
+            {/* LOGIN FORM */}
+            {currentView === 'login' && (
+              <form onSubmit={handleLoginSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter your email"
                     required
-                    disabled={!isLogin && emailVerification.otpVerified}
                   />
-                  {!isLogin && !emailVerification.otpVerified && (
-                    <button
-                      type="button"
-                      onClick={handleSendOtp}
-                      disabled={emailVerification.isSendingOtp || emailVerification.countdown > 0}
-                      className="px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed whitespace-nowrap text-sm"
-                    >
-                      {emailVerification.isSendingOtp ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Sending...
-                        </div>
-                      ) : emailVerification.countdown > 0 ? (
-                        `Resend (${emailVerification.countdown}s)`
-                      ) : emailVerification.otpSent ? (
-                        'Resend OTP'
-                      ) : (
-                        'Get OTP'
-                      )}
-                    </button>
-                  )}
                 </div>
-                {/* Email verification error */}
-                {!isLogin && emailVerification.error && !emailVerification.otpVerified && (
-                  <p className="text-red-400 text-xs mt-1">{emailVerification.error}</p>
-                )}
-              </div>
 
-              {/* OTP Input (only show for signup after OTP is sent) */}
-              {!isLogin && emailVerification.otpSent && !emailVerification.otpVerified && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Enter OTP
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={formData.otp}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                        handleInputChange('otp', value);
-                      }}
-                      className="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center tracking-widest"
-                      placeholder="000000"
-                      maxLength={6}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyOtp}
-                      disabled={emailVerification.isVerifying || formData.otp.length !== 6}
-                      className="px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed whitespace-nowrap text-sm"
-                    >
-                      {emailVerification.isVerifying ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Verifying...
-                        </div>
-                      ) : (
-                        'Verify OTP'
-                      )}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Enter the 6-digit code sent to your email
-                  </p>
-                  {/* OTP verification error */}
-                  {emailVerification.error && (
-                    <p className="text-red-400 text-xs mt-1">{emailVerification.error}</p>
-                  )}
-                </div>
-              )}
-
-              {/* Email Verified Message */}
-              {!isLogin && emailVerification.otpVerified && (
-                <div className="bg-green-900/30 border border-green-700 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                    <span className="text-green-400 text-sm font-medium">
-                      Email verified successfully!
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Password (only show after email verification for signup) */}
-              {canProceedToPassword && (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Password
@@ -399,7 +327,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
                       placeholder="Enter your password"
                       required
-                      minLength={6}
                     />
                     <button
                       type="button"
@@ -413,32 +340,8 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                       )}
                     </button>
                   </div>
-                  {!isLogin && (
-                    <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters</p>
-                  )}
                 </div>
-              )}
 
-              {/* Confirm Password for signup (only show after email verification) */}
-              {!isLogin && canProceedToPassword && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Confirm your password"
-                    required={!isLogin}
-                    minLength={6}
-                  />
-                </div>
-              )}
-
-              {/* Forgot Password Link (only for login) */}
-              {isLogin && (
                 <div className="text-right">
                   <button
                     type="button"
@@ -448,79 +351,247 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     Forgot password?
                   </button>
                 </div>
-              )}
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading || (!isLogin && !emailVerification.otpVerified)}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    {isLogin ? 'Signing In...' : 'Creating Account...'}
-                  </>
-                ) : (
-                  isLogin ? 'Sign In' : 'Create Account'
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Signing In...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
+                </button>
+              </form>
+            )}
+
+            {/* SIGNUP FORMS */}
+            {currentView === 'signup' && (
+              <>
+                {/* STEP 1: Email */}
+                {signupStep === 'email' && (
+                  <form onSubmit={handleSendOTP} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your email"
+                        required
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Sending Code...
+                        </>
+                      ) : (
+                        'Send Verification Code'
+                      )}
+                    </button>
+                  </form>
                 )}
-              </button>
-            </form>
+
+                {/* STEP 2: OTP Verification */}
+                {signupStep === 'otp' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Verification Code
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.otp}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                          handleInputChange('otp', value);
+                        }}
+                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center tracking-widest text-lg"
+                        placeholder="000000"
+                        maxLength={6}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the 6-digit code sent to your email
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleVerifyOTP}
+                      disabled={isLoading || formData.otp.length !== 6}
+                      className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Verifying...
+                        </>
+                      ) : (
+                        'Verify Code'
+                      )}
+                    </button>
+
+                    <div className="text-center">
+                      <p className="text-gray-400 text-sm">
+                        Didn't receive the code?{' '}
+                        <button
+                          onClick={handleResendOTP}
+                          disabled={otpCountdown > 0 || isLoading}
+                          className="text-blue-400 hover:text-blue-300 transition-colors disabled:text-gray-500 disabled:cursor-not-allowed"
+                        >
+                          {otpCountdown > 0 ? `Resend in ${otpCountdown}s` : 'Resend Code'}
+                        </button>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* STEP 3: Set Password */}
+                {signupStep === 'password' && (
+                  <form onSubmit={handleSetPassword} className="space-y-4">
+                    <div className="bg-green-900/30 border border-green-700 rounded-lg p-3 mb-4">
+                      <div className="flex items-center gap-2">
+                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                        <span className="text-green-400 text-sm font-medium">
+                          Email verified successfully!
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                          placeholder="Create a password"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                        >
+                          {showPassword ? (
+                            <EyeSlashIcon className="w-5 h-5" />
+                          ) : (
+                            <EyeIcon className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Confirm Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          value={formData.confirmPassword}
+                          onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                          className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                          placeholder="Confirm your password"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeSlashIcon className="w-5 h-5" />
+                          ) : (
+                            <EyeIcon className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Setting Password...
+                        </>
+                      ) : (
+                        'Set Password'
+                      )}
+                    </button>
+                  </form>
+                )}
+
+                {/* STEP 4: Complete */}
+                {signupStep === 'complete' && (
+                  <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircleIcon className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Account Created!</h3>
+                    <p className="text-gray-400">
+                      Your account has been successfully created. You'll be redirected to complete your profile setup.
+                    </p>
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Toggle between login/signup */}
-            <div className="mt-6 text-center">
-              <p className="text-gray-400">
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
-                <button
-                  onClick={toggleMode}
-                  className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
-                >
-                  {isLogin ? 'Sign Up' : 'Sign In'}
-                </button>
-              </p>
-            </div>
-
-            {/* Social Login Options */}
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-700" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-gray-900 text-gray-400">Or continue with</span>
-                </div>
+            {signupStep === 'email' && (
+              <div className="mt-6 text-center">
+                <p className="text-gray-400">
+                  {currentView === 'login' ? "Don't have an account? " : "Already have an account? "}
+                  <button
+                    onClick={currentView === 'login' ? switchToSignup : switchToLogin}
+                    className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                  >
+                    {currentView === 'login' ? 'Sign Up' : 'Sign In'}
+                  </button>
+                </p>
               </div>
-
-              <div className="mt-4 flex justify-center">
-                <button
-                  type="button"
-                  className="w-full max-w-xs bg-gray-800 border border-gray-600 text-white py-3 rounded-lg font-medium hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Google
-                </button>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Terms and Privacy */}
-          <div className="mt-6 text-center pb-8">
-            <p className="text-xs text-gray-500">
-              By continuing, you agree to our{' '}
-              <button className="text-blue-400 hover:text-blue-300 transition-colors">
-                Terms of Service
-              </button>{' '}
-              and{' '}
-              <button className="text-blue-400 hover:text-blue-300 transition-colors">
-                Privacy Policy
-              </button>
-            </p>
-          </div>
+          {signupStep === 'email' && (
+            <div className="mt-6 text-center pb-8">
+              <p className="text-xs text-gray-500">
+                By continuing, you agree to our{' '}
+                <button className="text-blue-400 hover:text-blue-300 transition-colors">
+                  Terms of Service
+                </button>{' '}
+                and{' '}
+                <button className="text-blue-400 hover:text-blue-300 transition-colors">
+                  Privacy Policy
+                </button>
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

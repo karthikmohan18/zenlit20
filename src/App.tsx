@@ -10,8 +10,8 @@ import { CreatePostScreen } from './screens/CreatePostScreen';
 import { MessagesScreen } from './screens/MessagesScreen';
 import { UserGroupIcon, Squares2X2Icon, UserIcon, PlusIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { User } from './types';
-import { supabase } from './lib/supabase';
-import { ensureProfileExists } from './lib/auth';
+import { supabase, onAuthStateChange } from './lib/supabase';
+import { checkSession, handleRefreshTokenError } from './lib/auth';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'profileSetup' | 'app'>('welcome');
@@ -28,6 +28,31 @@ export default function App() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Set up auth state listener
+  useEffect(() => {
+    if (!isClient) return;
+
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id);
+      
+      if (event === 'SIGNED_IN' && session) {
+        console.log('User signed in, checking profile...');
+        await handleAuthenticatedUser(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
+        handleSignOut();
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        console.log('Token refreshed successfully');
+        // Session is automatically updated by Supabase
+      } else if (event === 'TOKEN_REFRESH_FAILED') {
+        console.error('Token refresh failed');
+        await handleRefreshTokenError();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [isClient]);
 
   // Check authentication status on app load
   useEffect(() => {
@@ -46,93 +71,27 @@ export default function App() {
         return;
       }
 
-      const { data: { user }, error } = await supabase.auth.getUser();
+      console.log('Checking authentication status...');
+
+      // Check if we have a valid session
+      const sessionResult = await checkSession();
       
-      if (error || !user) {
+      if (!sessionResult.success) {
+        console.log('No valid session found:', sessionResult.error);
         setCurrentScreen('welcome');
         setIsLoading(false);
         return;
       }
 
-      // Ensure profile exists for this user
-      await ensureProfileExists(user);
-
-      // Wait a moment for profile creation to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Check if user has a profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      // Only log errors that are not expected "no rows found" scenarios
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Profile fetch error:', profileError);
-        setCurrentScreen('welcome');
-        setIsLoading(false);
+      const { data: sessionData, error } = await supabase.auth.getSession();
+      if (error || !sessionData.session) {
+        // Handle error or no session
         return;
       }
+      const user = sessionData.session.user;
+      console.log('Valid session found for user:', user.id);
 
-      // If still no profile exists after ensuring it, try one more time
-      if (!profile) {
-        console.log('Profile not found, retrying...');
-        await ensureProfileExists(user);
-        
-        // Wait a bit more and try again
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const { data: retryProfile, error: retryError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (retryError && retryError.code !== 'PGRST116') {
-          console.error('Profile retry fetch error:', retryError);
-          setCurrentScreen('profileSetup');
-          setIsLoading(false);
-          return;
-        }
-
-        if (retryProfile) {
-          setCurrentUser(retryProfile);
-          setIsLoggedIn(true);
-          
-          // Check if profile has essential fields filled out
-          const isProfileComplete = retryProfile.name && 
-                                  retryProfile.bio && 
-                                  retryProfile.date_of_birth && 
-                                  retryProfile.gender;
-          
-          if (isProfileComplete) {
-            setCurrentScreen('app');
-          } else {
-            setCurrentScreen('profileSetup');
-          }
-        } else {
-          // Still no profile, go to profile setup
-          setCurrentScreen('profileSetup');
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      setCurrentUser(profile);
-      setIsLoggedIn(true);
-
-      // Check if profile has essential fields filled out (not just the profile_completed flag)
-      const isProfileComplete = profile.name && 
-                               profile.bio && 
-                               profile.date_of_birth && 
-                               profile.gender;
-
-      if (isProfileComplete) {
-        setCurrentScreen('app');
-      } else {
-        setCurrentScreen('profileSetup');
-      }
+      await handleAuthenticatedUser(user);
       
     } catch (error) {
       console.error('Auth check error:', error);
@@ -142,40 +101,17 @@ export default function App() {
     }
   };
 
-  const handleGetStarted = () => {
-    setCurrentScreen('login');
-  };
-
-  const handleLogin = async () => {
-    setIsLoggedIn(true);
-    
-    // Check if user needs to complete profile setup
+  const handleAuthenticatedUser = async (user: any) => {
     try {
-      if (!supabase) {
-        setCurrentScreen('app');
-        return;
-      }
+      console.log('Handling authenticated user:', user.id);
 
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      if (error || !user) {
-        setCurrentScreen('welcome');
-        return;
-      }
-
-      // Ensure profile exists
-      await ensureProfileExists(user);
-
-      // Wait a moment for profile creation
-      await new Promise(resolve => setTimeout(resolve, 500));
-
+      // Check if user has a profile (should exist due to trigger)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
-      // Only log errors that are not expected "no rows found" scenarios
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Profile fetch error:', profileError);
         setCurrentScreen('profileSetup');
@@ -183,17 +119,21 @@ export default function App() {
       }
 
       if (!profile) {
+        console.log('No profile found, redirecting to profile setup');
         setCurrentScreen('profileSetup');
         return;
       }
 
+      console.log('Profile found:', profile);
       setCurrentUser(profile);
+      setIsLoggedIn(true);
 
       // Check if profile has essential fields filled out
       const isProfileComplete = profile.name && 
                                profile.bio && 
                                profile.date_of_birth && 
-                               profile.gender;
+                               profile.gender &&
+                               profile.username;
 
       if (isProfileComplete) {
         setCurrentScreen('app');
@@ -201,31 +141,50 @@ export default function App() {
         setCurrentScreen('profileSetup');
       }
     } catch (error) {
-      console.error('Login check error:', error);
+      console.error('Error handling authenticated user:', error);
       setCurrentScreen('profileSetup');
     }
   };
 
+  const handleLogin = async () => {
+    console.log('Login successful, checking user state...');
+    setIsLoggedIn(true);
+    
+    // The auth state change listener will handle the rest
+    // Just wait a moment for the session to be established
+    await new Promise(resolve => setTimeout(resolve, 500));
+  };
+
   const handleProfileSetupComplete = (profileData: any) => {
+    console.log('Profile setup completed:', profileData);
     // Use the profile data directly from the setup screen
     // This data already includes profile_completed: true
     setCurrentUser(profileData);
     setCurrentScreen('app');
   };
 
+  const handleSignOut = () => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    setCurrentScreen('welcome');
+    setActiveTab('radar');
+    setSelectedUser(null);
+    setSelectedChatUser(null);
+  };
+
   const handleLogout = async () => {
     try {
       if (supabase) {
-        await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('Logout error:', error);
+        }
       }
-      setIsLoggedIn(false);
-      setCurrentUser(null);
-      setCurrentScreen('welcome');
-      setActiveTab('radar');
-      setSelectedUser(null);
-      setSelectedChatUser(null);
+      // handleSignOut will be called by the auth state listener
     } catch (error) {
       console.error('Logout error:', error);
+      // Force sign out anyway
+      handleSignOut();
     }
   };
 
@@ -261,7 +220,7 @@ export default function App() {
 
   // Show welcome screen first
   if (currentScreen === 'welcome') {
-    return <WelcomeScreen onGetStarted={handleGetStarted} />;
+    return <WelcomeScreen onGetStarted={() => setCurrentScreen('login')} />;
   }
 
   // Show login screen after get started is clicked
@@ -281,11 +240,11 @@ export default function App() {
 
   // Show main app after login and profile setup
   return (
-    <div className="h-screen bg-black text-white overflow-hidden flex flex-col">
+    <div className="h-screen bg-black text-white overflow-hidden flex flex-col mobile-container">
       {/* Mobile App Container */}
       <div className="flex-1 flex flex-col min-h-0">
         {/* Main Content Area */}
-        <main className="flex-1 overflow-hidden relative">
+        <main className="flex-1 overflow-hidden relative content-with-nav">
           <div className="h-full">
             {activeTab === 'radar' && (
               <div className="h-full overflow-y-auto mobile-scroll">
@@ -330,12 +289,12 @@ export default function App() {
           </div>
         </main>
 
-        {/* Bottom Navigation */}
-        <nav className="bg-gray-900 border-t border-gray-800 safe-area-inset-bottom flex-shrink-0">
+        {/* Bottom Navigation - Fixed for mobile */}
+        <nav className="bg-gray-900 border-t border-gray-800 flex-shrink-0 bottom-nav">
           <div className="flex justify-around items-center py-2 px-4 h-16">
             <button
               onClick={() => setActiveTab('radar')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'radar' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
@@ -345,7 +304,7 @@ export default function App() {
             
             <button
               onClick={() => setActiveTab('feed')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'feed' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
@@ -355,7 +314,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('create')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'create' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
@@ -365,7 +324,7 @@ export default function App() {
 
             <button
               onClick={() => setActiveTab('messages')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'messages' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >
@@ -375,7 +334,7 @@ export default function App() {
             
             <button
               onClick={() => setActiveTab('profile')}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
                 activeTab === 'profile' ? 'text-blue-500' : 'text-gray-400'
               }`}
             >

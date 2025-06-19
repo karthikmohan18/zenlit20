@@ -207,3 +207,63 @@ input, textarea, select {
     height: 100dvh;
   }
 }
+
+/* Mobile navigation fixes */
+@media screen and (max-width: 768px) {
+  /* Ensure bottom navigation is always visible */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: rgba(17, 24, 39, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(75, 85, 99, 0.3);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Add padding to main content to account for fixed navigation */
+  .main-content-mobile {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+  
+  /* Ensure navigation buttons are touch-friendly */
+  .nav-button-mobile {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+  }
+}
+
+/* Improved mobile touch targets */
+@media (hover: none) and (pointer: coarse) {
+  button, .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Fix for iOS Safari bottom bar */
+@supports (padding: max(0px)) {
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Ensure content doesn't get hidden behind navigation */
+.content-with-nav {
+  height: calc(100vh - 4rem);
+  height: calc(100dvh - 4rem);
+  overflow-y: auto;
+}
+
+@media screen and (max-width: 768px) {
+  .content-with-nav {
+    height: calc(100vh - 4rem - env(safe-area-inset-bottom));
+    height: calc(100dvh - 4rem - env(safe-area-inset-bottom));
+  }
+}

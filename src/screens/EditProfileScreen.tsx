@@ -101,7 +101,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       // Handle profile photo upload if a new photo was selected (base64 data URL)
       if (formData.dpUrl && formData.dpUrl.startsWith('data:')) {
         console.log('Uploading new profile photo...');
-        const uploadedUrl = await uploadProfileImage(supabase, currentUser.id, formData.dpUrl);
+        const uploadedUrl = await uploadProfileImage(currentUser.id, formData.dpUrl);
         
         if (uploadedUrl) {
           profilePhotoUrl = uploadedUrl;
