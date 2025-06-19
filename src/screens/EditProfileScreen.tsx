@@ -120,7 +120,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     reader.readAsDataURL(file);
   };
 
-  const handleDeleteProfilePhoto = async () => {
+  const handleDeleteProfilePhoto = () => {
     if (confirm('Are you sure you want to remove your profile photo?')) {
       setProfileUrl('');
       setProfileFile(null);
@@ -128,7 +128,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     }
   };
 
-  const handleDeleteCoverPhoto = async () => {
+  const handleDeleteCoverPhoto = () => {
     if (confirm('Are you sure you want to remove your cover photo?')) {
       setCoverUrl('');
       setCoverFile(null);
@@ -154,7 +154,10 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       // Handle profile photo upload
       else if (profileFile) {
         console.log('Uploading new profile photo...');
-        const uploadedProfileUrl = await uploadProfileImage(profileFile);
+        const { publicUrl: uploadedProfileUrl, error: profileUploadError } = await uploadProfileImage(profileFile);
+        if (profileUploadError) {
+          throw new Error(`Failed to upload profile photo: ${profileUploadError}`);
+        }
         if (uploadedProfileUrl) {
           // Delete old profile photo if it exists and is not a default
           if (user.dpUrl && !user.dpUrl.includes('/images/default-')) {
@@ -165,7 +168,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           }
           newProfileUrl = uploadedProfileUrl;
         } else {
-          throw new Error('Failed to upload profile photo');
+          throw new Error('Failed to upload profile photo: Unknown error.');
         }
       }
 
@@ -181,7 +184,14 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
       // Handle cover photo upload
       else if (coverFile) {
         console.log('Uploading new cover photo...');
-        const uploadedCoverUrl = await uploadBannerImage(coverFile);
+        const { publicUrl: uploadedCoverUrl, error: coverUploadError } = await uploadBannerImage(coverFile);
+        if (coverUploadError) {
+          // Specific error handling for RLS policy violation
+          if (coverUploadError.includes('row-level security policy') || coverUploadError.includes('Unauthorized')) {
+            throw new Error('Failed to upload cover photo: Access denied due to security policy. Please ensure your account has permission.');
+          }
+          throw new Error(`Failed to upload cover photo: ${coverUploadError}`);
+        }
         if (uploadedCoverUrl) {
           // Delete old cover photo if it exists and is not a default
           if (user.coverPhotoUrl && !user.coverPhotoUrl.includes('/images/default-')) {
@@ -192,7 +202,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
           }
           newCoverUrl = uploadedCoverUrl;
         } else {
-          throw new Error('Failed to upload cover photo');
+          throw new Error('Failed to upload cover photo: Unknown error.');
         }
       }
 
