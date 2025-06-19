@@ -114,9 +114,9 @@ export const PasswordResetScreen: React.FC<Props> = ({ onBack }) => {
           <EnvelopeIcon className="w-8 h-8 text-white" />
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">Reset Password</h2>
-        <p className="text-gray-400">
-          Enter your email address and we'll send you a code to reset your password
-        </p>
+          <p className="text-gray-400">
+            Enter your email address and we&apos;ll send you a code to reset your password
+          </p>
       </div>
 
       <div>
@@ -143,9 +143,9 @@ export const PasswordResetScreen: React.FC<Props> = ({ onBack }) => {
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             Sending Code...
           </>
-        ) : (
-          'Send Reset Code'
-        )}
+          ) : (
+            "Send Reset Code"
+          )}
       </button>
     </div>
   );
@@ -157,9 +157,9 @@ export const PasswordResetScreen: React.FC<Props> = ({ onBack }) => {
           <CheckCircleIcon className="w-8 h-8 text-white" />
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">Check Your Email</h2>
-        <p className="text-gray-400">
-          We've sent a 6-digit code to <span className="text-white">{formData.email}</span>
-        </p>
+          <p className="text-gray-400">
+            We&apos;ve sent a 6-digit code to <span className="text-white">{formData.email}</span>
+          </p>
       </div>
 
       <div>
@@ -192,14 +192,14 @@ export const PasswordResetScreen: React.FC<Props> = ({ onBack }) => {
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             Verifying...
           </>
-        ) : (
-          'Verify Code'
-        )}
+          ) : (
+            "Verify Code"
+          )}
       </button>
 
       <div className="text-center">
-        <p className="text-gray-400 text-sm">
-          Didn't receive the code?{' '}
+          <p className="text-gray-400 text-sm">
+            Didn&apos;t receive the code?{' '}
           <button
             onClick={handleResendCode}
             disabled={countdown > 0 || isLoading}
@@ -285,9 +285,9 @@ export const PasswordResetScreen: React.FC<Props> = ({ onBack }) => {
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             Resetting Password...
           </>
-        ) : (
-          'Reset Password'
-        )}
+          ) : (
+            "Reset Password"
+          )}
       </button>
     </div>
   );

@@ -31,8 +31,8 @@ export const PostsGalleryScreen: React.FC<Props> = ({ user, posts = [], onBack, 
               alt={user.name}
               className="w-8 h-8 rounded-full object-cover ring-2 ring-blue-500 mr-3"
             />
-            <div>
-              <h1 className="text-lg font-semibold text-white">{user.name}'s Posts</h1>
+              <div>
+                <h1 className="text-lg font-semibold text-white">{user.name}&apos;s Posts</h1>
               {displayPosts.length > 0 && (
                 <p className="text-xs text-gray-400">
                   {displayPosts.length} post{displayPosts.length !== 1 ? 's' : ''}

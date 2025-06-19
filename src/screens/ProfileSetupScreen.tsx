@@ -222,9 +222,9 @@ export const ProfileSetupScreen: React.FC<Props> = ({ onComplete, onBack }) => {
       animate={{ opacity: 1, x: 0 }}
       className="space-y-6"
     >
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">Tell us about yourself</h2>
-        <p className="text-gray-400">Let's set up your profile</p>
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-white mb-2">Tell us about yourself</h2>
+          <p className="text-gray-400">Let&apos;s set up your profile</p>
       </div>
 
       <div>

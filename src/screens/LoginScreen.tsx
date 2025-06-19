@@ -473,13 +473,13 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                           Verifying...
                         </>
                       ) : (
-                        'Verify Code'
+                        "Verify Code"
                       )}
                     </button>
 
                     <div className="text-center">
                       <p className="text-gray-400 text-sm">
-                        Didn't receive the code?{' '}
+                        Didn&apos;t receive the code?{' '}
                         <button
                           onClick={handleResendOTP}
                           disabled={otpCountdown > 0 || isLoading}
@@ -572,7 +572,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                           Setting Password...
                         </>
                       ) : (
-                        'Set Password'
+                          "Set Password"
                       )}
                     </button>
                   </form>
@@ -586,7 +586,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
                     </div>
                     <h3 className="text-xl font-bold text-white">Account Created!</h3>
                     <p className="text-gray-400">
-                      Your account has been successfully created. You'll be redirected to complete your profile setup.
+                        Your account has been successfully created. You&apos;ll be redirected to complete your profile setup.
                     </p>
                     <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
                   </div>
