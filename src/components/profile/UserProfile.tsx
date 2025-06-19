@@ -16,7 +16,7 @@ export const UserProfile: React.FC<Props> = ({ user, posts = [] }) => {
       {/* Cover Image */}
       <div className="relative h-48 bg-gradient-to-b from-blue-900 to-black">
         <img
-          src={`https://picsum.photos/1200/400?random=${user.id}`}
+          src="/images/default-cover.jpg"
           alt="Cover"
           className="w-full h-full object-cover opacity-50"
         />

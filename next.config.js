@@ -3,10 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
   images: {
     domains: [
-      'i.pravatar.cc',
-      'picsum.photos',
-      'randomuser.me',
-      'media.istockphoto.com'
+      // Removed all external image domains - using local images only
     ],
   },
 }

@@ -13,7 +13,7 @@ export function transformProfileToUser(profile: any): User {
     id: profile.id,
     name: profile.name,
     username: profile.username, // Include username
-    dpUrl: profile.profile_photo_url || `https://i.pravatar.cc/300?img=${profile.id}`,
+    dpUrl: profile.profile_photo_url || '/images/default-avatar.png',
     bio: profile.bio,
     gender: profile.gender,
     age: profile.date_of_birth ? 

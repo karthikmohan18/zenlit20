@@ -495,7 +495,7 @@ export const CreatePostScreen: React.FC = () => {
         {/* User Info */}
         <div className="flex items-center space-x-3">
           <img
-            src={currentUser.profile_photo_url || `https://i.pravatar.cc/300?img=${currentUser.id}`}
+            src={currentUser.profile_photo_url || '/images/default-avatar.png'}
             alt="Your profile"
             className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500"
           />
