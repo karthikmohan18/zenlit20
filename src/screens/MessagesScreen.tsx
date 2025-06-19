@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { ChatList } from '../components/messaging/ChatList';
 import { ChatWindow } from '../components/messaging/ChatWindow';
 import { User, Message } from '../types';
-import { generateMessages } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -44,14 +43,13 @@ export const MessagesScreen: React.FC<Props> = ({
       setCurrentUserId(currentUser.id);
 
       // Get users who have completed their profiles for messaging
-      // Include username in the select query
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('*') // This includes username
+        .select('*')
         .neq('id', currentUser.id) // Exclude current user
         .not('name', 'is', null)
         .not('bio', 'is', null)
-        .limit(50); // Increased limit for better search results
+        .limit(50);
 
       if (error) {
         console.error('Error loading users:', error);
@@ -62,7 +60,7 @@ export const MessagesScreen: React.FC<Props> = ({
       const transformedUsers: User[] = (profiles || []).map(profile => ({
         id: profile.id,
         name: profile.name,
-        username: profile.username, // Include username
+        username: profile.username,
         dpUrl: profile.profile_photo_url || `https://i.pravatar.cc/300?img=${profile.id}`,
         bio: profile.bio,
         gender: profile.gender,
@@ -89,11 +87,9 @@ export const MessagesScreen: React.FC<Props> = ({
 
       setAllUsers(transformedUsers);
       
-      // Generate messages for all users upfront (this would be replaced with real messages from database)
-      const messagesForAllUsers = transformedUsers.flatMap(user => 
-        generateMessages(currentUser.id, [user])
-      );
-      setAllMessages(messagesForAllUsers);
+      // Load real messages from database (when messaging system is implemented)
+      // For now, start with empty messages array - no more dummy data
+      setAllMessages([]);
     } catch (error) {
       console.error('Error loading users and messages:', error);
     } finally {
@@ -109,13 +105,8 @@ export const MessagesScreen: React.FC<Props> = ({
 
     const query = searchQuery.toLowerCase().trim();
     return allUsers.filter(user => {
-      // Search by name
       const nameMatch = user.name.toLowerCase().includes(query);
-      
-      // Search by username (if available)
       const usernameMatch = user.username?.toLowerCase().includes(query);
-      
-      // Search by username without @ symbol
       const usernameWithoutAt = query.startsWith('@') ? query.slice(1) : query;
       const usernameExactMatch = user.username?.toLowerCase().includes(usernameWithoutAt);
       
@@ -141,7 +132,11 @@ export const MessagesScreen: React.FC<Props> = ({
       read: false
     };
 
+    // Add to local state immediately for UI responsiveness
     setAllMessages(prev => [...prev, newMessage]);
+    
+    // TODO: Save to database when messaging system is implemented
+    // await supabase.from('messages').insert(newMessage);
   };
 
   const handleSelectUser = (user: User) => {

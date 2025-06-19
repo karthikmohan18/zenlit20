@@ -26,20 +26,6 @@ interface Props {
   onMessageUser?: (user: User) => void;
 }
 
-// Default locations for major cities (for demo/fallback purposes)
-const DEFAULT_LOCATIONS = [
-  { lat: 40.7128, lng: -74.0060, name: 'New York' },
-  { lat: 34.0522, lng: -118.2437, name: 'Los Angeles' },
-  { lat: 41.8781, lng: -87.6298, name: 'Chicago' },
-  { lat: 29.7604, lng: -95.3698, name: 'Houston' },
-  { lat: 39.9526, lng: -75.1652, name: 'Philadelphia' },
-  { lat: 33.4484, lng: -112.0740, name: 'Phoenix' },
-  { lat: 29.4241, lng: -98.4936, name: 'San Antonio' },
-  { lat: 32.7767, lng: -96.7970, name: 'Dallas' },
-  { lat: 37.3382, lng: -121.8863, name: 'San Jose' },
-  { lat: 30.2672, lng: -97.7431, name: 'Austin' }
-];
-
 export const RadarScreen: React.FC<Props> = ({ 
   userGender, 
   onNavigate, 
@@ -80,19 +66,6 @@ export const RadarScreen: React.FC<Props> = ({
       }
     };
   }, []);
-
-  const getRandomDefaultLocation = (): UserLocation => {
-    const location = DEFAULT_LOCATIONS[Math.floor(Math.random() * DEFAULT_LOCATIONS.length)];
-    // Add some random offset within 1km radius
-    const offsetLat = (Math.random() - 0.5) * 0.018; // ~1km in latitude
-    const offsetLng = (Math.random() - 0.5) * 0.018; // ~1km in longitude
-    
-    return {
-      latitude: location.lat + offsetLat,
-      longitude: location.lng + offsetLng,
-      timestamp: Date.now()
-    };
-  };
 
   const initializeRadar = async () => {
     try {
@@ -142,7 +115,7 @@ export const RadarScreen: React.FC<Props> = ({
         };
         setCurrentLocation(userLocation);
         setLocationPermission({ granted: true, denied: false, pending: false });
-        await loadNearbyUsersWithFallback(user.id, userLocation);
+        await loadRealUsersOnly(user.id, userLocation);
         
         // Start location tracking for dynamic updates
         startLocationTracking(user.id);
@@ -157,153 +130,90 @@ export const RadarScreen: React.FC<Props> = ({
           try {
             await handleRequestLocation();
           } catch (error) {
-            console.log('🚀 RADAR DEBUG: Real location failed, using default location');
-            await useDefaultLocationFallback(user.id);
+            console.log('🚀 RADAR DEBUG: Real location failed, loading users without location');
+            await loadRealUsersOnly(user.id, null);
           }
         } else {
-          // Use default location immediately for better UX
-          console.log('🚀 RADAR DEBUG: Location not available, using default location');
-          await useDefaultLocationFallback(user.id);
+          // Load real users without location
+          console.log('🚀 RADAR DEBUG: Location not available, loading users without location');
+          await loadRealUsersOnly(user.id, null);
         }
       }
     } catch (error) {
       console.error('🚀 RADAR DEBUG: Error initializing radar:', error);
-      // Even if there's an error, try to show users with default location
+      // Even if there's an error, try to show users
       if (currentUser) {
-        await useDefaultLocationFallback(currentUser.id);
+        await loadRealUsersOnly(currentUser.id, null);
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const useDefaultLocationFallback = async (userId: string) => {
+  // Load only real users from database - no more dummy data
+  const loadRealUsersOnly = async (currentUserId: string, location: UserLocation | null) => {
     try {
-      console.log('🚀 RADAR DEBUG: Using default location fallback');
-      const defaultLocation = getRandomDefaultLocation();
-      console.log('🚀 RADAR DEBUG: Generated default location:', defaultLocation);
-      
-      setCurrentLocation(defaultLocation);
-      setUseDefaultLocation(true);
-      setLocationPermission({ granted: false, denied: false, pending: false });
-      
-      // Save default location to profile if not exists
-      try {
-        await saveUserLocation(userId, defaultLocation);
-        console.log('🚀 RADAR DEBUG: Default location saved to profile');
-      } catch (error) {
-        console.warn('🚀 RADAR DEBUG: Could not save default location:', error);
-      }
-      
-      // Load users with default location
-      await loadNearbyUsersWithFallback(userId, defaultLocation);
-    } catch (error) {
-      console.error('🚀 RADAR DEBUG: Error using default location:', error);
-    }
-  };
-
-  // Enhanced function to load nearby users with better fallback logic
-  const loadNearbyUsersWithFallback = async (currentUserId: string, location: UserLocation) => {
-    try {
-      console.log('🔄 RADAR DEBUG: Starting loadNearbyUsersWithFallback');
-      console.log('🔄 RADAR DEBUG: Current user ID:', currentUserId);
-      console.log('🔄 RADAR DEBUG: Location:', location);
+      console.log('🔄 RADAR DEBUG: Loading real users only');
       
       if (!isUpdatingUsers) {
         setIsLoading(true);
       }
 
-      // First try the location-based approach
-      console.log('🔄 RADAR DEBUG: Calling getNearbyUsers...');
-      let result = await getNearbyUsers(currentUserId, location, 50, 20);
-      
-      console.log('🔄 RADAR DEBUG: getNearbyUsers result:', result);
-      
-      const shouldUseFallback = !result.success || !result.users || result.users.length === 0;
-      console.log('🔄 RADAR DEBUG: Should use fallback?', shouldUseFallback);
-      
-      if (shouldUseFallback) {
-        console.log('🔄 RADAR DEBUG: No location-based users found, loading all users as fallback');
-        
-        // Fallback: Get all users and simulate distances
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .neq('id', currentUserId)
-          .not('name', 'is', null)
-          .not('bio', 'is', null)
-          .limit(20);
+      // Get all real users from database
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', currentUserId)
+        .not('name', 'is', null)
+        .not('bio', 'is', null)
+        .limit(50);
 
-        console.log('🔄 RADAR DEBUG: Fallback profiles from database:', profiles);
-        console.log('🔄 RADAR DEBUG: Fallback database error:', error);
+      console.log('🔄 RADAR DEBUG: Real profiles from database:', profiles);
 
-        if (error) {
-          console.error('Error loading fallback users:', error);
-          if (mountedRef.current) {
-            setUsers([]);
-          }
-          return;
-        }
-
-        // Transform profiles and assign random distances within 1km
-        const transformedUsers: User[] = (profiles || []).map(profile => {
-          const user = transformProfileToUser(profile);
-          
-          // If user has location, calculate real distance
-          if (profile.latitude && profile.longitude) {
-            user.distance = calculateDistance(
-              location.latitude,
-              location.longitude,
-              profile.latitude,
-              profile.longitude
-            );
-            console.log(`🔄 RADAR DEBUG: Real distance for ${user.name}: ${user.distance}km`);
-          } else {
-            // Assign random distance within 1km for users without location
-            user.distance = Math.random() * 1; // 0-1km
-            console.log(`🔄 RADAR DEBUG: Random distance for ${user.name}: ${user.distance}km`);
-          }
-          
-          return user;
-        }).filter(user => {
-          const withinRange = user.distance <= 1;
-          console.log(`🔄 RADAR DEBUG: User ${user.name} within 1km range: ${withinRange}`);
-          return withinRange;
-        }) // Only show users within 1km
-          .sort((a, b) => a.distance - b.distance); // Sort by distance
-
-        console.log('🔄 RADAR DEBUG: Final transformed users (fallback):', transformedUsers);
-
+      if (error) {
+        console.error('Error loading real users:', error);
         if (mountedRef.current) {
-          setUsers(transformedUsers);
-          console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users (fallback mode)`);
+          setUsers([]);
         }
-      } else {
-        // Use location-based results - FIXED: Proper type checking
-        console.log('🔄 RADAR DEBUG: Using location-based results');
+        return;
+      }
+
+      // Transform profiles and calculate distances if location is available
+      const transformedUsers: User[] = (profiles || []).map(profile => {
+        const user = transformProfileToUser(profile);
         
-        // Ensure result.users exists and is an array before mapping
-        if (result.success && result.users && Array.isArray(result.users)) {
-          const transformedUsers: User[] = result.users.map(profile => ({
-            ...transformProfileToUser(profile),
-            distance: profile.distance
-          }));
-
-          console.log('🔄 RADAR DEBUG: Final transformed users (location-based):', transformedUsers);
-
-          if (mountedRef.current) {
-            setUsers(transformedUsers);
-            console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users (location-based)`);
-          }
+        // Calculate real distance if both users have location data
+        if (location && profile.latitude && profile.longitude) {
+          user.distance = calculateDistance(
+            location.latitude,
+            location.longitude,
+            profile.latitude,
+            profile.longitude
+          );
+          console.log(`🔄 RADAR DEBUG: Real distance for ${user.name}: ${user.distance}km`);
         } else {
-          console.warn('🔄 RADAR DEBUG: result.users is not a valid array, falling back to empty array');
-          if (mountedRef.current) {
-            setUsers([]);
-          }
+          // Show all users but without specific distance
+          user.distance = 0; // No distance available
+          console.log(`🔄 RADAR DEBUG: No location data for distance calculation: ${user.name}`);
         }
+        
+        return user;
+      }).sort((a, b) => {
+        // Sort by distance if available, otherwise by name
+        if (a.distance === 0 && b.distance === 0) {
+          return a.name.localeCompare(b.name);
+        }
+        return a.distance - b.distance;
+      });
+
+      console.log('🔄 RADAR DEBUG: Final transformed real users:', transformedUsers);
+
+      if (mountedRef.current) {
+        setUsers(transformedUsers);
+        console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} real users`);
       }
     } catch (error) {
-      console.error('🔄 RADAR DEBUG: Error in loadNearbyUsersWithFallback:', error);
+      console.error('🔄 RADAR DEBUG: Error in loadRealUsersOnly:', error);
       if (mountedRef.current) {
         setUsers([]);
       }
@@ -327,7 +237,7 @@ export const RadarScreen: React.FC<Props> = ({
         await saveUserLocation(currentUser.id, location);
         
         // Update nearby users
-        await loadNearbyUsersWithFallback(currentUser.id, location);
+        await loadRealUsersOnly(currentUser.id, location);
         
         setLastLocationUpdate(Date.now());
       } catch (error) {
@@ -384,10 +294,6 @@ export const RadarScreen: React.FC<Props> = ({
     }
   };
 
-  const loadNearbyUsers = async (currentUserId: string, location: UserLocation) => {
-    return loadNearbyUsersWithFallback(currentUserId, location);
-  };
-
   const handleRequestLocation = async () => {
     if (!currentUser) return;
 
@@ -405,7 +311,7 @@ export const RadarScreen: React.FC<Props> = ({
         setUseDefaultLocation(false);
         
         // Load nearby users with the new location
-        await loadNearbyUsers(currentUser.id, result.location);
+        await loadRealUsersOnly(currentUser.id, result.location);
         
         // Start location tracking for dynamic updates
         startLocationTracking(currentUser.id);
@@ -413,8 +319,8 @@ export const RadarScreen: React.FC<Props> = ({
         console.error('Failed to get location:', result.error);
         setLocationError(result.error || 'Failed to get location');
         
-        // Use default location as fallback
-        await useDefaultLocationFallback(currentUser.id);
+        // Load users without location
+        await loadRealUsersOnly(currentUser.id, null);
         
         // Update permission status based on error
         if (result.error?.includes('denied')) {
@@ -423,10 +329,10 @@ export const RadarScreen: React.FC<Props> = ({
       }
     } catch (error) {
       console.error('Location request error:', error);
-      setLocationError('Failed to get location. Using approximate location.');
+      setLocationError('Failed to get location. Showing all users.');
       
-      // Use default location as fallback
-      await useDefaultLocationFallback(currentUser.id);
+      // Load users without location
+      await loadRealUsersOnly(currentUser.id, null);
     } finally {
       setIsRequestingLocation(false);
     }
@@ -449,7 +355,7 @@ export const RadarScreen: React.FC<Props> = ({
     if (isGeolocationSupported() && isSecureContext()) {
       setShowLocationModal(true);
     } else {
-      // Just refresh with default location
+      // Just refresh users without location
       handleRefreshLocation();
     }
   };
@@ -462,8 +368,8 @@ export const RadarScreen: React.FC<Props> = ({
     if (isGeolocationSupported() && isSecureContext()) {
       await handleRequestLocation();
     } else {
-      // Refresh with new default location
-      await useDefaultLocationFallback(currentUser.id);
+      // Refresh users without location
+      await loadRealUsersOnly(currentUser.id, currentLocation);
     }
   };
 
@@ -494,14 +400,14 @@ export const RadarScreen: React.FC<Props> = ({
                 <div className="flex items-center gap-1">
                   <MapPinIcon className={`w-4 h-4 ${
                     isLocationTracking ? 'text-green-500' : 
-                    useDefaultLocation ? 'text-yellow-500' : 'text-gray-500'
+                    currentLocation ? 'text-blue-500' : 'text-gray-500'
                   }`} />
                   <span className={`text-xs ${
                     isLocationTracking ? 'text-green-400' : 
-                    useDefaultLocation ? 'text-yellow-400' : 'text-gray-400'
+                    currentLocation ? 'text-blue-400' : 'text-gray-400'
                   }`}>
                     {isLocationTracking ? 'Live tracking' : 
-                     useDefaultLocation ? 'Approximate location' : 'Static location'}
+                     currentLocation ? 'Location enabled' : 'No location'}
                   </span>
                 </div>
                 {isUpdatingUsers && (
@@ -512,7 +418,7 @@ export const RadarScreen: React.FC<Props> = ({
                 )}
               </div>
               <p className="text-sm text-gray-400">
-                {users.length > 0 ? `${users.length} people found nearby` : 'Searching for people nearby...'}
+                {users.length > 0 ? `${users.length} people found` : 'Searching for people...'}
               </p>
             </div>
             
@@ -534,13 +440,13 @@ export const RadarScreen: React.FC<Props> = ({
       </div>
 
       {/* Location Status Info */}
-      {useDefaultLocation && (
-        <div className="px-4 py-2 bg-yellow-900/20 border-b border-yellow-700/30">
+      {!currentLocation && (
+        <div className="px-4 py-2 bg-blue-900/20 border-b border-blue-700/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-              <span className="text-xs text-yellow-400">
-                Using approximate location - enable precise location for better results
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+              <span className="text-xs text-blue-400">
+                Enable location to see distances and find people nearby
               </span>
             </div>
             {isGeolocationSupported() && isSecureContext() && (
@@ -560,7 +466,7 @@ export const RadarScreen: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             <span className="text-xs text-green-400">
-              Precise location tracking active - radar updates automatically as you move
+              Live location tracking active - radar updates automatically as you move
             </span>
           </div>
         </div>
@@ -582,17 +488,17 @@ export const RadarScreen: React.FC<Props> = ({
             <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <MapPinIcon className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-gray-400 mb-2">No people found nearby</p>
+            <p className="text-gray-400 mb-2">No people found</p>
             <p className="text-gray-500 text-sm">
-              Try refreshing or check back later for new connections!
+              Users will appear here as they join Zenlit!
             </p>
-            {useDefaultLocation && (
+            {!currentLocation && (
               <div className="mt-4">
                 <button
                   onClick={handleEnablePreciseLocation}
                   className="text-blue-400 hover:text-blue-300 text-sm underline"
                 >
-                  Enable precise location for better results
+                  Enable location to find people nearby
                 </button>
               </div>
             )}

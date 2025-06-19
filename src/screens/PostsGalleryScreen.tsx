@@ -1,7 +1,6 @@
 import React from 'react';
 import { User, Post } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
-import { generatePosts } from '../utils/mockDataGenerator';
 import { formatPostDate } from '../utils/dateUtils';
 
 interface Props {
@@ -11,9 +10,9 @@ interface Props {
   onUserClick?: (userId: string) => void;
 }
 
-export const PostsGalleryScreen: React.FC<Props> = ({ user, posts, onBack, onUserClick }) => {
-  // Use provided posts or generate mock posts
-  const displayPosts = posts || generatePosts(user);
+export const PostsGalleryScreen: React.FC<Props> = ({ user, posts = [], onBack, onUserClick }) => {
+  // Only use real posts from props - no more mock data generation
+  const displayPosts = posts;
 
   return (
     <div className="h-full bg-black overflow-y-auto">
