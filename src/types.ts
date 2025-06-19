@@ -60,7 +60,6 @@ export interface Media {
 export interface CurrentUser extends User {
   posterUrl: string;
   email: string;
-  location: string;
   media: Media[];
   messages: Message[];
   posts: Post[];
