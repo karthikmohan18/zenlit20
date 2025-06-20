@@ -47,12 +47,20 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('profile_photo_url, cover_photo_url')
+        .select('*')
         .eq('id', user.id)
         .single();
       if (data) {
         setProfileUrl(data.profile_photo_url || profileUrl);
         setCoverUrl(data.cover_photo_url || '');
+        
+        // Update formData with the latest social media URLs from database
+        setFormData(prev => ({
+          ...prev,
+          instagramUrl: data.instagram_url || '',
+          linkedInUrl: data.linked_in_url || '',
+          twitterUrl: data.twitter_url || ''
+        }));
       }
     })();
   }, []);
