@@ -145,6 +145,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       
       if (result.success) {
         console.log('OTP verified successfully, user authenticated');
+        // IMPORTANT: Move to password step, not complete
         setSignupStep('password');
       } else {
         console.error('OTP verification failed:', result.error);
