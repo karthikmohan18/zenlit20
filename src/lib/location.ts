@@ -11,7 +11,7 @@ export const isSecureContext = (): boolean => {
   return window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
 };
 
-// Request user's current location
+// Request user's current location with improved error handling
 export const requestUserLocation = async (): Promise<{
   success: boolean;
   location?: UserLocation;
@@ -49,10 +49,10 @@ export const requestUserLocation = async (): Promise<{
       );
     });
 
-    // Round coordinates to 2 decimal places for privacy and performance
+    // Round coordinates to 3 decimal places for better precision while maintaining privacy
     const location: UserLocation = {
-      latitude: Number(position.coords.latitude.toFixed(2)),
-      longitude: Number(position.coords.longitude.toFixed(2)),
+      latitude: Number(position.coords.latitude.toFixed(3)),
+      longitude: Number(position.coords.longitude.toFixed(3)),
       accuracy: position.coords.accuracy,
       timestamp: Date.now()
     };
@@ -91,7 +91,7 @@ export const requestUserLocation = async (): Promise<{
   }
 };
 
-// Watch user's location for changes (dynamic tracking)
+// Watch user's location for changes with improved accuracy
 export const watchUserLocation = (
   onLocationUpdate: (location: UserLocation) => void,
   onError: (error: string) => void
@@ -111,10 +111,10 @@ export const watchUserLocation = (
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        // Round coordinates to 2 decimal places for privacy and performance
+        // Round coordinates to 3 decimal places for better precision
         const location: UserLocation = {
-          latitude: Number(position.coords.latitude.toFixed(2)),
-          longitude: Number(position.coords.longitude.toFixed(2)),
+          latitude: Number(position.coords.latitude.toFixed(3)),
+          longitude: Number(position.coords.longitude.toFixed(3)),
           accuracy: position.coords.accuracy,
           timestamp: Date.now()
         };
@@ -169,7 +169,7 @@ export const stopWatchingLocation = (watchId: number): void => {
   }
 };
 
-// Save user's location to their profile (with rounded coordinates)
+// Save user's location to their profile with improved precision
 export const saveUserLocation = async (
   userId: string,
   location: UserLocation
@@ -180,9 +180,9 @@ export const saveUserLocation = async (
   try {
     console.log('Saving user location to profile:', userId, location);
 
-    // Round coordinates to 2 decimal places before saving
-    const latRounded = Number(location.latitude.toFixed(2));
-    const lonRounded = Number(location.longitude.toFixed(2));
+    // Round coordinates to 3 decimal places before saving
+    const latRounded = Number(location.latitude.toFixed(3));
+    const lonRounded = Number(location.longitude.toFixed(3));
 
     const { error } = await supabase
       .from('profiles')
@@ -213,20 +213,20 @@ export const saveUserLocation = async (
   }
 };
 
-// Check if location coordinates have changed (rounded comparison)
+// Check if location coordinates have changed with improved precision
 export const hasLocationChanged = (
   oldLocation: UserLocation,
   newLocation: UserLocation
 ): boolean => {
-  const oldLatRounded = Number(oldLocation.latitude.toFixed(2));
-  const oldLonRounded = Number(oldLocation.longitude.toFixed(2));
-  const newLatRounded = Number(newLocation.latitude.toFixed(2));
-  const newLonRounded = Number(newLocation.longitude.toFixed(2));
+  const oldLatRounded = Number(oldLocation.latitude.toFixed(3));
+  const oldLonRounded = Number(oldLocation.longitude.toFixed(3));
+  const newLatRounded = Number(newLocation.latitude.toFixed(3));
+  const newLonRounded = Number(newLocation.longitude.toFixed(3));
   
   return oldLatRounded !== newLatRounded || oldLonRounded !== newLonRounded;
 };
 
-// Get nearby users with exact coordinate match (same 2-decimal bucket)
+// Get nearby users with improved coordinate matching
 export const getNearbyUsers = async (
   currentUserId: string,
   currentLocation: UserLocation,
@@ -242,9 +242,9 @@ export const getNearbyUsers = async (
     console.log('📍 Current location:', currentLocation);
     console.log('📍 Limit:', limit);
 
-    // Round coordinates to 2 decimal places for exact matching
-    const latRounded = Number(currentLocation.latitude.toFixed(2));
-    const lonRounded = Number(currentLocation.longitude.toFixed(2));
+    // Round coordinates to 3 decimal places for matching (~100m precision)
+    const latRounded = Number(currentLocation.latitude.toFixed(3));
+    const lonRounded = Number(currentLocation.longitude.toFixed(3));
 
     console.log('📍 Rounded coordinates for matching:', { latRounded, lonRounded });
 

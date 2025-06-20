@@ -12,6 +12,7 @@ import { UserGroupIcon, Squares2X2Icon, UserIcon, PlusIcon, ChatBubbleLeftIcon }
 import { User } from './types';
 import { supabase, onAuthStateChange } from './lib/supabase';
 import { checkSession, handleRefreshTokenError } from './lib/auth';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'welcome' | 'login' | 'profileSetup' | 'app'>('welcome');
@@ -252,132 +253,136 @@ export default function App() {
     );
   }
 
-  // Show welcome screen first
-  if (currentScreen === 'welcome') {
-    return <WelcomeScreen onGetStarted={() => setCurrentScreen('login')} />;
-  }
-
-  // Show login screen after get started is clicked
-  if (currentScreen === 'login') {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
-  // Show profile setup screen for new users
-  if (currentScreen === 'profileSetup') {
-    return (
-      <ProfileSetupScreen 
-        onComplete={handleProfileSetupComplete}
-        onBack={() => setCurrentScreen('login')}
-      />
-    );
-  }
-
-  // Show main app after login and profile setup
   return (
-    <div className="h-screen bg-black text-white overflow-hidden flex flex-col mobile-container">
-      {/* Mobile App Container */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-hidden relative content-with-nav">
-          <div className="h-full">
-            {activeTab === 'radar' && (
-              <div className="h-full overflow-y-auto mobile-scroll">
-                <RadarScreen 
-                  userGender={userGender} 
-                  onNavigate={setActiveTab}
-                  onViewProfile={setSelectedUser}
-                  onMessageUser={handleMessageUser}
-                />
-              </div>
-            )}
-            {activeTab === 'feed' && (
-              <div className="h-full overflow-y-auto mobile-scroll">
-                <HomeScreen userGender={userGender} />
-              </div>
-            )}
-            {activeTab === 'create' && (
-              <div className="h-full overflow-y-auto mobile-scroll">
-                <CreatePostScreen />
-              </div>
-            )}
-            {activeTab === 'messages' && (
-              <div className="h-full">
-                <MessagesScreen 
-                  selectedUser={selectedChatUser}
-                  onClearSelectedUser={() => setSelectedChatUser(null)}
-                  onViewProfile={handleViewProfile}
-                />
-              </div>
-            )}
-            {activeTab === 'profile' && (
-              <div className="h-full overflow-y-auto mobile-scroll">
-                <ProfileScreen 
-                  user={selectedUser} 
-                  currentUser={currentUser}
-                  onBack={() => setSelectedUser(null)}
-                  onLogout={handleLogout}
-                  onNavigateToCreate={handleNavigateToCreate}
-                />
-              </div>
-            )}
-          </div>
-        </main>
+    <ErrorBoundary>
+      <div className="h-screen bg-black text-white overflow-hidden flex flex-col mobile-container">
+        {/* Show welcome screen first */}
+        {currentScreen === 'welcome' && (
+          <WelcomeScreen onGetStarted={() => setCurrentScreen('login')} />
+        )}
 
-        {/* Bottom Navigation - Fixed for mobile */}
-        <nav className="bg-gray-900 border-t border-gray-800 flex-shrink-0 bottom-nav">
-          <div className="flex justify-around items-center py-2 px-4 h-16">
-            <button
-              onClick={() => setActiveTab('radar')}
-              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                activeTab === 'radar' ? 'text-blue-500' : 'text-gray-400'
-              }`}
-            >
-              <UserGroupIcon className="h-6 w-6 mb-1" />
-              <span className="text-xs font-medium">Radar</span>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('feed')}
-              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                activeTab === 'feed' ? 'text-blue-500' : 'text-gray-400'
-              }`}
-            >
-              <Squares2X2Icon className="h-6 w-6 mb-1" />
-              <span className="text-xs font-medium">Feed</span>
-            </button>
+        {/* Show login screen after get started is clicked */}
+        {currentScreen === 'login' && (
+          <LoginScreen onLogin={handleLogin} />
+        )}
 
-            <button
-              onClick={() => setActiveTab('create')}
-              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                activeTab === 'create' ? 'text-blue-500' : 'text-gray-400'
-              }`}
-            >
-              <PlusIcon className="h-6 w-6 mb-1" />
-              <span className="text-xs font-medium">Create</span>
-            </button>
+        {/* Show profile setup screen for new users */}
+        {currentScreen === 'profileSetup' && (
+          <ProfileSetupScreen 
+            onComplete={handleProfileSetupComplete}
+            onBack={() => setCurrentScreen('login')}
+          />
+        )}
 
-            <button
-              onClick={() => setActiveTab('messages')}
-              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                activeTab === 'messages' ? 'text-blue-500' : 'text-gray-400'
-              }`}
-            >
-              <ChatBubbleLeftIcon className="h-6 w-6 mb-1" />
-              <span className="text-xs font-medium">Messages</span>
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                activeTab === 'profile' ? 'text-blue-500' : 'text-gray-400'
-              }`}
-            >
-              <UserIcon className="h-6 w-6 mb-1" />
-              <span className="text-xs font-medium">Profile</span>
-            </button>
-          </div>
-        </nav>
+        {/* Show main app after login and profile setup */}
+        {currentScreen === 'app' && (
+          <>
+            {/* Mobile App Container */}
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* Main Content Area */}
+              <main className="flex-1 overflow-hidden relative content-with-nav">
+                <div className="h-full">
+                  {activeTab === 'radar' && (
+                    <div className="h-full overflow-y-auto mobile-scroll">
+                      <RadarScreen 
+                        userGender={userGender} 
+                        onNavigate={setActiveTab}
+                        onViewProfile={setSelectedUser}
+                        onMessageUser={handleMessageUser}
+                      />
+                    </div>
+                  )}
+                  {activeTab === 'feed' && (
+                    <div className="h-full overflow-y-auto mobile-scroll">
+                      <HomeScreen userGender={userGender} />
+                    </div>
+                  )}
+                  {activeTab === 'create' && (
+                    <div className="h-full overflow-y-auto mobile-scroll">
+                      <CreatePostScreen />
+                    </div>
+                  )}
+                  {activeTab === 'messages' && (
+                    <div className="h-full">
+                      <MessagesScreen 
+                        selectedUser={selectedChatUser}
+                        onClearSelectedUser={() => setSelectedChatUser(null)}
+                        onViewProfile={handleViewProfile}
+                      />
+                    </div>
+                  )}
+                  {activeTab === 'profile' && (
+                    <div className="h-full overflow-y-auto mobile-scroll">
+                      <ProfileScreen 
+                        user={selectedUser} 
+                        currentUser={currentUser}
+                        onBack={() => setSelectedUser(null)}
+                        onLogout={handleLogout}
+                        onNavigateToCreate={handleNavigateToCreate}
+                      />
+                    </div>
+                  )}
+                </div>
+              </main>
+
+              {/* Bottom Navigation - Fixed for mobile */}
+              <nav className="bg-gray-900 border-t border-gray-800 flex-shrink-0 bottom-nav">
+                <div className="flex justify-around items-center py-2 px-4 h-16">
+                  <button
+                    onClick={() => setActiveTab('radar')}
+                    className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                      activeTab === 'radar' ? 'text-blue-500' : 'text-gray-400'
+                    }`}
+                  >
+                    <UserGroupIcon className="h-6 w-6 mb-1" />
+                    <span className="text-xs font-medium">Radar</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('feed')}
+                    className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                      activeTab === 'feed' ? 'text-blue-500' : 'text-gray-400'
+                    }`}
+                  >
+                    <Squares2X2Icon className="h-6 w-6 mb-1" />
+                    <span className="text-xs font-medium">Feed</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('create')}
+                    className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                      activeTab === 'create' ? 'text-blue-500' : 'text-gray-400'
+                    }`}
+                  >
+                    <PlusIcon className="h-6 w-6 mb-1" />
+                    <span className="text-xs font-medium">Create</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('messages')}
+                    className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                      activeTab === 'messages' ? 'text-blue-500' : 'text-gray-400'
+                    }`}
+                  >
+                    <ChatBubbleLeftIcon className="h-6 w-6 mb-1" />
+                    <span className="text-xs font-medium">Messages</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setActiveTab('profile')}
+                    className={`nav-button-mobile flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
+                      activeTab === 'profile' ? 'text-blue-500' : 'text-gray-400'
+                    }`}
+                  >
+                    <UserIcon className="h-6 w-6 mb-1" />
+                    <span className="text-xs font-medium">Profile</span>
+                  </button>
+                </div>
+              </nav>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
