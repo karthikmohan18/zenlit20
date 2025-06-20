@@ -33,8 +33,24 @@ export function transformProfileToUser(profile: any): User {
     linkedInVerified: profile.linked_in_verified,
     twitterUrl: profile.twitter_url,
     twitterVerified: profile.twitter_verified,
-    googleUrl: profile.google_url,
-    googleVerified: profile.google_verified,
+  googleUrl: profile.google_url,
+  googleVerified: profile.google_verified,
+  }
+}
+
+// Check if a profile URL is reachable
+export async function validateProfileUrl(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    if (res.ok) return true
+  } catch (e) {
+    // ignore and try GET
+  }
+  try {
+    const res = await fetch(url, { method: 'GET' })
+    return res.ok
+  } catch (e) {
+    return false
   }
 }
 
