@@ -203,12 +203,11 @@ export const ProfileScreen: React.FC<Props> = ({
     );
   }
 
-  // Count verified social accounts (excluding Facebook)
+  // Count connected social accounts
   const verifiedAccountsCount = [
-    profileData.instagram_verified,
-    profileData.linked_in_verified,
-    profileData.twitter_verified,
-    profileData.google_verified
+    profileData.instagram_url,
+    profileData.linked_in_url,
+    profileData.twitter_url
   ].filter(Boolean).length;
 
   if (showEditProfile) {
@@ -362,7 +361,7 @@ export const ProfileScreen: React.FC<Props> = ({
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandX size={24} />
-              {profileData.twitter_verified && (
+              {profileData.twitter_url && (
                 <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
                   <CheckCircleIcon className="w-3 h-3 text-white" />
                 </div>
@@ -375,7 +374,7 @@ export const ProfileScreen: React.FC<Props> = ({
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandInstagram size={24} />
-              {profileData.instagram_verified && (
+              {profileData.instagram_url && (
                 <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
                   <CheckCircleIcon className="w-3 h-3 text-white" />
                 </div>
@@ -388,7 +387,7 @@ export const ProfileScreen: React.FC<Props> = ({
               className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
             >
               <IconBrandLinkedin size={24} />
-              {profileData.linked_in_verified && (
+              {profileData.linked_in_url && (
                 <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
                   <CheckCircleIcon className="w-3 h-3 text-white" />
                 </div>

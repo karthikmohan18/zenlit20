@@ -7,6 +7,8 @@ import {
   IconBrandX
 } from '@tabler/icons-react';
 import { CheckCircleIcon, LinkIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { supabase } from '../../lib/supabase';
+import { transformProfileToUser } from '../../../lib/utils';
 
 interface Props {
   user: User;
@@ -61,33 +63,38 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
 
   const handleSaveLink = async (providerId: string, url: string) => {
     console.log(`🔍 [SocialAccountsSection] handleSaveLink called for ${providerId} with URL: "${url}"`);
-    
+
     setIsLoading(true);
 
     try {
-      // Update user object with new URL
-      const updatedUser = {
-        ...user,
-        [`${providerId}Url`]: url || undefined
+      const columnMap: Record<string, string> = {
+        instagram: 'instagram_url',
+        linkedin: 'linked_in_url',
+        twitter: 'twitter_url'
       };
 
-      console.log(`🔍 [SocialAccountsSection] Updated user object:`, {
-        id: updatedUser.id,
-        instagramUrl: updatedUser.instagramUrl,
-        linkedInUrl: updatedUser.linkedInUrl,
-        twitterUrl: updatedUser.twitterUrl
-      });
+      const column = columnMap[providerId];
 
-      // Call the parent's update handler
-      console.log(`🔍 [SocialAccountsSection] Calling onUserUpdate with updated user`);
-      onUserUpdate(updatedUser);
-      
-      // Close modal
+      await supabase
+        .from('profiles')
+        .update({ [column]: url || null, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      const { data: refreshed } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (refreshed) {
+        const updatedUser = transformProfileToUser(refreshed);
+        onUserUpdate(updatedUser);
+      }
+
       setActiveModal(null);
       console.log(`🔍 [SocialAccountsSection] Modal closed for ${providerId}`);
     } catch (error) {
       console.error(`🔍 [SocialAccountsSection] Failed to save ${providerId} link:`, error);
-      // You could add a toast notification here for error feedback
     } finally {
       setIsLoading(false);
     }

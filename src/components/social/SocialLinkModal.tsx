@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { XMarkIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
+import { validateProfileUrl } from '../../../lib/utils';
 
 interface Props {
   isOpen: boolean;
@@ -27,50 +28,10 @@ export const SocialLinkModal: React.FC<Props> = ({
   const [url, setUrl] = useState(currentUrl);
   const [error, setError] = useState<string | null>(null);
 
-  const validateUrl = (inputUrl: string): { valid: boolean; error?: string } => {
-    if (!inputUrl.trim()) {
-      return { valid: false, error: 'Please enter a URL' };
-    }
 
-    // Basic URL validation
-    try {
-      const urlObj = new URL(inputUrl);
-      
-      // Check if it's HTTP or HTTPS
-      if (!['http:', 'https:'].includes(urlObj.protocol)) {
-        return { valid: false, error: 'URL must start with http:// or https://' };
-      }
+  const [checking, setChecking] = useState(false);
 
-      // Platform-specific validation
-      const hostname = urlObj.hostname.toLowerCase();
-      
-      switch (platform.id) {
-        case 'instagram':
-          if (!hostname.includes('instagram.com')) {
-            return { valid: false, error: 'Please enter a valid Instagram URL (instagram.com)' };
-          }
-          break;
-        case 'twitter':
-          if (!hostname.includes('twitter.com') && !hostname.includes('x.com')) {
-            return { valid: false, error: 'Please enter a valid Twitter/X URL (twitter.com or x.com)' };
-          }
-          break;
-        case 'linkedin':
-          if (!hostname.includes('linkedin.com')) {
-            return { valid: false, error: 'Please enter a valid LinkedIn URL (linkedin.com)' };
-          }
-          break;
-        default:
-          break;
-      }
-
-      return { valid: true };
-    } catch {
-      return { valid: false, error: 'Please enter a valid URL' };
-    }
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     console.log(`🔍 [SocialLinkModal] handleSave called for ${platform.id}`);
     console.log(`🔍 [SocialLinkModal] Raw URL input: "${url}"`);
     console.log(`🔍 [SocialLinkModal] Trimmed URL: "${url.trim()}"`);
@@ -84,12 +45,13 @@ export const SocialLinkModal: React.FC<Props> = ({
       return;
     }
 
-    const validation = validateUrl(url);
-    console.log(`🔍 [SocialLinkModal] URL validation result:`, validation);
-    
-    if (!validation.valid) {
-      console.log(`🔍 [SocialLinkModal] URL validation failed: ${validation.error}`);
-      setError(validation.error || 'Invalid URL');
+    setChecking(true);
+    const reachable = await validateProfileUrl(url.trim());
+    setChecking(false);
+
+    if (!reachable) {
+      console.log('🔍 [SocialLinkModal] URL validation failed: unreachable');
+      setError('Invalid or unreachable URL');
       return;
     }
 
@@ -154,7 +116,7 @@ export const SocialLinkModal: React.FC<Props> = ({
               onChange={(e) => handleUrlChange(e.target.value)}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder={platform.placeholder}
-              disabled={isLoading}
+              disabled={isLoading || checking}
             />
             <p className="text-xs text-gray-500 mt-1">
               Paste your {platform.name} profile URL here
@@ -183,17 +145,17 @@ export const SocialLinkModal: React.FC<Props> = ({
           <div className="flex gap-3 pt-2">
             <button
               onClick={handleClose}
-              disabled={isLoading}
+              disabled={isLoading || checking}
               className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-medium hover:bg-gray-600 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              disabled={isLoading}
+              disabled={isLoading || checking}
               className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {isLoading ? (
+              {isLoading || checking ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Saving...
@@ -215,7 +177,7 @@ export const SocialLinkModal: React.FC<Props> = ({
                   console.log(`🔍 [SocialLinkModal] Remove link clicked for ${platform.id}`);
                   onSave('');
                 }}
-                disabled={isLoading}
+                disabled={isLoading || checking}
                 className="w-full text-red-400 hover:text-red-300 text-sm py-2 transition-colors disabled:opacity-50"
               >
                 Remove {platform.name} link
