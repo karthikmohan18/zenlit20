@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { CameraIcon, PhotoIcon, XMarkIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { generateId } from '../utils/generateId';
 import { supabase } from '../lib/supabase';
-import { uploadPostImage, generatePlaceholderImage, checkStorageAvailability } from '../lib/storage';
+import { uploadPostImage } from '../lib/storage';
+import { generatePlaceholderImage, checkStorageAvailability } from '../lib/storage';
 import { createPost } from '../lib/posts';
 
 export const CreatePostScreen: React.FC = () => {
@@ -135,8 +136,15 @@ export const CreatePostScreen: React.FC = () => {
           console.log('Attempting to upload image to Supabase...');
           
           try {
-            const uploadedUrl = await uploadPostImage(currentUser.id, selectedMedia);
-            
+            const response = await fetch(selectedMedia);
+            const blob = await response.blob();
+            const fileName = `${generateId()}.jpg`;
+            const filePath = `${currentUser.id}/${fileName}`;
+            const file = new File([blob], fileName, { type: blob.type });
+            const uploadedPath = await uploadPostImage(file, filePath);
+            const { data: urlData } = supabase.storage.from('posts').getPublicUrl(uploadedPath);
+            const uploadedUrl = urlData.publicUrl;
+
             if (uploadedUrl) {
               mediaUrl = uploadedUrl;
               console.log('Image uploaded successfully:', uploadedUrl);
