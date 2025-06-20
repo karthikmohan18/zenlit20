@@ -19,13 +19,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     name: user.name,
     bio: user.bio,
     instagramUrl: user.instagramUrl,
-    instagramVerified: user.instagramVerified,
-    facebookUrl: user.facebookUrl,
-    facebookVerified: user.facebookVerified,
     linkedInUrl: user.linkedInUrl,
-    linkedInVerified: user.linkedInVerified,
     twitterUrl: user.twitterUrl,
-    twitterVerified: user.twitterVerified,
   });
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const [profileUrl, setProfileUrl] = useState<string>(user.dpUrl);
@@ -61,13 +56,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     setFormData(prev => ({
       ...prev,
       instagramUrl: u.instagramUrl,
-      instagramVerified: u.instagramVerified,
-      facebookUrl: u.facebookUrl,
-      facebookVerified: u.facebookVerified,
       linkedInUrl: u.linkedInUrl,
-      linkedInVerified: u.linkedInVerified,
       twitterUrl: u.twitterUrl,
-      twitterVerified: u.twitterVerified,
     }));
     setHasChanges(true);
   };
@@ -222,20 +212,15 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         }
       }
 
-      // Update profile in database
+      // Update profile in database - only include the three social media URLs
       const updateData = {
         name: formData.name,
         bio: formData.bio,
         profile_photo_url: newProfileUrl || null,
         cover_photo_url: newCoverUrl || null,
-        instagram_url: formData.instagramUrl,
-        instagram_verified: formData.instagramVerified,
-        facebook_url: formData.facebookUrl,
-        facebook_verified: formData.facebookVerified,
-        linked_in_url: formData.linkedInUrl,
-        linked_in_verified: formData.linkedInVerified,
-        twitter_url: formData.twitterUrl,
-        twitter_verified: formData.twitterVerified,
+        instagram_url: formData.instagramUrl || null,
+        linked_in_url: formData.linkedInUrl || null,
+        twitter_url: formData.twitterUrl || null,
         updated_at: new Date().toISOString(),
       };
 
