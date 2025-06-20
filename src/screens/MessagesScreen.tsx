@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface Props {
-  selectedUser?: User | null;
+  selectedUser?: (User & { isNearby?: boolean }) | null;
   onClearSelectedUser?: () => void;
   onViewProfile?: (user: User) => void;
 }
@@ -18,7 +18,7 @@ export const MessagesScreen: React.FC<Props> = ({
 }) => {
   const [currentUserId, setCurrentUserId] = useState<string>('');
   const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [selectedUser, setSelectedUser] = useState<User | undefined>(initialSelectedUser || undefined);
+  const [selectedUser, setSelectedUser] = useState<(User & { isNearby?: boolean }) | undefined>(initialSelectedUser || undefined);
   const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isMobile] = useState(window.innerWidth < 768);
@@ -131,7 +131,7 @@ export const MessagesScreen: React.FC<Props> = ({
     // await supabase.from('messages').insert(newMessage);
   };
 
-  const handleSelectUser = (user: User) => {
+  const handleSelectUser = (user: User & { isNearby: boolean }) => {
     setSelectedUser(user);
     if (onClearSelectedUser) {
       onClearSelectedUser();

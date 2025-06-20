@@ -5,7 +5,7 @@ import { MessageInput } from './MessageInput';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 
 interface ChatWindowProps {
-  user: User;
+  user: User & { isNearby?: boolean };
   messages: Message[];
   onSendMessage: (content: string) => void;
   currentUserId: string;
@@ -13,15 +13,16 @@ interface ChatWindowProps {
   onViewProfile?: (user: User) => void;
 }
 
-export const ChatWindow = ({ 
-  user, 
-  messages, 
-  onSendMessage, 
+export const ChatWindow = ({
+  user,
+  messages,
+  onSendMessage,
   currentUserId,
   onBack,
   onViewProfile
 }: ChatWindowProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isNearby = user.isNearby !== false;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -32,7 +33,7 @@ export const ChatWindow = ({
   }, [messages]);
 
   const handleProfileClick = () => {
-    if (onViewProfile) {
+    if (onViewProfile && isNearby) {
       onViewProfile(user);
     }
   };
@@ -53,17 +54,24 @@ export const ChatWindow = ({
           
           {/* Clickable profile area */}
           <button
-            onClick={handleProfileClick}
-            className="flex items-center flex-1 hover:bg-gray-800/50 rounded-lg p-2 -m-2 transition-colors active:scale-95"
+            onClick={isNearby ? handleProfileClick : undefined}
+            disabled={!isNearby}
+            className={`flex items-center flex-1 rounded-lg p-2 -m-2 ${
+              isNearby ? 'hover:bg-gray-800/50 transition-colors active:scale-95' : ''
+            }`}
           >
-            <img 
-              src={user.dpUrl} 
-              alt={user.name} 
-              className="w-9 h-9 rounded-full object-cover ring-2 ring-blue-500 mr-3"
+            <img
+              src={isNearby ? user.dpUrl : '/images/default-avatar.png'}
+              alt={isNearby ? user.name : 'Anonymous'}
+              className={`w-9 h-9 rounded-full object-cover mr-3 ${
+                isNearby ? 'ring-2 ring-blue-500' : 'bg-gray-700'
+              }`}
             />
             <div className="text-left">
-              <h3 className="font-semibold text-white">{user.name}</h3>
-              <p className="text-xs text-gray-400">Active now</p>
+              <h3 className="font-semibold text-white">{isNearby ? user.name : 'Anonymous'}</h3>
+              {isNearby && (
+                <p className="text-xs text-gray-400">Active now</p>
+              )}
             </div>
           </button>
         </div>
@@ -74,12 +82,12 @@ export const ChatWindow = ({
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <img 
-                src={user.dpUrl} 
-                alt={user.name} 
+              <img
+                src={isNearby ? user.dpUrl : '/images/default-avatar.png'}
+                alt={isNearby ? user.name : 'Anonymous'}
                 className="w-16 h-16 rounded-full mx-auto mb-4"
               />
-              <p className="text-gray-400">Start a conversation with {user.name}</p>
+              <p className="text-gray-400">Start a conversation with {isNearby ? user.name : 'Anonymous'}</p>
             </div>
           </div>
         ) : (

@@ -7,6 +7,7 @@ interface Contact extends User {
   latitude?: number;
   longitude?: number;
   hasHistory?: boolean;
+  isNearby: boolean;
 }
 
 interface ChatMessage extends Message {}
@@ -14,8 +15,8 @@ interface ChatMessage extends Message {}
 interface ChatListProps {
   users: User[];
   messages: Message[];
-  selectedUser?: User;
-  onSelectUser: (user: User) => void;
+  selectedUser?: User & { isNearby?: boolean };
+  onSelectUser: (user: User & { isNearby: boolean }) => void;
   searchQuery?: string;
 }
 
@@ -64,7 +65,11 @@ export const ChatList = ({
 
     if (!currentCoords) {
       setNearbyContacts([]);
-      setHistoryOnlyContacts(users.filter(u => (u as Contact).hasHistory) as Contact[]);
+      setHistoryOnlyContacts(
+        users
+          .filter(u => (u as Contact).hasHistory)
+          .map(u => ({ ...(u as Contact), isNearby: false })) as Contact[]
+      );
       return;
     }
 
@@ -76,12 +81,12 @@ export const ChatList = ({
       if (contact.latitude != null && contact.longitude != null) {
         const d = calculateDistance(currentCoords.latitude, currentCoords.longitude, contact.latitude, contact.longitude);
         if (d <= 1) {
-          nearby.push(contact);
+          nearby.push({ ...contact, isNearby: true });
         } else if (contact.hasHistory) {
-          history.push(contact);
+          history.push({ ...contact, isNearby: false });
         }
       } else if (contact.hasHistory) {
-        history.push(contact);
+        history.push({ ...contact, isNearby: false });
       }
     });
 
