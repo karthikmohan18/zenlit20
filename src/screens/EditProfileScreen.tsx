@@ -33,6 +33,16 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   const profileFileInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
+  console.log(`🔍 [EditProfileScreen] Component initialized with user:`, {
+    id: user.id,
+    name: user.name,
+    instagramUrl: user.instagramUrl,
+    linkedInUrl: user.linkedInUrl,
+    twitterUrl: user.twitterUrl
+  });
+
+  console.log(`🔍 [EditProfileScreen] Initial formData:`, formData);
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase
@@ -48,17 +58,33 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   }, []);
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    console.log(`🔍 [EditProfileScreen] handleInputChange - field: ${field}, value: "${value}"`);
+    setFormData(prev => {
+      const newFormData = { ...prev, [field]: value };
+      console.log(`🔍 [EditProfileScreen] Updated formData:`, newFormData);
+      return newFormData;
+    });
     setHasChanges(true);
   };
 
   const handleUserUpdate = (u: User) => {
-    setFormData(prev => ({
-      ...prev,
+    console.log(`🔍 [EditProfileScreen] handleUserUpdate called with user:`, {
+      id: u.id,
       instagramUrl: u.instagramUrl,
       linkedInUrl: u.linkedInUrl,
-      twitterUrl: u.twitterUrl,
-    }));
+      twitterUrl: u.twitterUrl
+    });
+
+    setFormData(prev => {
+      const newFormData = {
+        ...prev,
+        instagramUrl: u.instagramUrl,
+        linkedInUrl: u.linkedInUrl,
+        twitterUrl: u.twitterUrl,
+      };
+      console.log(`🔍 [EditProfileScreen] Updated formData after user update:`, newFormData);
+      return newFormData;
+    });
     setHasChanges(true);
   };
 
@@ -127,6 +153,9 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
   };
 
   const handleSaveProfile = async () => {
+    console.log(`🔍 [EditProfileScreen] handleSaveProfile called`);
+    console.log(`🔍 [EditProfileScreen] Current formData before save:`, formData);
+    
     setLoading(true);
     try {
       let newProfileUrl = profileUrl;
@@ -224,6 +253,8 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         updated_at: new Date().toISOString(),
       };
 
+      console.log(`🔍 [EditProfileScreen] Sending updateData to Supabase:`, updateData);
+
       const { data: updated, error } = await supabase
         .from('profiles')
         .update(updateData)
@@ -231,18 +262,25 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error(`🔍 [EditProfileScreen] Supabase update error:`, error);
+        throw error;
+      }
+
+      console.log(`🔍 [EditProfileScreen] Supabase update successful:`, updated);
 
       setShowSuccess(true);
       setTimeout(() => {
-        onSave(transformProfileToUser({
+        const transformedUser = transformProfileToUser({
           ...updated,
           profile_photo_url: newProfileUrl,
           cover_photo_url: newCoverUrl
-        }));
+        });
+        console.log(`🔍 [EditProfileScreen] Calling onSave with transformed user:`, transformedUser);
+        onSave(transformedUser);
       }, 1500);
     } catch (err) {
-      console.error(err);
+      console.error(`🔍 [EditProfileScreen] Save profile error:`, err);
       alert(err instanceof Error ? err.message : 'Failed to save profile');
     } finally {
       setLoading(false);

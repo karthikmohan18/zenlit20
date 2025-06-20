@@ -19,15 +19,11 @@ export interface User {
   longitude?: number;
   // Cover photo field
   coverPhotoUrl?: string;
-  // Social media verification fields (removed Facebook)
+  // Social media URL fields (removed verified fields)
   instagramUrl?: string;
-  instagramVerified?: boolean;
   linkedInUrl?: string;
-  linkedInVerified?: boolean;
   twitterUrl?: string;
-  twitterVerified?: boolean;
   googleUrl?: string;
-  googleVerified?: boolean;
 }
 
 export interface Post {

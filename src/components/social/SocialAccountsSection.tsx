@@ -17,6 +17,14 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  console.log(`🔍 [SocialAccountsSection] Component rendered with user:`, {
+    id: user.id,
+    name: user.name,
+    instagramUrl: user.instagramUrl,
+    linkedInUrl: user.linkedInUrl,
+    twitterUrl: user.twitterUrl
+  });
+
   const socialProviders: (SocialProvider & { 
     placeholder: string;
     getCurrentUrl: () => string | undefined;
@@ -29,7 +37,7 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
       icon: IconBrandInstagram,
       placeholder: 'https://instagram.com/yourusername',
       getCurrentUrl: () => user.instagramUrl,
-      getIsVerified: () => !!user.instagramVerified
+      getIsVerified: () => !!user.instagramUrl // Changed from instagramVerified to just check if URL exists
     },
     {
       id: 'linkedin',
@@ -38,7 +46,7 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
       icon: IconBrandLinkedin,
       placeholder: 'https://linkedin.com/in/yourprofile',
       getCurrentUrl: () => user.linkedInUrl,
-      getIsVerified: () => !!user.linkedInVerified
+      getIsVerified: () => !!user.linkedInUrl // Changed from linkedInVerified to just check if URL exists
     },
     {
       id: 'twitter',
@@ -47,28 +55,38 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
       icon: IconBrandX,
       placeholder: 'https://twitter.com/yourusername',
       getCurrentUrl: () => user.twitterUrl,
-      getIsVerified: () => !!user.twitterVerified
+      getIsVerified: () => !!user.twitterUrl // Changed from twitterVerified to just check if URL exists
     }
   ];
 
   const handleSaveLink = async (providerId: string, url: string) => {
+    console.log(`🔍 [SocialAccountsSection] handleSaveLink called for ${providerId} with URL: "${url}"`);
+    
     setIsLoading(true);
 
     try {
-      // Update user object with new URL and mark as verified if URL is provided
+      // Update user object with new URL
       const updatedUser = {
         ...user,
-        [`${providerId}Url`]: url || undefined,
-        [`${providerId}Verified`]: !!url // Mark as verified if URL exists, unverified if removed
+        [`${providerId}Url`]: url || undefined
       };
 
+      console.log(`🔍 [SocialAccountsSection] Updated user object:`, {
+        id: updatedUser.id,
+        instagramUrl: updatedUser.instagramUrl,
+        linkedInUrl: updatedUser.linkedInUrl,
+        twitterUrl: updatedUser.twitterUrl
+      });
+
       // Call the parent's update handler
+      console.log(`🔍 [SocialAccountsSection] Calling onUserUpdate with updated user`);
       onUserUpdate(updatedUser);
       
       // Close modal
       setActiveModal(null);
+      console.log(`🔍 [SocialAccountsSection] Modal closed for ${providerId}`);
     } catch (error) {
-      console.error(`Failed to save ${providerId} link:`, error);
+      console.error(`🔍 [SocialAccountsSection] Failed to save ${providerId} link:`, error);
       // You could add a toast notification here for error feedback
     } finally {
       setIsLoading(false);
@@ -76,10 +94,12 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
   };
 
   const openModal = (providerId: string) => {
+    console.log(`🔍 [SocialAccountsSection] Opening modal for ${providerId}`);
     setActiveModal(providerId);
   };
 
   const closeModal = () => {
+    console.log(`🔍 [SocialAccountsSection] Closing modal`);
     setActiveModal(null);
   };
 
@@ -101,6 +121,8 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
           const currentUrl = provider.getCurrentUrl();
           const isConnected = !!currentUrl;
           const IconComponent = provider.icon;
+
+          console.log(`🔍 [SocialAccountsSection] Rendering ${provider.id} - currentUrl: "${currentUrl}", isConnected: ${isConnected}`);
 
           return (
             <div key={provider.id} className="space-y-2">

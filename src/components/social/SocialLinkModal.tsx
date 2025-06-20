@@ -71,29 +71,41 @@ export const SocialLinkModal: React.FC<Props> = ({
   };
 
   const handleSave = () => {
+    console.log(`🔍 [SocialLinkModal] handleSave called for ${platform.id}`);
+    console.log(`🔍 [SocialLinkModal] Raw URL input: "${url}"`);
+    console.log(`🔍 [SocialLinkModal] Trimmed URL: "${url.trim()}"`);
+    
     setError(null);
     
     if (!url.trim()) {
       // Allow saving empty URL to remove the link
+      console.log(`🔍 [SocialLinkModal] Saving empty URL to remove ${platform.id} link`);
       onSave('');
       return;
     }
 
     const validation = validateUrl(url);
+    console.log(`🔍 [SocialLinkModal] URL validation result:`, validation);
+    
     if (!validation.valid) {
+      console.log(`🔍 [SocialLinkModal] URL validation failed: ${validation.error}`);
       setError(validation.error || 'Invalid URL');
       return;
     }
 
-    onSave(url.trim());
+    const finalUrl = url.trim();
+    console.log(`🔍 [SocialLinkModal] Calling onSave with final URL: "${finalUrl}"`);
+    onSave(finalUrl);
   };
 
   const handleUrlChange = (value: string) => {
+    console.log(`🔍 [SocialLinkModal] URL input changed for ${platform.id}: "${value}"`);
     setUrl(value);
     setError(null);
   };
 
   const handleClose = () => {
+    console.log(`🔍 [SocialLinkModal] Modal closed for ${platform.id}, resetting to currentUrl: "${currentUrl}"`);
     setUrl(currentUrl);
     setError(null);
     onClose();
@@ -199,7 +211,10 @@ export const SocialLinkModal: React.FC<Props> = ({
           {currentUrl && (
             <div className="pt-2 border-t border-gray-700">
               <button
-                onClick={() => onSave('')}
+                onClick={() => {
+                  console.log(`🔍 [SocialLinkModal] Remove link clicked for ${platform.id}`);
+                  onSave('');
+                }}
                 disabled={isLoading}
                 className="w-full text-red-400 hover:text-red-300 text-sm py-2 transition-colors disabled:opacity-50"
               >
