@@ -4,7 +4,8 @@ import { UserProfile } from '../components/profile/UserProfile';
 import { User, Post } from '../types';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
-import { getAllPosts } from '../lib/posts';
+import { getNearbyPosts } from '../lib/posts';
+import { requestUserLocation } from '../lib/location';
 
 interface Props {
   userGender: 'male' | 'female';
@@ -21,10 +22,22 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
 
   const loadPosts = async () => {
     try {
-      const allPosts = await getAllPosts(50);
-      setPosts(allPosts);
-    } catch (error) {
-      console.error('Error loading posts:', error);
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        setPosts([]);
+        return;
+      }
+
+      const loc = await requestUserLocation();
+      if (!loc.success || !loc.location) {
+        setPosts([]);
+        return;
+      }
+
+      const nearby = await getNearbyPosts(user.id, loc.location, 50);
+      setPosts(nearby);
+    } catch (err) {
+      console.error('Error loading posts:', err);
     } finally {
       setIsLoading(false);
     }
@@ -117,8 +130,8 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
             </div>
-            <p className="text-gray-400 mb-2">No posts yet</p>
-            <p className="text-gray-500 text-sm">Create your first post to get started!</p>
+            <p className="text-gray-400 mb-2">No nearby posts found</p>
+            <p className="text-gray-500 text-sm">Be the first to share something in your area!</p>
           </div>
         )}
       </div>
