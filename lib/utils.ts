@@ -28,13 +28,8 @@ export function transformProfileToUser(profile: any): User {
     longitude: profile.longitude,
     coverPhotoUrl: profile.cover_photo_url || '',
     instagramUrl: profile.instagram_url,
-    instagramVerified: profile.instagram_verified,
     linkedInUrl: profile.linked_in_url,
-    linkedInVerified: profile.linked_in_verified,
     twitterUrl: profile.twitter_url,
-    twitterVerified: profile.twitter_verified,
-  googleUrl: profile.google_url,
-  googleVerified: profile.google_verified,
   }
 }
 
@@ -55,4 +50,4 @@ export async function validateProfileUrl(url: string): Promise<boolean> {
 }
 
 // Re-export uploadProfileImage for backward compatibility
-export { uploadProfileImage }
+export { uploadProfileImage };

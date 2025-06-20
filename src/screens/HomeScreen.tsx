@@ -60,13 +60,8 @@ export const HomeScreen: React.FC<Props> = ({ userGender }) => {
           LinkedIn: profile.linked_in_url || '#',
         },
         instagramUrl: profile.instagram_url,
-        instagramVerified: profile.instagram_verified,
-        facebookUrl: profile.facebook_url,
-        facebookVerified: profile.facebook_verified,
         linkedInUrl: profile.linked_in_url,
-        linkedInVerified: profile.linked_in_verified,
         twitterUrl: profile.twitter_url,
-        twitterVerified: profile.twitter_verified,
       };
       setSelectedUser(transformedUser);
     } catch (error) {

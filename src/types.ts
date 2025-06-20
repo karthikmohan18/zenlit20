@@ -23,7 +23,6 @@ export interface User {
   instagramUrl?: string;
   linkedInUrl?: string;
   twitterUrl?: string;
-  googleUrl?: string;
 }
 
 export interface Post {
