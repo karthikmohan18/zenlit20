@@ -6,7 +6,7 @@ import {
   IconBrandLinkedin, 
   IconBrandX
 } from '@tabler/icons-react';
-import { CheckCircleIcon, LinkIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { LinkIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../../lib/supabase';
 import { transformProfileToUser } from '../../../lib/utils';
 
@@ -139,16 +139,11 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
                   <div className="min-w-0 flex-1">
                     <h3 className="font-medium text-white">{provider.name}</h3>
                     {isConnected ? (
-                      <div className="flex items-center gap-2 mt-1">
-                        <CheckCircleIcon className="w-4 h-4 text-green-500" />
-                        <p className="text-sm text-green-400 truncate">
-                          {currentUrl}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">
-                        Not connected
+                      <p className="text-sm text-green-400 mt-1 truncate">
+                        {currentUrl}
                       </p>
+                    ) : (
+                      <p className="text-sm text-gray-500">Not connected</p>
                     )}
                   </div>
                 </div>
