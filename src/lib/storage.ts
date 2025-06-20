@@ -159,6 +159,18 @@ export async function uploadBannerImage(file: File): Promise<{ publicUrl: string
   }
 }
 
+/**
+ * Uploads a post image to the "posts" bucket and returns its storage path.
+ */
+export async function uploadPostImage(file: File, path: string): Promise<string> {
+  const { data, error } = await supabase
+    .storage
+    .from('posts')
+    .upload(path, file, { upsert: true });
+  if (error) throw error;
+  return data.path;
+}
+
 // Delete image from storage
 export async function deleteImage(bucket: string, filePath: string): Promise<boolean> {
   try {
