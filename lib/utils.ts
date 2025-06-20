@@ -35,18 +35,31 @@ export function transformProfileToUser(profile: any): User {
 
 // Check if a profile URL is reachable
 export async function validateProfileUrl(url: string): Promise<boolean> {
+  let reachable = false
+
   try {
     const res = await fetch(url, { method: 'HEAD' })
-    if (res.ok) return true
-  } catch (e) {
-    // ignore and try GET
+    reachable = res.ok
+  } catch {
+    // ignore network/CORS errors
   }
-  try {
-    const res = await fetch(url, { method: 'GET' })
-    return res.ok
-  } catch (e) {
-    return false
+
+  if (!reachable) {
+    try {
+      const res = await fetch(url, { method: 'GET' })
+      reachable = res.ok
+    } catch {
+      // ignore network/CORS errors
+    }
   }
+
+  if (reachable) return true
+
+  const linkedin = /^https?:\/\/(www\.)?linkedin\.com\/in\/[A-Za-z0-9\-_]+\/?$/
+  const instagram = /^https?:\/\/(www\.)?instagram\.com\/[A-Za-z0-9\._]+\/?$/
+  const twitter = /^https?:\/\/(www\.)?twitter\.com\/[A-Za-z0-9_]+\/?$/
+
+  return linkedin.test(url) || instagram.test(url) || twitter.test(url)
 }
 
 // Re-export uploadProfileImage for backward compatibility

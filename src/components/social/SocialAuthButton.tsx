@@ -1,11 +1,10 @@
 import React from 'react';
-import { CheckCircleIcon, LinkIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { LinkIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { SocialProvider } from '../../types';
 
 interface Props {
   provider: SocialProvider;
   isConnected: boolean;
-  isVerified: boolean;
   profileUrl?: string;
   onConnect: () => void;
 }
@@ -13,23 +12,17 @@ interface Props {
 export const SocialAuthButton: React.FC<Props> = ({
   provider,
   isConnected,
-  isVerified,
   profileUrl,
   onConnect
 }) => {
   const IconComponent = provider.icon;
 
-  const getButtonText = () => {
-    if (isConnected && isVerified) return 'Edit Link';
-    return 'Add Link';
-  };
+  const getButtonText = () => (isConnected ? 'Edit Link' : 'Add Link');
 
-  const getButtonStyle = () => {
-    if (isConnected && isVerified) {
-      return 'bg-blue-600 hover:bg-blue-700 border-blue-500';
-    }
-    return 'bg-gray-700 hover:bg-gray-600 border-gray-600';
-  };
+  const getButtonStyle = () =>
+    isConnected
+      ? 'bg-blue-600 hover:bg-blue-700 border-blue-500'
+      : 'bg-gray-700 hover:bg-gray-600 border-gray-600';
 
   return (
     <div className="flex items-center justify-between p-4 bg-gray-800 border border-gray-600 rounded-lg">
@@ -37,13 +30,8 @@ export const SocialAuthButton: React.FC<Props> = ({
         <IconComponent size={24} className="text-gray-300" />
         <div className="min-w-0 flex-1">
           <h3 className="font-medium text-white">{provider.name}</h3>
-          {isConnected && isVerified && profileUrl && (
-            <div className="flex items-center gap-2 mt-1">
-              <CheckCircleIcon className="w-4 h-4 text-green-500" />
-              <p className="text-sm text-green-400 truncate">
-                {profileUrl}
-              </p>
-            </div>
+          {isConnected && profileUrl && (
+            <p className="text-sm text-green-400 mt-1 truncate">{profileUrl}</p>
           )}
           {!isConnected && (
             <p className="text-sm text-gray-500">
