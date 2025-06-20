@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Post } from '../types';
+import { Post, UserLocation } from '../types';
 import { deleteImage, extractFilePathFromUrl } from './storage';
 
 export interface CreatePostData {
@@ -134,6 +134,50 @@ export async function getAllPosts(limit: number = 50): Promise<Post[]> {
     return transformedPosts;
   } catch (error) {
     console.error('Error getting all posts:', error);
+    return [];
+  }
+}
+
+export async function getNearbyPosts(
+  currentUserId: string,
+  location: UserLocation,
+  limit: number = 50
+): Promise<Post[]> {
+  try {
+    const latRounded = Number(location.latitude.toFixed(2));
+    const lonRounded = Number(location.longitude.toFixed(2));
+
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select(
+        `*, profiles:user_id ( name, profile_photo_url, latitude, longitude )`
+      )
+      .neq('user_id', currentUserId)
+      .eq('profiles.latitude', latRounded)
+      .eq('profiles.longitude', lonRounded)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw error;
+    }
+
+    const transformed: Post[] = (posts || []).map((post) => ({
+      id: post.id,
+      userId: post.user_id,
+      userName: post.profiles?.name || 'Unknown User',
+      userDpUrl:
+        post.profiles?.profile_photo_url ||
+        `https://i.pravatar.cc/300?img=${post.user_id}`,
+      title: post.title,
+      mediaUrl: post.media_url,
+      caption: post.caption,
+      timestamp: post.created_at,
+    }));
+
+    return transformed;
+  } catch (error) {
+    console.error('Error getting nearby posts:', error);
     return [];
   }
 }
