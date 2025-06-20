@@ -34,7 +34,7 @@ export const LocationPermissionModal: React.FC<Props> = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Enable Dynamic Location</h2>
+          <h2 className="text-xl font-bold text-white">Enable Location Tracking</h2>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-gray-800 active:scale-95 transition-all"
@@ -58,16 +58,16 @@ export const LocationPermissionModal: React.FC<Props> = ({
           {/* Description */}
           <div className="text-center space-y-3">
             <h3 className="text-lg font-semibold text-white">
-              Find People Near You - Live!
+              Find People in Your Area
             </h3>
             <p className="text-gray-300 text-sm leading-relaxed">
-              Enable location tracking to see people nearby in real-time. As you move around, the radar will automatically update to show new people in your area.
+              Enable location tracking to discover people nearby. The app will automatically update to show new people as you move around.
             </p>
           </div>
 
-          {/* Dynamic Features */}
+          {/* Features */}
           <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4 space-y-3">
-            <h4 className="text-sm font-medium text-blue-300">Dynamic Features:</h4>
+            <h4 className="text-sm font-medium text-blue-300">Features:</h4>
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -79,7 +79,7 @@ export const LocationPermissionModal: React.FC<Props> = ({
               </div>
               <div className="flex items-center gap-3">
                 <MapPinIcon className="w-4 h-4 text-green-400" />
-                <span className="text-sm text-gray-300">Real-time distance calculations</span>
+                <span className="text-sm text-gray-300">Discover people nearby</span>
               </div>
             </div>
           </div>
@@ -94,7 +94,7 @@ export const LocationPermissionModal: React.FC<Props> = ({
               </div>
               <div className="flex items-center gap-3">
                 <ShieldCheckIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span className="text-xs text-gray-300">Only approximate distances are shown</span>
+                <span className="text-xs text-gray-300">Only general proximity is shown</span>
               </div>
               <div className="flex items-center gap-3">
                 <ShieldCheckIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -125,7 +125,7 @@ export const LocationPermissionModal: React.FC<Props> = ({
               ) : (
                 <>
                   <MapPinIcon className="w-5 h-5" />
-                  Enable Live Tracking
+                  Enable Tracking
                 </>
               )}
             </button>

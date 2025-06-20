@@ -13,10 +13,9 @@ import {
   isSecureContext,
   watchUserLocation,
   stopWatchingLocation,
-  hasLocationChangedSignificantly,
+  hasLocationChanged,
   saveUserLocation,
-  createDebouncedLocationUpdate,
-  calculateDistance
+  createDebouncedLocationUpdate
 } from '../lib/location';
 
 interface Props {
@@ -71,7 +70,7 @@ export const RadarScreen: React.FC<Props> = ({
 
   const initializeRadar = async () => {
     try {
-      console.log('🚀 RADAR DEBUG: Initializing radar screen with 1km radius');
+      console.log('🚀 RADAR DEBUG: Initializing radar screen with coordinate bucketing');
       
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -118,13 +117,13 @@ export const RadarScreen: React.FC<Props> = ({
         setCurrentLocation(userLocation);
         setLocationPermission({ granted: true, denied: false, pending: false });
         if (isVisible) {
-          await loadUsersWithin1km(user.id, userLocation);
+          await loadNearbyUsers(user.id, userLocation);
         }
         
         // Start location tracking for dynamic updates
         startLocationTracking(user.id);
       } else {
-        console.log('🚀 RADAR DEBUG: User has no location data, need location for 1km radius');
+        console.log('🚀 RADAR DEBUG: User has no location data, need location for coordinate matching');
         // Try to get real location first
         const permissionStatus = await checkLocationPermission();
         setLocationPermission(permissionStatus);
@@ -134,12 +133,12 @@ export const RadarScreen: React.FC<Props> = ({
           try {
             await handleRequestLocation();
           } catch (error) {
-            console.log('🚀 RADAR DEBUG: Real location failed, cannot show users within 1km without location');
-            setUsers([]); // No users without location for 1km radius
+            console.log('🚀 RADAR DEBUG: Real location failed, cannot show users without location');
+            setUsers([]); // No users without location for coordinate matching
           }
         } else {
-          // Cannot show users within 1km without location
-          console.log('🚀 RADAR DEBUG: Location not available, cannot show users within 1km radius');
+          // Cannot show users without location
+          console.log('🚀 RADAR DEBUG: Location not available, cannot show users');
           setUsers([]);
         }
       }
@@ -151,17 +150,17 @@ export const RadarScreen: React.FC<Props> = ({
     }
   };
 
-  // Load users within 1km radius only
-  const loadUsersWithin1km = async (currentUserId: string, location: UserLocation) => {
+  // Load users with exact coordinate match
+  const loadNearbyUsers = async (currentUserId: string, location: UserLocation) => {
     try {
-      console.log('🔄 RADAR DEBUG: Loading users within 1km radius');
+      console.log('🔄 RADAR DEBUG: Loading users with exact coordinate match');
       
       if (!isUpdatingUsers && !isRefreshing) {
         setIsLoading(true);
       }
 
-      // Use the updated getNearbyUsers function with 1km radius
-      const result = await getNearbyUsers(currentUserId, location, 1, 20);
+      // Use the updated getNearbyUsers function with coordinate matching
+      const result = await getNearbyUsers(currentUserId, location, 20);
 
       if (!result.success) {
         console.error('Error loading nearby users:', result.error);
@@ -174,18 +173,18 @@ export const RadarScreen: React.FC<Props> = ({
       // Transform profiles to User type
       const transformedUsers: User[] = (result.users || []).map(profile => {
         const user = transformProfileToUser(profile);
-        user.distance = profile.distance; // Use the calculated distance
+        user.distance = 0; // All users in same bucket have distance 0
         return user;
       });
 
-      console.log('🔄 RADAR DEBUG: Final users within 1km:', transformedUsers);
+      console.log('🔄 RADAR DEBUG: Final users in same location bucket:', transformedUsers);
 
       if (mountedRef.current) {
         setUsers(transformedUsers);
-        console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users within 1km radius`);
+        console.log(`🔄 RADAR DEBUG: Set ${transformedUsers.length} users in same location bucket`);
       }
     } catch (error) {
-      console.error('🔄 RADAR DEBUG: Error in loadUsersWithin1km:', error);
+      console.error('🔄 RADAR DEBUG: Error in loadNearbyUsers:', error);
       if (mountedRef.current) {
         setUsers([]);
       }
@@ -201,15 +200,15 @@ export const RadarScreen: React.FC<Props> = ({
     createDebouncedLocationUpdate(async (location: UserLocation) => {
       if (!currentUser || !mountedRef.current) return;
       
-      console.log('Location changed significantly, updating users within 1km...');
+      console.log('Location bucket changed, updating users...');
       setIsUpdatingUsers(true);
       
       try {
         // Save new location to profile
         await saveUserLocation(currentUser.id, location);
         
-        // Update nearby users within 1km
-        await loadUsersWithin1km(currentUser.id, location);
+        // Update nearby users with exact coordinate match
+        await loadNearbyUsers(currentUser.id, location);
         
         setLastLocationUpdate(Date.now());
       } catch (error) {
@@ -228,7 +227,7 @@ export const RadarScreen: React.FC<Props> = ({
       stopWatchingLocation(locationWatchId.current);
     }
 
-    console.log('Starting dynamic location tracking for 1km radius...');
+    console.log('Starting dynamic location tracking for coordinate bucketing...');
     setIsLocationTracking(true);
 
     const watchId = watchUserLocation(
@@ -236,9 +235,9 @@ export const RadarScreen: React.FC<Props> = ({
         if (!mountedRef.current) return;
 
         setCurrentLocation(prevLocation => {
-          // Check if location has changed significantly
-          if (prevLocation && hasLocationChangedSignificantly(prevLocation, newLocation, 0.1)) {
-            console.log('Significant location change detected, updating 1km radius');
+          // Check if location bucket has changed (rounded coordinates)
+          if (prevLocation && hasLocationChanged(prevLocation, newLocation)) {
+            console.log('Location bucket changed, updating users');
             if (isVisible) {
               debouncedUpdateUsers(newLocation);
             }
@@ -278,14 +277,14 @@ export const RadarScreen: React.FC<Props> = ({
       const result = await requestLocationAndSave(currentUser.id, currentUser.location);
       
       if (result.success && result.location) {
-        console.log('Location obtained and saved successfully for 1km radius');
+        console.log('Location obtained and saved successfully for coordinate matching');
         setCurrentLocation(result.location);
         setLocationPermission({ granted: true, denied: false, pending: false });
         setShowLocationModal(false);
         
-        // Load users within 1km with the new location if visible
+        // Load users with exact coordinate match if visible
         if (isVisible) {
-          await loadUsersWithin1km(currentUser.id, result.location);
+          await loadNearbyUsers(currentUser.id, result.location);
         }
         
         // Start location tracking for dynamic updates
@@ -294,7 +293,7 @@ export const RadarScreen: React.FC<Props> = ({
         console.error('Failed to get location:', result.error);
         setLocationError(result.error || 'Failed to get location');
         
-        // Cannot show users without location for 1km radius
+        // Cannot show users without location for coordinate matching
         setUsers([]);
         
         // Update permission status based on error
@@ -304,7 +303,7 @@ export const RadarScreen: React.FC<Props> = ({
       }
     } catch (error) {
       console.error('Location request error:', error);
-      setLocationError('Failed to get location. Cannot show users within 1km without location.');
+      setLocationError('Failed to get location. Cannot show users without location.');
       
       // Cannot show users without location
       setUsers([]);
@@ -342,7 +341,7 @@ export const RadarScreen: React.FC<Props> = ({
         await handleRequestLocation();
       } else if (currentLocation) {
         // Just reload users with current location
-        await loadUsersWithin1km(currentUser.id, currentLocation);
+        await loadNearbyUsers(currentUser.id, currentLocation);
       }
     } catch (error) {
       console.error('Refresh error:', error);
@@ -405,7 +404,7 @@ export const RadarScreen: React.FC<Props> = ({
       }
 
       if (currentUser && currentLocation) {
-        await loadUsersWithin1km(currentUser.id, currentLocation);
+        await loadNearbyUsers(currentUser.id, currentLocation);
       } else if (currentUser && !currentLocation) {
         await handleRequestLocation();
       }

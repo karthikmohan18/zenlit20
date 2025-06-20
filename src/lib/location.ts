@@ -49,9 +49,10 @@ export const requestUserLocation = async (): Promise<{
       );
     });
 
+    // Round coordinates to 2 decimal places for privacy and performance
     const location: UserLocation = {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
+      latitude: Number(position.coords.latitude.toFixed(2)),
+      longitude: Number(position.coords.longitude.toFixed(2)),
       accuracy: position.coords.accuracy,
       timestamp: Date.now()
     };
@@ -110,9 +111,10 @@ export const watchUserLocation = (
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
+        // Round coordinates to 2 decimal places for privacy and performance
         const location: UserLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude: Number(position.coords.latitude.toFixed(2)),
+          longitude: Number(position.coords.longitude.toFixed(2)),
           accuracy: position.coords.accuracy,
           timestamp: Date.now()
         };
@@ -167,7 +169,7 @@ export const stopWatchingLocation = (watchId: number): void => {
   }
 };
 
-// Save user's location to their profile
+// Save user's location to their profile (with rounded coordinates)
 export const saveUserLocation = async (
   userId: string,
   location: UserLocation
@@ -178,11 +180,15 @@ export const saveUserLocation = async (
   try {
     console.log('Saving user location to profile:', userId, location);
 
+    // Round coordinates to 2 decimal places before saving
+    const latRounded = Number(location.latitude.toFixed(2));
+    const lonRounded = Number(location.longitude.toFixed(2));
+
     const { error } = await supabase
       .from('profiles')
       .update({
-        latitude: location.latitude,
-        longitude: location.longitude,
+        latitude: latRounded,
+        longitude: lonRounded,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
@@ -207,51 +213,23 @@ export const saveUserLocation = async (
   }
 };
 
-// Calculate distance between two points using Haversine formula
-export const calculateDistance = (
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number => {
-  const R = 6371; // Earth's radius in km
-
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) ** 2;
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c;
-};
-
-// Check if location has changed significantly (more than 100 meters)
-export const hasLocationChangedSignificantly = (
+// Check if location coordinates have changed (rounded comparison)
+export const hasLocationChanged = (
   oldLocation: UserLocation,
-  newLocation: UserLocation,
-  thresholdKm: number = 0.1 // 100 meters
+  newLocation: UserLocation
 ): boolean => {
-  const distance = calculateDistance(
-    oldLocation.latitude,
-    oldLocation.longitude,
-    newLocation.latitude,
-    newLocation.longitude
-  );
+  const oldLatRounded = Number(oldLocation.latitude.toFixed(2));
+  const oldLonRounded = Number(oldLocation.longitude.toFixed(2));
+  const newLatRounded = Number(newLocation.latitude.toFixed(2));
+  const newLonRounded = Number(newLocation.longitude.toFixed(2));
   
-  return distance >= thresholdKm;
+  return oldLatRounded !== newLatRounded || oldLonRounded !== newLonRounded;
 };
 
-// Enhanced function to get nearby users within 1km radius
+// Get nearby users with exact coordinate match (same 2-decimal bucket)
 export const getNearbyUsers = async (
   currentUserId: string,
   currentLocation: UserLocation,
-  maxDistance: number = 1, // Changed to 1km radius
   limit: number = 20
 ): Promise<{
   success: boolean;
@@ -262,18 +240,23 @@ export const getNearbyUsers = async (
     console.log('🔍 LOCATION DEBUG: Starting getNearbyUsers function');
     console.log('📍 Current user ID:', currentUserId);
     console.log('📍 Current location:', currentLocation);
-    console.log('📍 Max distance:', maxDistance, 'km (1km radius)');
     console.log('📍 Limit:', limit);
 
-    // Get users with location data only (since we need precise distance calculation)
+    // Round coordinates to 2 decimal places for exact matching
+    const latRounded = Number(currentLocation.latitude.toFixed(2));
+    const lonRounded = Number(currentLocation.longitude.toFixed(2));
+
+    console.log('📍 Rounded coordinates for matching:', { latRounded, lonRounded });
+
+    // Get users with exact coordinate match (same location bucket)
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
       .neq('id', currentUserId)
       .not('name', 'is', null)
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null)
-      .limit(100); // Get more users for better filtering
+      .eq('latitude', latRounded)
+      .eq('longitude', lonRounded)
+      .limit(limit);
 
     console.log('🔍 LOCATION DEBUG: Raw profiles from database:', profiles);
     console.log('🔍 LOCATION DEBUG: Database query error:', error);
@@ -287,66 +270,44 @@ export const getNearbyUsers = async (
     }
 
     if (!profiles || profiles.length === 0) {
-      console.log('🔍 LOCATION DEBUG: No profiles with location data found');
+      console.log('🔍 LOCATION DEBUG: No profiles with matching coordinates found');
       return {
         success: true,
         users: []
       };
     }
 
-    console.log('🔍 LOCATION DEBUG: Processing', profiles.length, 'profiles with location data');
+    console.log('🔍 LOCATION DEBUG: Processing', profiles.length, 'profiles with matching coordinates');
 
-    // Process users and calculate precise distances using haversine formula
-    const usersWithDistance = profiles
-      .map((profile, index) => {
-        console.log(`🔍 LOCATION DEBUG: Processing profile ${index + 1}/${profiles.length}`);
-        console.log('👤 Profile ID:', profile.id);
-        console.log('👤 Profile name:', profile.name);
-        console.log('👤 Profile latitude:', profile.latitude);
-        console.log('👤 Profile longitude:', profile.longitude);
+    // Process users and set distance to 0 (same location bucket)
+    const usersWithDistance = profiles.map((profile, index) => {
+      console.log(`🔍 LOCATION DEBUG: Processing profile ${index + 1}/${profiles.length}`);
+      console.log('👤 Profile ID:', profile.id);
+      console.log('👤 Profile name:', profile.name);
+      console.log('👤 Profile latitude:', profile.latitude);
+      console.log('👤 Profile longitude:', profile.longitude);
 
-        // Calculate precise distance using haversine formula
-        const distance = calculateDistance(
-          currentLocation.latitude,
-          currentLocation.longitude,
-          profile.latitude,
-          profile.longitude
-        );
+      const userWithDistance = {
+        ...profile,
+        distance: 0, // All users in same bucket have distance 0
+        hasRealLocation: true
+      };
 
-        console.log('📏 Calculated precise distance:', distance, 'km');
+      console.log('✅ Final user object:', {
+        id: userWithDistance.id,
+        name: userWithDistance.name,
+        distance: userWithDistance.distance,
+        hasRealLocation: true
+      });
 
-        const userWithDistance = {
-          ...profile,
-          distance,
-          hasRealLocation: true
-        };
+      return userWithDistance;
+    });
 
-        console.log('✅ Final user object:', {
-          id: userWithDistance.id,
-          name: userWithDistance.name,
-          distance: userWithDistance.distance,
-          hasRealLocation: true
-        });
-
-        return userWithDistance;
-      })
-      .filter(user => {
-        // Filter users within 1km radius only
-        const withinRadius = user.distance <= maxDistance;
-        console.log(`🔍 LOCATION DEBUG: User ${user.name} distance ${user.distance.toFixed(3)}km - within 1km radius: ${withinRadius}`);
-        return withinRadius;
-      })
-      .sort((a, b) => {
-        // Sort by distance (closest first)
-        return a.distance - b.distance;
-      })
-      .slice(0, limit); // Limit results
-
-    console.log('🔍 LOCATION DEBUG: Users within 1km radius after filtering:', usersWithDistance);
-    console.log('🔍 LOCATION DEBUG: Final user count within 1km:', usersWithDistance.length);
+    console.log('🔍 LOCATION DEBUG: Users in same location bucket:', usersWithDistance);
+    console.log('🔍 LOCATION DEBUG: Final user count:', usersWithDistance.length);
 
     usersWithDistance.forEach((user, index) => {
-      console.log(`📋 Final user ${index + 1}: ${user.name} - ${user.distance.toFixed(3)}km away`);
+      console.log(`📋 Final user ${index + 1}: ${user.name} - same location bucket`);
     });
 
     return {
