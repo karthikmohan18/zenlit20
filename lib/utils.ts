@@ -1,7 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { User } from '../src/types'
-import { uploadProfileImage } from '../src/lib/storage'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -62,5 +61,15 @@ export async function validateProfileUrl(url: string): Promise<boolean> {
   return linkedin.test(url) || instagram.test(url) || twitter.test(url)
 }
 
-// Re-export uploadProfileImage for backward compatibility
-export { uploadProfileImage };
+// Upload profile image function for backward compatibility
+export async function uploadProfileImage(userId: string, imageDataURL: string): Promise<string | null> {
+  try {
+    // Import the upload function from storage
+    const { uploadImage } = await import('../src/lib/storage');
+    const result = await uploadImage('avatars', `${userId}/profile.jpg`, imageDataURL);
+    return result.publicUrl;
+  } catch (error) {
+    console.error('Profile image upload error:', error);
+    return null;
+  }
+}
