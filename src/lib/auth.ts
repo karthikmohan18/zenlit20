@@ -39,9 +39,19 @@ export const sendSignupOTP = async (email: string): Promise<AuthResponse> => {
       
       // Handle specific Supabase errors
       if (error.message.includes('User already registered')) {
-        return { 
-          success: false, 
-          error: 'An account with this email already exists. Please sign in instead or use "Forgot password?" if you need to reset your password.' 
+        return {
+          success: false,
+          error: 'An account with this email already exists. Please sign in instead or use "Forgot password?" if you need to reset your password.'
+        }
+      }
+
+      if (
+        error.message.includes('Database error saving new user') ||
+        error.message.includes('duplicate key value')
+      ) {
+        return {
+          success: false,
+          error: 'An account with this email already exists. Please sign in instead or use "Forgot password?" if you need to reset your password.'
         }
       }
       

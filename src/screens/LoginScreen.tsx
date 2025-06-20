@@ -108,7 +108,11 @@ export const LoginScreen: React.FC<Props> = ({ onLogin }) => {
       } else {
         console.error('OTP send failed:', result.error);
         // Check if the error indicates an existing account
-        if (result.error && result.error.includes('already exists')) {
+        if (
+          result.error &&
+          (result.error.includes('already exists') ||
+            result.error.includes('Database error saving new user'))
+        ) {
           // Switch to login view and pre-fill email
           setCurrentView('login');
           setError('An account with this email already exists. Please sign in below.');
