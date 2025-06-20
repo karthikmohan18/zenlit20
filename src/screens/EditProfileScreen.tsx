@@ -136,73 +136,89 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
     }
   };
 
-  const handleSave = async () => {
+  const handleSaveProfile = async () => {
     setLoading(true);
     try {
       let newProfileUrl = profileUrl;
       let newCoverUrl = coverUrl;
 
-      // Handle profile photo deletion
+      // Handle profile photo deletion when clearing existing image
       if (!profileUrl && user.dpUrl && !user.dpUrl.includes('/images/default-')) {
-        console.log('Deleting existing profile photo...');
-        const profileFilePath = extractFilePathFromUrl(user.dpUrl, 'avatars');
-        if (profileFilePath) {
-          await deleteImage('avatars', profileFilePath);
+        try {
+          const profileFilePath = extractFilePathFromUrl(user.dpUrl, 'avatars');
+          if (profileFilePath) {
+            await supabase.storage.from('avatars').remove([profileFilePath]);
+          }
+          newProfileUrl = null;
+        } catch (deleteErr) {
+          console.error('Error deleting old avatar:', deleteErr);
+          alert('Failed to delete previous profile photo');
         }
-        newProfileUrl = null;
-      }
-      // Handle profile photo upload
-      else if (profileFile) {
-        console.log('Uploading new profile photo...');
-        const { publicUrl: uploadedProfileUrl, error: profileUploadError } = await uploadProfileImage(profileFile);
-        if (profileUploadError) {
-          throw new Error(`Failed to upload profile photo: ${profileUploadError}`);
-        }
-        if (uploadedProfileUrl) {
-          // Delete old profile photo if it exists and is not a default
-          if (user.dpUrl && !user.dpUrl.includes('/images/default-')) {
-            const oldProfileFilePath = extractFilePathFromUrl(user.dpUrl, 'avatars');
-            if (oldProfileFilePath) {
-              await deleteImage('avatars', oldProfileFilePath);
+      } else if (profileFile) {
+        // Replace existing avatar with new file
+        try {
+          if (user.dpUrl) {
+            const oldAvatarPath = extractFilePathFromUrl(user.dpUrl, 'avatars');
+            if (oldAvatarPath) {
+              await supabase.storage.from('avatars').remove([oldAvatarPath]);
             }
           }
+        } catch (deleteErr) {
+          console.error('Error deleting old avatar:', deleteErr);
+          alert('Failed to delete previous profile photo');
+        }
+
+        try {
+          const { publicUrl: uploadedProfileUrl, error: profileUploadError } = await uploadProfileImage(profileFile);
+          if (profileUploadError || !uploadedProfileUrl) {
+            throw new Error(profileUploadError || 'Unknown error uploading profile photo.');
+          }
           newProfileUrl = uploadedProfileUrl;
-        } else {
-          throw new Error('Failed to upload profile photo: Unknown error.');
+        } catch (uploadErr) {
+          console.error('Avatar upload error:', uploadErr);
+          alert(uploadErr instanceof Error ? uploadErr.message : 'Failed to upload profile photo');
         }
       }
 
-      // Handle cover photo deletion
+      // Handle cover photo deletion when clearing existing image
       if (!coverUrl && user.coverPhotoUrl && !user.coverPhotoUrl.includes('/images/default-')) {
-        console.log('Deleting existing cover photo...');
-        const coverFilePath = extractFilePathFromUrl(user.coverPhotoUrl, 'banner');
-        if (coverFilePath) {
-          await deleteImage('banner', coverFilePath);
-        }
-        newCoverUrl = null;
-      }
-      // Handle cover photo upload
-      else if (coverFile) {
-        console.log('Uploading new cover photo...');
-        const { publicUrl: uploadedCoverUrl, error: coverUploadError } = await uploadBannerImage(coverFile);
-        if (coverUploadError) {
-          // Specific error handling for RLS policy violation
-          if (coverUploadError.includes('row-level security policy') || coverUploadError.includes('Unauthorized')) {
-            throw new Error('Failed to upload cover photo: Access denied due to security policy. Please ensure your account has permission.');
+        try {
+          const coverFilePath = extractFilePathFromUrl(user.coverPhotoUrl, 'banner');
+          if (coverFilePath) {
+            await supabase.storage.from('banner').remove([coverFilePath]);
           }
-          throw new Error(`Failed to upload cover photo: ${coverUploadError}`);
+          newCoverUrl = null;
+        } catch (deleteErr) {
+          console.error('Error deleting old cover photo:', deleteErr);
+          alert('Failed to delete previous cover photo');
         }
-        if (uploadedCoverUrl) {
-          // Delete old cover photo if it exists and is not a default
-          if (user.coverPhotoUrl && !user.coverPhotoUrl.includes('/images/default-')) {
-            const oldCoverFilePath = extractFilePathFromUrl(user.coverPhotoUrl, 'banner');
-            if (oldCoverFilePath) {
-              await deleteImage('banner', oldCoverFilePath);
+      } else if (coverFile) {
+        // Replace existing cover with new file
+        try {
+          if (user.coverPhotoUrl) {
+            const oldCoverPath = extractFilePathFromUrl(user.coverPhotoUrl, 'banner');
+            if (oldCoverPath) {
+              await supabase.storage.from('banner').remove([oldCoverPath]);
             }
           }
+        } catch (deleteErr) {
+          console.error('Error deleting old cover photo:', deleteErr);
+          alert('Failed to delete previous cover photo');
+        }
+
+        try {
+          const { publicUrl: uploadedCoverUrl, error: coverUploadError } = await uploadBannerImage(coverFile);
+          if (coverUploadError || !uploadedCoverUrl) {
+            // Specific error handling for RLS policy violation
+            if (coverUploadError && (coverUploadError.includes('row-level security policy') || coverUploadError.includes('Unauthorized'))) {
+              throw new Error('Failed to upload cover photo: Access denied due to security policy. Please ensure your account has permission.');
+            }
+            throw new Error(coverUploadError || 'Unknown error uploading cover photo.');
+          }
           newCoverUrl = uploadedCoverUrl;
-        } else {
-          throw new Error('Failed to upload cover photo: Unknown error.');
+        } catch (uploadErr) {
+          console.error('Cover upload error:', uploadErr);
+          alert(uploadErr instanceof Error ? uploadErr.message : 'Failed to upload cover photo');
         }
       }
 
@@ -274,7 +290,7 @@ export const EditProfileScreen: React.FC<Props> = ({ user, onBack, onSave }) => 
         </button>
         <h1 className="text-lg font-semibold text-white">Edit Profile</h1>
         <button
-          onClick={handleSave}
+          onClick={handleSaveProfile}
           disabled={loading}
           className="bg-blue-600 px-4 py-2 rounded-full text-white disabled:bg-gray-600 flex items-center gap-2"
         >
