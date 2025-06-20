@@ -119,7 +119,7 @@ EXCEPTION
       now(),
       now()
     )
-    ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT DO NOTHING;
     RETURN NEW;
   WHEN OTHERS THEN
     -- Log any other errors but don't fail the user creation
@@ -128,7 +128,7 @@ EXCEPTION
     BEGIN
       INSERT INTO public.profiles (id, email, created_at)
       VALUES (NEW.id, NEW.email, now())
-      ON CONFLICT (id) DO NOTHING;
+      ON CONFLICT DO NOTHING;
     EXCEPTION
       WHEN OTHERS THEN
         RAISE LOG 'Failed to create even minimal profile for user %: %', NEW.id, SQLERRM;

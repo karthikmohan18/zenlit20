@@ -75,6 +75,7 @@ All notable changes to the Zenlit Social Media App will be documented in this fi
 ### Technical Improvements
 - **Backend Integration** - Real API endpoints
 - **Database Implementation** - Production database setup
+- **Unique Email Constraint** - Ensure `profiles.email` values are unique
 - **Authentication Service** - Real OAuth implementations
 - **File Upload Service** - Cloud storage integration
 - **Real-time Updates** - Live data synchronization
