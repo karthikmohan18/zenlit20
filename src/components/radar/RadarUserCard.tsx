@@ -51,6 +51,11 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
     return <MapPinIcon className="w-4 h-4" />;
   };
 
+  // Helper function to check if a URL is valid and not a placeholder
+  const isValidUrl = (url: string | undefined | null): boolean => {
+    return !!(url && url.trim() !== '' && url !== '#');
+  };
+
   return (
     <>
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden transition-all duration-300 ease-in-out hover:shadow-xl hover:border-gray-700">
@@ -128,45 +133,36 @@ export const RadarUserCard: React.FC<Props> = ({ user, onMessage, onViewProfile 
 
           {/* Bottom section: Social Links and Action Buttons */}
           <div className="flex items-center justify-between">
-            {/* Social Links - Left side */}
+            {/* Social Links - Left side - Only show if URLs are valid */}
             <div className="flex gap-4">
-              {user.twitterUrl && (
+              {isValidUrl(user.twitterUrl) && (
                 <a
                   href={user.twitterUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative text-gray-400 hover:text-white transition-colors active:scale-95"
+                  className="text-gray-400 hover:text-white transition-colors active:scale-95"
                 >
                   <IconBrandX size={24} />
-                  {user.twitterVerified && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full" />
-                  )}
                 </a>
               )}
-              {user.instagramUrl && (
+              {isValidUrl(user.instagramUrl) && (
                 <a
                   href={user.instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative text-gray-400 hover:text-white transition-colors active:scale-95"
+                  className="text-gray-400 hover:text-white transition-colors active:scale-95"
                 >
                   <IconBrandInstagram size={24} />
-                  {user.instagramVerified && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full" />
-                  )}
                 </a>
               )}
-              {user.linkedInUrl && (
+              {isValidUrl(user.linkedInUrl) && (
                 <a
                   href={user.linkedInUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative text-gray-400 hover:text-white transition-colors active:scale-95"
+                  className="text-gray-400 hover:text-white transition-colors active:scale-95"
                 >
                   <IconBrandLinkedin size={24} />
-                  {user.linkedInVerified && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full" />
-                  )}
                 </a>
               )}
             </div>

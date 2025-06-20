@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Post } from '../types';
 import { IconBrandInstagram, IconBrandLinkedin, IconBrandX } from '@tabler/icons-react';
-import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon, CheckCircleIcon, CameraIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon, Cog6ToothIcon, UserIcon, ArrowRightOnRectangleIcon, CameraIcon } from '@heroicons/react/24/outline';
 import { PostsGalleryScreen } from './PostsGalleryScreen';
 import { EditProfileScreen } from './EditProfileScreen';
 import { supabase } from '../lib/supabase';
@@ -203,12 +203,10 @@ export const ProfileScreen: React.FC<Props> = ({
     );
   }
 
-  // Count connected social accounts
-  const verifiedAccountsCount = [
-    profileData.instagram_url,
-    profileData.linked_in_url,
-    profileData.twitter_url
-  ].filter(Boolean).length;
+  // Helper function to check if a URL is valid and not a placeholder
+  const isValidUrl = (url: string | undefined | null): boolean => {
+    return !!(url && url.trim() !== '' && url !== '#');
+  };
 
   if (showEditProfile) {
     return (
@@ -313,12 +311,6 @@ export const ProfileScreen: React.FC<Props> = ({
                 <UserIcon className="w-12 h-12 text-gray-400" />
               </div>
             )}
-            {/* Verified badge if user has verified accounts */}
-            {verifiedAccountsCount > 0 && (
-              <div className="absolute -bottom-1 -right-1 bg-blue-600 rounded-full p-1 border-2 border-black">
-                <CheckCircleIcon className="w-4 h-4 text-white" />
-              </div>
-            )}
           </div>
         </div>
         
@@ -334,65 +326,44 @@ export const ProfileScreen: React.FC<Props> = ({
       {/* Profile Content */}
       <div className="mt-16 px-4 pb-20">
         <div className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h1 className="text-2xl font-bold text-white">{profileData.name}</h1>
-            {verifiedAccountsCount > 0 && (
-              <CheckCircleIcon className="w-6 h-6 text-blue-500" />
-            )}
-          </div>
-          
-          {/* Verification status */}
-          {verifiedAccountsCount > 0 && (
-            <p className="text-sm text-blue-400 mb-2">
-              {verifiedAccountsCount} verified account{verifiedAccountsCount !== 1 ? 's' : ''}
-            </p>
-          )}
+          <h1 className="text-2xl font-bold text-white mb-2">{profileData.name}</h1>
           
           <p className="text-gray-300 mt-2 text-base leading-relaxed">
             {profileData.bio || 'No bio available'}
           </p>
           
-          {/* Social Links with verification indicators (excluding Facebook) */}
+          {/* Social Links - Only show icons if URLs are valid */}
           <div className="flex justify-center gap-8 mt-8">
-            <a
-              href={profileData.twitter_url || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
-            >
-              <IconBrandX size={24} />
-              {profileData.twitter_url && (
-                <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
-                  <CheckCircleIcon className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </a>
-            <a
-              href={profileData.instagram_url || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
-            >
-              <IconBrandInstagram size={24} />
-              {profileData.instagram_url && (
-                <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
-                  <CheckCircleIcon className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </a>
-            <a
-              href={profileData.linked_in_url || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
-            >
-              <IconBrandLinkedin size={24} />
-              {profileData.linked_in_url && (
-                <div className="absolute -top-1 -right-1 bg-blue-600 rounded-full p-0.5">
-                  <CheckCircleIcon className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </a>
+            {isValidUrl(profileData.twitter_url) && (
+              <a
+                href={profileData.twitter_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
+              >
+                <IconBrandX size={24} />
+              </a>
+            )}
+            {isValidUrl(profileData.instagram_url) && (
+              <a
+                href={profileData.instagram_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
+              >
+                <IconBrandInstagram size={24} />
+              </a>
+            )}
+            {isValidUrl(profileData.linked_in_url) && (
+              <a
+                href={profileData.linked_in_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-gray-800 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 transition-all active:scale-95"
+              >
+                <IconBrandLinkedin size={24} />
+              </a>
+            )}
           </div>
         </div>
         
