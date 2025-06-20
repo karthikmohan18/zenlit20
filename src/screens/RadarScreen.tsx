@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RadarUserCard } from '../components/radar/RadarUserCard';
 import { LocationPermissionModal } from '../components/radar/LocationPermissionModal';
 import { User, UserLocation, LocationPermissionStatus } from '../types';
-import { MapPinIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
 import { transformProfileToUser } from '../../lib/utils';
 import { 
@@ -281,6 +281,7 @@ export const RadarScreen: React.FC<Props> = ({
         setCurrentLocation(result.location);
         setLocationPermission({ granted: true, denied: false, pending: false });
         setShowLocationModal(false);
+        setLastLocationUpdate(Date.now());
         
         // Load users with exact coordinate match if visible
         if (isVisible) {
@@ -343,6 +344,7 @@ export const RadarScreen: React.FC<Props> = ({
         // Just reload users with current location
         await loadNearbyUsers(currentUser.id, currentLocation);
       }
+      setLastLocationUpdate(Date.now());
     } catch (error) {
       console.error('Refresh error:', error);
       setLocationError('Failed to refresh. Please try again.');
@@ -382,6 +384,23 @@ export const RadarScreen: React.FC<Props> = ({
     setIsPulling(false);
     setPullDistance(0);
   };
+
+  // Automatically refresh location every 120 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (
+        isVisible &&
+        currentUser &&
+        currentLocation &&
+        !isRefreshing &&
+        Date.now() - lastLocationUpdate >= 120000
+      ) {
+        handleRefresh();
+      }
+    }, 10000); // check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [isVisible, currentUser, currentLocation, lastLocationUpdate, isRefreshing]);
 
   // When visibility is turned on, request location permission if needed
   useEffect(() => {
@@ -466,14 +485,23 @@ export const RadarScreen: React.FC<Props> = ({
             </div>
             
             {/* Right side - Show Nearby Toggle */}
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-xs text-gray-400">Show Nearby</span>
-              <input
-                type="checkbox"
-                className="relative w-10 h-5 rounded-full appearance-none bg-gray-700 checked:bg-blue-600 transition-colors cursor-pointer before:absolute before:left-1 before:top-1 before:w-3 before:h-3 before:bg-white before:rounded-full before:transition-transform checked:before:translate-x-5"
-                checked={isVisible}
-                onChange={(e) => setIsVisible(e.target.checked)}
-              />
+            <div className="flex flex-col items-end gap-1 ml-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Show Nearby</span>
+                <input
+                  type="checkbox"
+                  className="relative w-10 h-5 rounded-full appearance-none bg-gray-700 checked:bg-blue-600 transition-colors cursor-pointer before:absolute before:left-1 before:top-1 before:w-3 before:h-3 before:bg-white before:rounded-full before:transition-transform checked:before:translate-x-5"
+                  checked={isVisible}
+                  onChange={(e) => setIsVisible(e.target.checked)}
+                />
+              </div>
+              <button
+                onClick={handleRefresh}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-white"
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+                Refresh
+              </button>
             </div>
           </div>
         </div>
@@ -581,7 +609,7 @@ export const RadarScreen: React.FC<Props> = ({
           )
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-400">Toggle "Show Nearby" to see people around you</p>
+            <p className="text-gray-400">Toggle &quot;Show Nearby&quot; to see people around you</p>
           </div>
         )}
       </div>
