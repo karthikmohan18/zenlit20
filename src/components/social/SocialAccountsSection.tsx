@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { User, SocialProvider, OAuthState } from '../../types';
-import { SocialAuthButton } from './SocialAuthButton';
+import { User, SocialProvider } from '../../types';
+import { SocialLinkModal } from './SocialLinkModal';
 import { 
   IconBrandInstagram, 
   IconBrandLinkedin, 
   IconBrandX
 } from '@tabler/icons-react';
+import { CheckCircleIcon, LinkIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 interface Props {
   user: User;
@@ -13,180 +14,139 @@ interface Props {
 }
 
 export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) => {
-  const [oauthStates, setOauthStates] = useState<Record<string, OAuthState>>({});
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const socialProviders: SocialProvider[] = [
+  const socialProviders: (SocialProvider & { 
+    placeholder: string;
+    getCurrentUrl: () => string | undefined;
+    getIsVerified: () => boolean;
+  })[] = [
     {
       id: 'instagram',
       name: 'Instagram',
       color: 'pink',
-      icon: IconBrandInstagram
+      icon: IconBrandInstagram,
+      placeholder: 'https://instagram.com/yourusername',
+      getCurrentUrl: () => user.instagramUrl,
+      getIsVerified: () => !!user.instagramVerified
     },
     {
       id: 'linkedin',
       name: 'LinkedIn',
       color: 'blue',
-      icon: IconBrandLinkedin
+      icon: IconBrandLinkedin,
+      placeholder: 'https://linkedin.com/in/yourprofile',
+      getCurrentUrl: () => user.linkedInUrl,
+      getIsVerified: () => !!user.linkedInVerified
     },
     {
       id: 'twitter',
       name: 'X (Twitter)',
       color: 'gray',
-      icon: IconBrandX
+      icon: IconBrandX,
+      placeholder: 'https://twitter.com/yourusername',
+      getCurrentUrl: () => user.twitterUrl,
+      getIsVerified: () => !!user.twitterVerified
     }
   ];
 
-  const getProviderData = (providerId: string) => {
-    switch (providerId) {
-      case 'instagram':
-        return {
-          isConnected: !!user.instagramUrl,
-          isVerified: !!user.instagramVerified,
-          profileUrl: user.instagramUrl
-        };
-      case 'linkedin':
-        return {
-          isConnected: !!user.linkedInUrl,
-          isVerified: !!user.linkedInVerified,
-          profileUrl: user.linkedInUrl
-        };
-      case 'twitter':
-        return {
-          isConnected: !!user.twitterUrl,
-          isVerified: !!user.twitterVerified,
-          profileUrl: user.twitterUrl
-        };
-      default:
-        return {
-          isConnected: false,
-          isVerified: false,
-          profileUrl: undefined
-        };
-    }
-  };
-
-  const setOAuthState = (providerId: string, state: Partial<OAuthState>) => {
-    setOauthStates(prev => ({
-      ...prev,
-      [providerId]: {
-        ...prev[providerId],
-        ...state
-      }
-    }));
-  };
-
-  const initiateOAuth = async (providerId: string) => {
-    setOAuthState(providerId, {
-      isConnecting: true,
-      error: null,
-      provider: providerId
-    });
+  const handleSaveLink = async (providerId: string, url: string) => {
+    setIsLoading(true);
 
     try {
-      // Simulate OAuth flow - In real implementation, this would:
-      // 1. Redirect to backend endpoint (e.g., /auth/instagram)
-      // 2. Backend redirects to provider's OAuth page
-      // 3. User authorizes the app
-      // 4. Provider redirects back to backend callback
-      // 5. Backend exchanges code for access token
-      // 6. Backend fetches user's profile URL
-      // 7. Backend updates user record and redirects back to frontend
-      
-      console.log(`Initiating OAuth for ${providerId}`);
-      
-      // For demo purposes, simulate the OAuth process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Simulate successful OAuth response
-      const mockProfileUrls = {
-        instagram: 'https://instagram.com/verified_user',
-        linkedin: 'https://linkedin.com/in/verified-user',
-        twitter: 'https://twitter.com/verified_user'
-      };
-
-      const profileUrl = mockProfileUrls[providerId as keyof typeof mockProfileUrls];
-      
-      // Update user with verified social account
+      // Update user object with new URL and mark as verified if URL is provided
       const updatedUser = {
         ...user,
-        [`${providerId}Url`]: profileUrl,
-        [`${providerId}Verified`]: true
+        [`${providerId}Url`]: url || undefined,
+        [`${providerId}Verified`]: !!url // Mark as verified if URL exists, unverified if removed
       };
 
+      // Call the parent's update handler
       onUserUpdate(updatedUser);
       
-      setOAuthState(providerId, {
-        isConnecting: false,
-        error: null,
-        provider: null
-      });
-
+      // Close modal
+      setActiveModal(null);
     } catch (error) {
-      console.error(`OAuth failed for ${providerId}:`, error);
-      
-      setOAuthState(providerId, {
-        isConnecting: false,
-        error: error instanceof Error ? error.message : 'Failed to connect account. Please try again.',
-        provider: null
-      });
+      console.error(`Failed to save ${providerId} link:`, error);
+      // You could add a toast notification here for error feedback
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleConnect = (providerId: string) => {
-    // In a real implementation, this would redirect to:
-    // window.location.href = `/auth/${providerId}`;
-    initiateOAuth(providerId);
+  const openModal = (providerId: string) => {
+    setActiveModal(providerId);
   };
 
-  const handleReconnect = (providerId: string) => {
-    // Clear existing connection and reconnect
-    const updatedUser = {
-      ...user,
-      [`${providerId}Url`]: undefined,
-      [`${providerId}Verified`]: false
-    };
-    onUserUpdate(updatedUser);
-    
-    // Initiate new OAuth flow
-    setTimeout(() => {
-      initiateOAuth(providerId);
-    }, 500);
+  const closeModal = () => {
+    setActiveModal(null);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Verify Social Accounts</h2>
+        <h2 className="text-lg font-semibold text-white">Social Media Links</h2>
         <div className="text-sm text-gray-400">
-          {socialProviders.filter(p => getProviderData(p.id).isVerified).length} of {socialProviders.length} verified
+          {socialProviders.filter(p => p.getIsVerified()).length} of {socialProviders.length} added
         </div>
       </div>
       
       <p className="text-sm text-gray-400 mb-6">
-        Connect and verify your social media accounts to build trust with other users and get a verified badge.
+        Add links to your social media profiles to help others connect with you and build trust.
       </p>
 
       <div className="space-y-4">
         {socialProviders.map((provider) => {
-          const providerData = getProviderData(provider.id);
-          const oauthState = oauthStates[provider.id] || {
-            isConnecting: false,
-            error: null,
-            provider: null
-          };
+          const currentUrl = provider.getCurrentUrl();
+          const isConnected = !!currentUrl;
+          const IconComponent = provider.icon;
 
           return (
-            <SocialAuthButton
-              key={provider.id}
-              provider={provider}
-              isConnected={providerData.isConnected}
-              isVerified={providerData.isVerified}
-              profileUrl={providerData.profileUrl}
-              isConnecting={oauthState.isConnecting}
-              error={oauthState.error}
-              onConnect={() => handleConnect(provider.id)}
-              onReconnect={() => handleReconnect(provider.id)}
-            />
+            <div key={provider.id} className="space-y-2">
+              <div className="flex items-center justify-between p-4 bg-gray-800 border border-gray-600 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <IconComponent size={24} className="text-gray-300" />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-white">{provider.name}</h3>
+                    {isConnected ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                        <p className="text-sm text-green-400 truncate">
+                          {currentUrl}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        Not connected
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => openModal(provider.id)}
+                  disabled={isLoading}
+                  className={`px-4 py-2 rounded-lg font-medium text-white transition-all active:scale-95 disabled:cursor-not-allowed flex items-center gap-2 text-sm ${
+                    isConnected
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-700 hover:bg-gray-600'
+                  }`}
+                >
+                  {isConnected ? (
+                    <>
+                      <LinkIcon className="w-4 h-4" />
+                      Edit Link
+                    </>
+                  ) : (
+                    <>
+                      <PlusIcon className="w-4 h-4" />
+                      Add Link
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           );
         })}
       </div>
@@ -199,16 +159,29 @@ export const SocialAccountsSection: React.FC<Props> = ({ user, onUserUpdate }) =
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-blue-300 mb-1">Why verify your accounts?</h3>
+            <h3 className="text-sm font-medium text-blue-300 mb-1">Why add social links?</h3>
             <ul className="text-xs text-blue-200 space-y-1">
-              <li>• Verify your identity to other users</li>
+              <li>• Help others verify your identity</li>
               <li>• Build trust in the community</li>
               <li>• Show your authentic social presence</li>
-              <li>• Get a verified badge on your profile</li>
+              <li>• Make it easier for people to connect with you</li>
             </ul>
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {socialProviders.map((provider) => (
+        <SocialLinkModal
+          key={provider.id}
+          isOpen={activeModal === provider.id}
+          onClose={closeModal}
+          onSave={(url) => handleSaveLink(provider.id, url)}
+          platform={provider}
+          currentUrl={provider.getCurrentUrl()}
+          isLoading={isLoading}
+        />
+      ))}
     </div>
   );
 };
